@@ -1,1 +1,1 @@
-## Image Duplicates
+## Doppelganger
