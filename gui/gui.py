@@ -2,11 +2,10 @@ from PyQt5.QtCore import Qt, pyqtSlot
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import (
     QFileDialog, QHBoxLayout, QLabel, QListWidgetItem, QMainWindow,
-    QVBoxLayout, QWidget
-)
+    QVBoxLayout, QWidget)
 from PyQt5.uic import loadUi
 
-from . import duplicates
+from . import duplicates, utils
 
 
 class InfoLabelWidget(QLabel):
@@ -22,7 +21,11 @@ class ImageInfoWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignBottom)
 
-        for text in [str(similarity), '13x13', image_path]:
+        image_size = utils.get_image_size(image_path)
+        image_weight = utils.get_image_weight(image_path, 'KB')
+        image_size = '{}x{}, {} KB'.format(image_size[0], image_size[1], image_weight)
+
+        for text in [str(similarity), image_size, image_path]:
             label = InfoLabelWidget(text)
             layout.addWidget(label)
 
