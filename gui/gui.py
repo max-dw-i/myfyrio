@@ -9,6 +9,8 @@ from . import duplicates, utils
 
 
 class InfoLabelWidget(QLabel):
+    '''Abstract Label class'''
+
     def __init__(self, text):
         super().__init__()
         self.setAlignment(Qt.AlignHCenter)
@@ -16,20 +18,25 @@ class InfoLabelWidget(QLabel):
 
 
 class SimilarityLabel(InfoLabelWidget):
-    pass
+    '''Label class to show info about images similarity'''
 
 
 class ImageSizeLabel(InfoLabelWidget):
-    pass
+    '''Label class to show info about the image size'''
 
 
 class ImagePathLabel(InfoLabelWidget):
+    '''Label class to show the path to an image'''
+
     def __init__(self, text):
         super().__init__(text)
         self.setWordWrap(True)
 
 
 class ImageInfoWidget(QWidget):
+    '''Label class to show info about an image (its similarity
+    rate, size and path)'''
+
     def __init__(self, image_path, similarity):
         super().__init__()
         layout = QVBoxLayout(self)
@@ -44,6 +51,14 @@ class ImageInfoWidget(QWidget):
             layout.addWidget(widget)
 
     def get_image_size(self, image_path):
+        '''Return info about image size
+
+        Parameters:
+        -----------
+        :image_path: str, image full path,
+        :returns: str, string with format "{width}x{height}, {weight} {units}"
+        '''
+
         units = 'KB'
         image_size = utils.get_image_size(image_path)
         image_weight = utils.get_image_weight(image_path, units)
@@ -52,8 +67,9 @@ class ImageInfoWidget(QWidget):
         return '{width}x{height}, {weight} {units}'.format(**image_params)
 
 
-
 class ThumbnailWidget(QLabel):
+    '''Label class to render image thumbnail'''
+
     SIZE = 200
 
     def __init__(self, image_path):
@@ -66,6 +82,10 @@ class ThumbnailWidget(QLabel):
 
 
 class DuplicateCandidateWidget(QWidget):
+    '''Widget class to render a duplicate candidate image and
+    all the info about it (its similarityrate, size and path)
+    '''
+
     def __init__(self, image_path, similarity):
         super().__init__()
         layout = QVBoxLayout(self)
@@ -80,18 +100,26 @@ class DuplicateCandidateWidget(QWidget):
         self.setWidgetEvents()
 
     def setWidgetEvents(self):
+        '''Link events and functions called on the events'''
+
         self.mouseReleaseEvent = self.mouseRelease
 
-    def changeBackgroundColor(self, color):
+    def changeBackgroundColor(self):
+        '''Change DuplicateCandidateWidget background color'''
+
         palette = QPalette()
-        palette.setColor(QPalette.Background, color)
+        palette.setColor(QPalette.Background, Qt.lightGray)
         self.setPalette(palette)
 
     def mouseRelease(self, event):
-        self.changeBackgroundColor(Qt.lightGray)
+        '''Function called on mouse release event'''
+
+        self.changeBackgroundColor()
 
 
 class ImageGroupWidget(QWidget):
+    '''Widget class to keep similar images together'''
+
     def __init__(self, image_group, similarities):
         super().__init__()
         layout = QHBoxLayout(self)
@@ -109,6 +137,8 @@ class App(QMainWindow):
         self.show()
 
     def setWidgetEvents(self):
+        '''Link events and functions called on the events'''
+
         self.addFolderBtn.clicked.connect(self.addFolderBtn_click)
         self.delFolderBtn.clicked.connect(self.delFolderBtn_click)
         self.startBtn.clicked.connect(self.startBtn_click)
@@ -118,16 +148,20 @@ class App(QMainWindow):
         self.deleteBtn.clicked.connect(self.deleteBtn_click)
 
     def openFolderNameDialog(self):
-        folder_name = QFileDialog.getExistingDirectory(
+        '''Open file dialog and return the folder full path'''
+
+        folder_path = QFileDialog.getExistingDirectory(
             self,
             'Open Folder',
             '',
             QFileDialog.ShowDirsOnly
         )
-        return folder_name
+        return folder_path
 
     @pyqtSlot()
     def addFolderBtn_click(self):
+        '''Function called on "Add Path" button click event'''
+
         folder_path = self.openFolderNameDialog()
         folder_path_item = QListWidgetItem()
         folder_path_item.setData(Qt.DisplayRole, folder_path)
@@ -135,12 +169,16 @@ class App(QMainWindow):
 
     @pyqtSlot()
     def delFolderBtn_click(self):
+        '''Function called on "Delete Path" button click event'''
+
         item_list = self.pathLW.selectedItems()
         for item in item_list:
             self.pathLW.takeItem(self.pathLW.row(item))
 
     @pyqtSlot()
     def startBtn_click(self):
+        '''Function called on "Start" button click event'''
+
         paths = [self.pathLW.item(i).data(0) for i in range(self.pathLW.count())]
         image_groups = duplicates.image_processing(paths)
         for image_group, similarities in image_groups:
@@ -148,16 +186,16 @@ class App(QMainWindow):
 
     @pyqtSlot()
     def stopBtn_click(self):
-        pass
+        '''Function called on "Stop" button click event'''
 
     @pyqtSlot()
     def pauseBtn_click(self):
-        pass
+        '''Function called on "Pause" button click event'''
 
     @pyqtSlot()
     def moveBtn_click(self):
-        pass
+        '''Function called on "Move" button click event'''
 
     @pyqtSlot()
     def deleteBtn_click(self):
-        pass
+        '''Function called on "Delete" button click event'''
