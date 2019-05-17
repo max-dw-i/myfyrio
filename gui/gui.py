@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt, pyqtSlot
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPalette, QPixmap
 from PyQt5.QtWidgets import (
     QFileDialog, QHBoxLayout, QLabel, QListWidgetItem, QMainWindow,
     QVBoxLayout, QWidget)
@@ -55,6 +55,20 @@ class DuplicateCandidateWidget(QWidget):
         imageInfo = ImageInfoWidget(image_path, similarity)
         layout.addWidget(imageInfo)
 
+        self.setAutoFillBackground(True)
+        self.setWidgetEvents()
+
+    def setWidgetEvents(self):
+        self.mouseReleaseEvent = self.mouseRelease
+
+    def changeBackgroundColor(self, color):
+        palette = QPalette()
+        palette.setColor(QPalette.Background, color)
+        self.setPalette(palette)
+
+    def mouseRelease(self, event):
+        self.changeBackgroundColor(Qt.lightGray)
+
 
 class ImageGroupWidget(QWidget):
     def __init__(self, image_group, similarities):
@@ -70,10 +84,10 @@ class App(QMainWindow):
     def __init__(self):
         super().__init__()
         loadUi(r'gui\gui.ui', self)
-        self.setWidgetSlotConnections()
+        self.setWidgetEvents()
         self.show()
 
-    def setWidgetSlotConnections(self):
+    def setWidgetEvents(self):
         self.addFolderBtn.clicked.connect(self.addFolderBtn_click)
         self.delFolderBtn.clicked.connect(self.delFolderBtn_click)
         self.startBtn.clicked.connect(self.startBtn_click)
