@@ -15,21 +15,42 @@ class InfoLabelWidget(QLabel):
         self.setText(text)
 
 
+class SimilarityLabel(InfoLabelWidget):
+    pass
+
+
+class ImageSizeLabel(InfoLabelWidget):
+    pass
+
+
+class ImagePathLabel(InfoLabelWidget):
+    def __init__(self, text):
+        super().__init__(text)
+        self.setWordWrap(True)
+
+
 class ImageInfoWidget(QWidget):
     def __init__(self, image_path, similarity):
         super().__init__()
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignBottom)
 
+        widgets = (
+            SimilarityLabel(str(similarity)),
+            ImageSizeLabel(self.get_image_size(image_path)),
+            ImagePathLabel(image_path)
+        )
+        for widget in widgets:
+            layout.addWidget(widget)
+
+    def get_image_size(self, image_path):
+        units = 'KB'
         image_size = utils.get_image_size(image_path)
-        image_weight = utils.get_image_weight(image_path, 'KB')
-        image_size = '{}x{}, {} KB'.format(image_size[0], image_size[1], image_weight)
+        image_weight = utils.get_image_weight(image_path, units)
+        image_params = {'width': image_size[0], 'height': image_size[1],
+                        'weight': image_weight, 'units': units}
+        return '{width}x{height}, {weight} {units}'.format(**image_params)
 
-        for text in [str(similarity), image_size, image_path]:
-            label = InfoLabelWidget(text)
-            layout.addWidget(label)
-
-        label.setWordWrap(True)
 
 
 class ThumbnailWidget(QLabel):
