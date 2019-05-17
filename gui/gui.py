@@ -29,6 +29,8 @@ class ImageInfoWidget(QWidget):
             label = InfoLabelWidget(text)
             layout.addWidget(label)
 
+        label.setWordWrap(True)
+
 
 class ThumbnailWidget(QLabel):
     SIZE = 200
