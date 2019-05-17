@@ -1,5 +1,5 @@
 from PyQt5.QtCore import Qt, pyqtSlot
-from PyQt5.QtGui import QPalette, QPixmap
+from PyQt5.QtGui import QColor, QPalette, QPixmap
 from PyQt5.QtWidgets import (
     QFileDialog, QHBoxLayout, QLabel, QListWidgetItem, QMainWindow,
     QVBoxLayout, QWidget)
@@ -88,6 +88,9 @@ class DuplicateCandidateWidget(QWidget):
 
     def __init__(self, image_path, similarity):
         super().__init__()
+        self.UNSELECTED_BACKGROUND_COLOR = self.getBackgroundColor()
+        self.SELECTED_BACKGROUND_COLOR = '#d3d3d3'
+
         layout = QVBoxLayout(self)
 
         imageLabel = ThumbnailWidget(image_path)
@@ -104,17 +107,32 @@ class DuplicateCandidateWidget(QWidget):
 
         self.mouseReleaseEvent = self.mouseRelease
 
-    def changeBackgroundColor(self):
-        '''Change DuplicateCandidateWidget background color'''
+    def changeBackgroundColor(self, color):
+        '''Change DuplicateCandidateWidget background color
+
+        :color: str, hex format "#ffffff"
+        '''
 
         palette = QPalette()
-        palette.setColor(QPalette.Background, Qt.lightGray)
+        palette.setColor(QPalette.Background, QColor(color))
         self.setPalette(palette)
+
+    def getBackgroundColor(self):
+        '''Return DuplicateCandidateWidget background color
+
+        :returns: str, hex format "#ffffff"
+        '''
+
+        return self.palette().color(QPalette.Background).name()
 
     def mouseRelease(self, event):
         '''Function called on mouse release event'''
 
-        self.changeBackgroundColor()
+        backgroundColor = self.getBackgroundColor()
+        if backgroundColor == self.SELECTED_BACKGROUND_COLOR:
+            self.changeBackgroundColor(self.UNSELECTED_BACKGROUND_COLOR)
+        else:
+            self.changeBackgroundColor(self.SELECTED_BACKGROUND_COLOR)
 
 
 class ImageGroupWidget(QWidget):
