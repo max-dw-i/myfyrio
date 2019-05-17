@@ -4,7 +4,7 @@ from PyQt5.QtCore import Qt, pyqtSlot
 from PyQt5.QtGui import QColor, QPalette, QPixmap
 from PyQt5.QtWidgets import (
     QFileDialog, QHBoxLayout, QLabel, QListWidgetItem, QMainWindow,
-    QVBoxLayout, QWidget)
+    QSizePolicy, QVBoxLayout, QWidget)
 from PyQt5.uic import loadUi
 
 from . import duplicates, utils
@@ -76,7 +76,9 @@ class DuplicateCandidateWidget(QWidget):
         super().__init__()
         self.UNSELECTED_BACKGROUND_COLOR = self.getBackgroundColor()
         self.SELECTED_BACKGROUND_COLOR = '#d3d3d3'
+        self.selected = False
 
+        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         layout = QVBoxLayout(self)
 
         imageLabel = ThumbnailWidget(image_path)
@@ -111,14 +113,23 @@ class DuplicateCandidateWidget(QWidget):
 
         return self.palette().color(QPalette.Background).name()
 
+    def del_image(self):
+        '''Delete an image from disk and its DuplicateCandidateWidget
+        instance'''
+
+        path = self.findChildren(ImagePathLabel)[0].text()
+        utils.delete_image(path)
+        self.deleteLater()
+
     def mouseRelease(self, event):
         '''Function called on mouse release event'''
 
-        backgroundColor = self.getBackgroundColor()
-        if backgroundColor == self.SELECTED_BACKGROUND_COLOR:
+        if self.selected:
             self.changeBackgroundColor(self.UNSELECTED_BACKGROUND_COLOR)
+            self.selected = False
         else:
             self.changeBackgroundColor(self.SELECTED_BACKGROUND_COLOR)
+            self.selected = True
 
 
 class ImageGroupWidget(QWidget):
@@ -131,6 +142,15 @@ class ImageGroupWidget(QWidget):
         for i, image_path in enumerate(image_group):
             thumbnail = DuplicateCandidateWidget(image_path, similarities[i])
             layout.addWidget(thumbnail)
+
+    def getSelectedWidgets(self):
+        '''Return list of the selected DuplicateCandidateWidget instances'''
+
+        widgets = self.findChildren(
+            DuplicateCandidateWidget,
+            options=Qt.FindDirectChildrenOnly
+        )
+        return [widget for widget in widgets if widget.selected]
 
 
 class App(QMainWindow):
@@ -205,3 +225,18 @@ class App(QMainWindow):
     @pyqtSlot()
     def deleteBtn_click(self):
         '''Function called on 'Delete' button click event'''
+
+        group_widgets = self.scrollAreaWidget.findChildren(
+            ImageGroupWidget,
+            options=Qt.FindDirectChildrenOnly
+        )
+        for group_widget in group_widgets:
+            duplicate_candidate_widgets_num = len(group_widget.findChildren(
+                DuplicateCandidateWidget,
+                options=Qt.FindDirectChildrenOnly
+            ))
+            selected_widgets = group_widget.getSelectedWidgets()
+            for selected_widget in selected_widgets:
+                selected_widget.del_image()
+            if len(selected_widgets) == duplicate_candidate_widgets_num:
+                group_widget.deleteLater()

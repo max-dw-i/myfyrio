@@ -51,3 +51,11 @@ def get_image_size(image_path):
     image_params = {'width': image_dimensions[0], 'height': image_dimensions[1],
                     'file_size': file_size, 'units': units}
     return '{width}x{height}, {file_size} {units}'.format(**image_params)
+
+def delete_image(image):
+    '''Delete image from the disk
+
+    :param images: str, full path to an image
+    '''
+
+    os.remove(image)
