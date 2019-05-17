@@ -1,3 +1,5 @@
+'''Graphical user interface is implemented in here'''
+
 from PyQt5.QtCore import Qt, pyqtSlot
 from PyQt5.QtGui import QColor, QPalette, QPixmap
 from PyQt5.QtWidgets import (
@@ -44,27 +46,11 @@ class ImageInfoWidget(QWidget):
 
         widgets = (
             SimilarityLabel(str(similarity)),
-            ImageSizeLabel(self.get_image_size(image_path)),
+            ImageSizeLabel(utils.get_image_size(image_path)),
             ImagePathLabel(image_path)
         )
         for widget in widgets:
             layout.addWidget(widget)
-
-    def get_image_size(self, image_path):
-        '''Return info about image size
-
-        Parameters:
-        -----------
-        :image_path: str, image full path,
-        :returns: str, string with format "{width}x{height}, {weight} {units}"
-        '''
-
-        units = 'KB'
-        image_size = utils.get_image_size(image_path)
-        image_weight = utils.get_image_weight(image_path, units)
-        image_params = {'width': image_size[0], 'height': image_size[1],
-                        'weight': image_weight, 'units': units}
-        return '{width}x{height}, {weight} {units}'.format(**image_params)
 
 
 class ThumbnailWidget(QLabel):
@@ -110,7 +96,7 @@ class DuplicateCandidateWidget(QWidget):
     def changeBackgroundColor(self, color):
         '''Change DuplicateCandidateWidget background color
 
-        :color: str, hex format "#ffffff"
+        :color: str, hex format '#ffffff'
         '''
 
         palette = QPalette()
@@ -120,7 +106,7 @@ class DuplicateCandidateWidget(QWidget):
     def getBackgroundColor(self):
         '''Return DuplicateCandidateWidget background color
 
-        :returns: str, hex format "#ffffff"
+        :returns: str, hex format '#ffffff'
         '''
 
         return self.palette().color(QPalette.Background).name()
@@ -148,6 +134,8 @@ class ImageGroupWidget(QWidget):
 
 
 class App(QMainWindow):
+    '''Main GUI class'''
+
     def __init__(self):
         super().__init__()
         loadUi(r'gui\gui.ui', self)
@@ -178,7 +166,7 @@ class App(QMainWindow):
 
     @pyqtSlot()
     def addFolderBtn_click(self):
-        '''Function called on "Add Path" button click event'''
+        '''Function called on 'Add Path' button click event'''
 
         folder_path = self.openFolderNameDialog()
         folder_path_item = QListWidgetItem()
@@ -187,7 +175,7 @@ class App(QMainWindow):
 
     @pyqtSlot()
     def delFolderBtn_click(self):
-        '''Function called on "Delete Path" button click event'''
+        '''Function called on 'Delete Path' button click event'''
 
         item_list = self.pathLW.selectedItems()
         for item in item_list:
@@ -195,7 +183,7 @@ class App(QMainWindow):
 
     @pyqtSlot()
     def startBtn_click(self):
-        '''Function called on "Start" button click event'''
+        '''Function called on 'Start' button click event'''
 
         paths = [self.pathLW.item(i).data(0) for i in range(self.pathLW.count())]
         image_groups = duplicates.image_processing(paths)
@@ -204,16 +192,16 @@ class App(QMainWindow):
 
     @pyqtSlot()
     def stopBtn_click(self):
-        '''Function called on "Stop" button click event'''
+        '''Function called on 'Stop' button click event'''
 
     @pyqtSlot()
     def pauseBtn_click(self):
-        '''Function called on "Pause" button click event'''
+        '''Function called on 'Pause' button click event'''
 
     @pyqtSlot()
     def moveBtn_click(self):
-        '''Function called on "Move" button click event'''
+        '''Function called on 'Move' button click event'''
 
     @pyqtSlot()
     def deleteBtn_click(self):
-        '''Function called on "Delete" button click event'''
+        '''Function called on 'Delete' button click event'''
