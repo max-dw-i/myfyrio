@@ -205,7 +205,14 @@ class App(QMainWindow):
     def startBtn_click(self):
         '''Function called on 'Start' button click event'''
 
-        paths = [self.pathLW.item(i).data(0) for i in range(self.pathLW.count())]
+        group_widgets = self.scrollAreaWidget.findChildren(
+            ImageGroupWidget,
+            options=Qt.FindDirectChildrenOnly
+        )
+        for group_widget in group_widgets:
+            group_widget.deleteLater()
+
+        paths = [self.pathLW.item(i).data(Qt.DisplayRole) for i in range(self.pathLW.count())]
         image_groups = duplicates.image_processing(paths)
         for image_group, similarities in image_groups:
             self.scrollAreaLayout.addWidget(ImageGroupWidget(image_group, similarities))
