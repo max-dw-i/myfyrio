@@ -7,6 +7,27 @@ import os
 from PIL import Image
 
 
+def get_images_paths(folders):
+    '''Return all the images' full paths from
+    the passed 'folders' argument
+
+    :param folders: a collection of folders' paths,
+    :returns: list, images' full paths
+    '''
+
+    IMG_EXTENSIONS = {'png', 'jpg', 'jpeg', 'bmp'}
+    images_paths = []
+
+    for path in folders:
+        for dirpath, _, filenames in os.walk(path):
+            for filename in filenames:
+                full_path = os.path.join(path, dirpath, filename)
+                if os.path.isfile(full_path):
+                    end = filename.split('.')[-1].lower()
+                    if end in IMG_EXTENSIONS:
+                        images_paths.append(full_path)
+    return images_paths
+
 def get_image_dimensions(path):
     '''Return an image dimensions
 
