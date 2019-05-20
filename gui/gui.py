@@ -135,12 +135,12 @@ class DuplicateCandidateWidget(QWidget):
 class ImageGroupWidget(QWidget):
     '''Widget class to keep similar images together'''
 
-    def __init__(self, image_group, similarities):
+    def __init__(self, image_group):
         super().__init__()
         layout = QHBoxLayout(self)
         layout.setAlignment(Qt.AlignLeft)
-        for i, image_path in enumerate(image_group):
-            thumbnail = DuplicateCandidateWidget(image_path, similarities[i])
+        for image_path, similarity in image_group:
+            thumbnail = DuplicateCandidateWidget(image_path, similarity)
             layout.addWidget(thumbnail)
 
     def getSelectedWidgets(self):
@@ -214,8 +214,8 @@ class App(QMainWindow):
 
         paths = [self.pathLW.item(i).data(Qt.DisplayRole) for i in range(self.pathLW.count())]
         image_groups = duplicates.image_processing(paths)
-        for image_group, similarities in image_groups:
-            self.scrollAreaLayout.addWidget(ImageGroupWidget(image_group, similarities))
+        for image_group in image_groups:
+            self.scrollAreaLayout.addWidget(ImageGroupWidget(image_group))
 
     @pyqtSlot()
     def stopBtn_click(self):
