@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy, QVBoxLayout, QWidget)
 from PyQt5.uic import loadUi
 
-from . import duplicates, utils
+from . import duplicates
 
 
 class InfoLabelWidget(QLabel):
@@ -39,18 +39,32 @@ class ImageInfoWidget(QWidget):
     '''Label class to show info about an image (its similarity
     rate, size and path)'''
 
-    def __init__(self, image_path, similarity):
+    def __init__(self, path, difference, dimensions, filesize):
         super().__init__()
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignBottom)
 
         widgets = (
-            SimilarityLabel(str(similarity)),
-            ImageSizeLabel(utils.get_image_size(image_path)),
-            ImagePathLabel(image_path)
+            SimilarityLabel(str(difference)),
+            ImageSizeLabel(self.get_image_size(dimensions, filesize)),
+            ImagePathLabel(path)
         )
         for widget in widgets:
             layout.addWidget(widget)
+
+    def get_image_size(self, dimensions, filesize):
+        '''Return info about image dimensions and file size
+
+        :param dimensions: tuple, (width: int, height: int),
+        :param filesize: float, file size in bytes, kilobytes or megabytes,
+                                rounded to the first decimal place,
+        :returns: str, string with format '{width}x{height}, {file_size} {units}'
+        '''
+
+        units = 'KB'
+        image_params = {'width': dimensions[0], 'height': dimensions[1],
+                        'filesize': filesize, 'units': units}
+        return '{width}x{height}, {filesize} {units}'.format(**image_params)
 
 
 class ThumbnailWidget(QLabel):
@@ -58,11 +72,11 @@ class ThumbnailWidget(QLabel):
 
     SIZE = 200
 
-    def __init__(self, image_path):
+    def __init__(self, path):
         super().__init__()
         self.setAlignment(Qt.AlignHCenter)
         # Pixmap can read BMP, GIF, JPG, JPEG, PNG, PBM, PGM, PPM, XBM, XPM
-        image = QPixmap(image_path)
+        image = QPixmap(path)
         scaledImage = image.scaled(self.SIZE, self.SIZE, Qt.KeepAspectRatio)
         self.setPixmap(scaledImage)
 
@@ -72,8 +86,9 @@ class DuplicateCandidateWidget(QWidget):
     all the info about it (its similarityrate, size and path)
     '''
 
-    def __init__(self, image_path, similarity):
+    def __init__(self, image):
         super().__init__()
+        self.image = image
         self.UNSELECTED_BACKGROUND_COLOR = self.getBackgroundColor()
         self.SELECTED_BACKGROUND_COLOR = '#d3d3d3'
         self.selected = False
@@ -81,10 +96,11 @@ class DuplicateCandidateWidget(QWidget):
         self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
         layout = QVBoxLayout(self)
 
-        imageLabel = ThumbnailWidget(image_path)
+        imageLabel = ThumbnailWidget(image.path)
         layout.addWidget(imageLabel)
 
-        imageInfo = ImageInfoWidget(image_path, similarity)
+        imageInfo = ImageInfoWidget(image.path, image.difference,
+                                    image.dimensions, image.filesize)
         layout.addWidget(imageInfo)
 
         self.setAutoFillBackground(True)
@@ -113,12 +129,12 @@ class DuplicateCandidateWidget(QWidget):
 
         return self.palette().color(QPalette.Background).name()
 
-    def del_image(self):
+    def delete(self):
         '''Delete an image from disk and its DuplicateCandidateWidget
-        instance'''
+        instance
+        '''
 
-        path = self.findChildren(ImagePathLabel)[0].text()
-        utils.delete_image(path)
+        self.image.delete_image()
         self.deleteLater()
 
     def mouseRelease(self, event):
@@ -139,8 +155,8 @@ class ImageGroupWidget(QWidget):
         super().__init__()
         layout = QHBoxLayout(self)
         layout.setAlignment(Qt.AlignLeft)
-        for image_path, similarity in image_group:
-            thumbnail = DuplicateCandidateWidget(image_path, similarity)
+        for image in image_group:
+            thumbnail = DuplicateCandidateWidget(image)
             layout.addWidget(thumbnail)
 
     def getSelectedWidgets(self):
@@ -244,6 +260,6 @@ class App(QMainWindow):
             ))
             selected_widgets = group_widget.getSelectedWidgets()
             for selected_widget in selected_widgets:
-                selected_widget.del_image()
+                selected_widget.delete()
             if len(selected_widgets) == duplicate_candidate_widgets_num:
                 group_widget.deleteLater()
