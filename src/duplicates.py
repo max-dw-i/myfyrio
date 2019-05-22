@@ -35,21 +35,49 @@ def images_grouping(images):
                      [<class Image> obj 2.1, <class Image> obj 2.2, ...], ...]
     '''
 
-    SENSITIVITY = 10
+    SENSITIVITY = 100
 
-    image_groups = []
-    for i in range(len(images)-1):
-        image_groups.append([images[i]])
-        for j in range(i+1, len(images)):
-            diff = images[i].phash - images[j].phash
-            if diff <= SENSITIVITY:
+    # Here all the hashes are compared to each other and the nearest (most
+    # similar images) are added to list 'closest_images'.
+    closest_images = []
+    final_groups = {}
+    for i, image1 in enumerate(images):
+        closest_images.append((None, float('inf')))
+        for j, image2 in enumerate(images):
+            diff = image1.phash - image2.phash
+            # If the difference less/equal than SENSITIVITY and this image (image2)
+            # is closer to image1, we add a tuple (image2 index, hash difference)
+            # to an image to the list. So the list looks like this: [(1, 7), (3, 4), ...].
+            # 0th image is the closest to 1th image and they have hash difference 7, etc.
+            if diff <= SENSITIVITY and i != j and closest_images[i][1] > diff:
+                closest_images[i] = (j, diff)
+
+        j = closest_images[i][0] # the closest image to the ith image (its index)
+        diff = closest_images[i][1] # hash difference between the ith and jth images
+        # If ith image has the closest one...
+        if j is not None:
+            # ...if jth image has been added already to 'final_groups'...
+            if j in final_groups:
+                # ...and ith image is not amongst the added to some group, add it,
+                if i not in final_groups[j]:
+                    images[i].difference = diff
+                    final_groups[j].add(i)
+            else:
+                # else add a new group to 'final_groups'
                 images[j].difference = diff
-                image_groups[-1].append(images[j])
-        if len(image_groups[-1]) == 1:
-            image_groups.pop()
-        else:
-            image_groups[-1].sort(key=lambda x: x.difference)
-    return image_groups
+                final_groups[i] = {j}
+
+        # So 'final_groups' dictionary looks like this: {0: {1, 2, 3}, 4: {5}...},
+        # when 0, 1, 2, 3 images are in one group, 4 and 5 are in another group, etc.
+
+    image_groups_to_render = []
+    key = lambda x: x.difference # sort images using hash differences
+    for group in final_groups:
+        image_groups_to_render.append(
+            [images[group]] + sorted([images[j] for j in final_groups[group]], key=key)
+        )
+
+    return image_groups_to_render
 
 def image_processing(folders):
     '''Process images to find the duplicates
