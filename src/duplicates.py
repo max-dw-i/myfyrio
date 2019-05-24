@@ -45,18 +45,18 @@ def _closest_images_populating(closest_images, images, i, j):
     # closest image is the 0th one, so 0 becomes the 5th's closest image and
     # now we have :closest_images: = {0: 0, 1: 0, 5: 0}...
     if j in closest_images:
-        images[i].difference = images[i].phash - images[closest_images[j]].phash
+        images[i].difference = images[i].hash - images[closest_images[j]].hash
         closest_images[i] = closest_images[j]
     # ...and vice versa
     elif i in closest_images:
-        images[j].difference = images[j].phash - images[closest_images[i]].phash
+        images[j].difference = images[j].hash - images[closest_images[i]].hash
         closest_images[j] = closest_images[i]
     else:
         # else we add a new pair of images and the ith image pointing
         # to itself. Eg. :closest_images: = {0: 0, 1: 0, 5: 0} and
         # the 7th's closest image is the 2nd, then now we have
         # :closest_images: = {0: 0, 1: 0, 5: 0, 2: 7, 7: 7}
-        images[j].difference = images[j].phash - images[i].phash
+        images[j].difference = images[j].hash - images[i].hash
         closest_images[j] = i
         closest_images[i] = i
 
@@ -76,7 +76,7 @@ def _closest_images_search(images):
         closest_image = None
         min_diff = float('inf')
         for j, image2 in enumerate(images):
-            diff = image1.phash - image2.phash
+            diff = image1.hash - image2.hash
             # If the difference less/equal than SENSITIVITY and this
             # image (image2) is closer to image1 (diff is less),
             # we remember image2 index
@@ -128,18 +128,18 @@ class Image():
     def __init__(self, path, difference=0):
         self.path = path
         self.difference = difference
-        self.phash = self.calc_phash()
+        self.hash = self.calc_dhash()
         self.dimensions = self.get_dimensions()
         self.filesize = self.get_filesize()
 
-    def calc_phash(self):
-        '''Calculate an image's perceptual hash using
-        'phash' function from 'imagehash' lib
+    def calc_dhash(self):
+        '''Calculate an image's difference hash using
+        'dhash' function from 'imagehash' lib
 
         :returns: <class ImageHash> instance
         '''
 
-        return imagehash.phash(pilimage.open(self.path))
+        return imagehash.dhash(pilimage.open(self.path))
 
     def get_dimensions(self):
         '''Return an image dimensions
