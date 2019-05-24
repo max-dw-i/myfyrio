@@ -174,7 +174,7 @@ class App(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        loadUi(r'gui\gui.ui', self)
+        loadUi(r'src\gui.ui', self)
         self.setWidgetEvents()
         self.show()
 
@@ -208,6 +208,7 @@ class App(QMainWindow):
         folder_path_item = QListWidgetItem()
         folder_path_item.setData(Qt.DisplayRole, folder_path)
         self.pathLW.addItem(folder_path_item)
+        self.delFolderBtn.setEnabled(True)
 
     @pyqtSlot()
     def delFolderBtn_click(self):
@@ -216,6 +217,9 @@ class App(QMainWindow):
         item_list = self.pathLW.selectedItems()
         for item in item_list:
             self.pathLW.takeItem(self.pathLW.row(item))
+
+        if not self.pathLW.count():
+            self.delFolderBtn.setEnabled(False)
 
     @pyqtSlot()
     def startBtn_click(self):
