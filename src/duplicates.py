@@ -27,57 +27,87 @@ def get_images_paths(folders):
                         images_paths.append(full_path)
     return images_paths
 
+def _closest_images_populating(closest_images, images, i, j):
+    '''Populates :closest_images:
+
+    :param closest_images: dict of :images:' indices,
+                           eg. {0: 0, 1: 0, 5: 0}. The 1st
+                           and 5th's closest image is 0th,
+    :param images: collection of <class Image> objects,
+    :param i: int, :images:' index,
+    :param j: int, :images:' index
+    '''
+
+    # ...if the ith's closest image was added already, then the closest
+    # image of this already added (ith closest) image become the ith's
+    # closest image. Eg. we have :closest_images: = {0: 0, 1: 0} and
+    # the 5th's closest image is the 1st one; 1 is in :closest_images: and its
+    # closest image is the 0th one, so 0 becomes the 5th's closest image and
+    # now we have :closest_images: = {0: 0, 1: 0, 5: 0}...
+    if j in closest_images:
+        images[i].difference = images[i].phash - images[closest_images[j]].phash
+        closest_images[i] = closest_images[j]
+    # ...and vice versa
+    elif i in closest_images:
+        images[j].difference = images[j].phash - images[closest_images[i]].phash
+        closest_images[j] = closest_images[i]
+    else:
+        # else we add a new pair of images and the ith image pointing
+        # to itself. Eg. :closest_images: = {0: 0, 1: 0, 5: 0} and
+        # the 7th's closest image is the 2nd, then now we have
+        # :closest_images: = {0: 0, 1: 0, 5: 0, 2: 7, 7: 7}
+        images[j].difference = images[j].phash - images[i].phash
+        closest_images[j] = i
+        closest_images[i] = i
+
+def _closest_images_search(images):
+    '''Search every image's closest one
+
+    :param images: collection of <class Image> objects,
+    :returns: dict of :images:' indices, eg. {0: 0, 1: 0, 5: 0}.
+              The 1st and 5th's closest image is 0th
+    '''
+
+    SENSITIVITY = 10
+    # Here all the hashes are compared to each other and the closest (most
+    # similar image) are added to dict 'closest_images'.
+    closest_images = {}
+    for i, image1 in enumerate(images):
+        closest_image = None
+        min_diff = float('inf')
+        for j, image2 in enumerate(images):
+            diff = image1.phash - image2.phash
+            # If the difference less/equal than SENSITIVITY and this
+            # image (image2) is closer to image1 (diff is less),
+            # we remember image2 index
+            if diff <= SENSITIVITY and i != j and min_diff > diff:
+                closest_image = j
+                min_diff = diff
+        # If ith image has the closest one...
+        if closest_image is not None:
+            _closest_images_populating(closest_images, images, i, closest_image)
+    return closest_images
+
 def images_grouping(images):
-    '''Return groups of similar images
+    '''Returns groups of similar images
 
     :param images: collection of <class Image> objects,
     :returns: list, [[<class Image> obj 1.1, <class Image> obj 1.2, ...],
-                     [<class Image> obj 2.1, <class Image> obj 2.2, ...], ...]
+                     [<class Image> obj 2.1, <class Image> obj 2.2, ...], ...],
+                    each sublist of which is sorted by image difference in
+                    ascending order
     '''
 
-    SENSITIVITY = 100
+    closest_images = _closest_images_search(images)
 
-    # Here all the hashes are compared to each other and the nearest (most
-    # similar images) are added to list 'closest_images'.
-    closest_images = []
     final_groups = {}
-    for i, image1 in enumerate(images):
-        closest_images.append((None, float('inf')))
-        for j, image2 in enumerate(images):
-            diff = image1.phash - image2.phash
-            # If the difference less/equal than SENSITIVITY and this image (image2)
-            # is closer to image1, we add a tuple (image2 index, hash difference)
-            # to an image to the list. So the list looks like this: [(1, 7), (3, 4), ...].
-            # 0th image is the closest to 1th image and they have hash difference 7, etc.
-            if diff <= SENSITIVITY and i != j and closest_images[i][1] > diff:
-                closest_images[i] = (j, diff)
+    for i in closest_images:
+        if closest_images[i] in final_groups:
+            final_groups[closest_images[i]].append(images[i])
+        else:
+            final_groups[closest_images[i]] = [images[i]]
 
-        j = closest_images[i][0] # the closest image to the ith image (its index)
-        diff = closest_images[i][1] # hash difference between the ith and jth images
-        # If ith image has the closest one...
-        if j is not None:
-            # ...if jth image has been added already to 'final_groups'...
-            if j in final_groups:
-                # ...and ith image is not amongst the added to some group, add it,
-                if i not in final_groups[j]:
-                    images[i].difference = diff
-                    final_groups[j].add(i)
-            else:
-                # else add a new group to 'final_groups'
-                images[j].difference = diff
-                final_groups[i] = {j}
-
-        # So 'final_groups' dictionary looks like this: {0: {1, 2, 3}, 4: {5}...},
-        # when 0, 1, 2, 3 images are in one group, 4 and 5 are in another group, etc.
-
-    image_groups_to_render = []
-    key = lambda x: x.difference # sort images using hash differences
-    for group in final_groups:
-        image_groups_to_render.append(
-            [images[group]] + sorted([images[j] for j in final_groups[group]], key=key)
-        )
-
-    return image_groups_to_render
+    return [sorted(final_groups[g], key=lambda x: x.difference) for g in final_groups]
 
 def image_processing(folders):
     '''Process images to find the duplicates
