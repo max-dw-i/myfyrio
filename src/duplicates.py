@@ -38,6 +38,9 @@ def _closest_images_populating(closest_images, images, i, j):
     :param j: int, :images:' index
     '''
 
+    # Do nothing if ith and jth images have been added already
+    if i in closest_images and j in closest_images:
+        return
     # ...if the ith's closest image was added already, then the closest
     # image of this already added (ith closest) image become the ith's
     # closest image. Eg. we have :closest_images: = {0: 0, 1: 0} and
