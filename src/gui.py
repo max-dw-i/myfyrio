@@ -1,5 +1,7 @@
 '''Graphical user interface is implemented in here'''
 
+import os
+
 from PyQt5.QtCore import Qt, pyqtSlot
 from PyQt5.QtGui import QColor, QPalette, QPixmap
 from PyQt5.QtWidgets import (
@@ -76,9 +78,30 @@ class ThumbnailWidget(QLabel):
         super().__init__()
         self.setAlignment(Qt.AlignHCenter)
         # Pixmap can read BMP, GIF, JPG, JPEG, PNG, PBM, PGM, PPM, XBM, XPM
-        image = QPixmap(path)
+        image = self.open_image(path)
         scaledImage = image.scaled(self.SIZE, self.SIZE, Qt.KeepAspectRatio)
         self.setPixmap(scaledImage)
+
+    def open_image(self, path):
+        '''Open an image
+
+        :param path: str, full image's path,
+        :returns: <class QPixmap> obj
+        '''
+
+        # Sometimes image's format != the one's path extension so when
+        # the app try to open it automatically, we get 'Null'. If it's
+        # the case, try to open it with the 'specific format' setting
+        image = QPixmap(path)
+        if not image.isNull():
+            return image
+
+        for ext in ('PNG', 'JPG', 'JPEG', 'BMP'):
+            image = QPixmap(path, ext)
+            if not image.isNull():
+                return image
+
+        return QPixmap(os.path.abspath(r'resources\image_error.png'))
 
 
 class DuplicateCandidateWidget(QWidget):
