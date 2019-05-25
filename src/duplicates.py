@@ -1,6 +1,7 @@
 '''Functions to process images and find duplicates'''
 
 import os
+import pickle
 from collections import defaultdict
 
 import imagehash
@@ -110,6 +111,51 @@ def images_grouping(images):
 
     return [sorted(final_groups[g], key=lambda x: x.difference) for g in final_groups]
 
+def _load_cached_hashes():
+    '''Returns cached image hashes
+
+    :returns: dict, {image_path: str, image_hash: <class ImageHash> obj}
+    '''
+
+    try:
+        with open('image_hashes.p', 'rb') as f:
+            cached_hashes = pickle.load(f)
+    except FileNotFoundError:
+        cached_hashes = {}
+    return cached_hashes
+
+def _save_cached_hashes(cached_hashes):
+    '''Save cached image hashes on the disk
+
+    :param cached_hashes: dict, {image_path: str,
+                                 image_hash: <class ImageHash> obj}
+    '''
+
+    with open('image_hashes.p', 'wb') as f:
+        pickle.dump(cached_hashes, f)
+
+def hashes_calculating(paths):
+    '''Return a list with <class Image> objects which are
+    ready for comparing (with hashes calculated)
+
+    :param paths: list, images' full paths,
+    :returns: list, [<class Image> obj 1, <class Image> obj 2, ...]
+    '''
+
+    cached_hashes = _load_cached_hashes()
+
+    image_objs = []
+    for path in paths:
+        image = Image(path)
+        image.hash = cached_hashes.get(image.path, image.calc_dhash())
+        image_objs.append(image)
+        if image.path not in cached_hashes:
+            cached_hashes[image.path] = image.hash
+
+    _save_cached_hashes(cached_hashes)
+
+    return image_objs
+
 def image_processing(folders):
     '''Process images to find the duplicates
 
@@ -119,17 +165,17 @@ def image_processing(folders):
     '''
 
     paths = get_images_paths(folders)
-    images = [Image(path) for path in paths]
+    images = hashes_calculating(paths)
     return images_grouping(images)
 
 
 class Image():
     '''Class that represents images'''
 
-    def __init__(self, path, difference=0):
+    def __init__(self, path, difference=0, dhash=None):
         self.path = path
         self.difference = difference
-        self.hash = self.calc_dhash()
+        self.hash = dhash
 
     def calc_dhash(self):
         '''Calculate an image's difference hash using
