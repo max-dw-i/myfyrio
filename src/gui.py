@@ -1,7 +1,5 @@
 '''Graphical user interface is implemented in here'''
 
-import os
-
 from PyQt5.QtCore import Qt, pyqtSlot
 from PyQt5.QtGui import QColor, QPalette, QPixmap
 from PyQt5.QtWidgets import (
@@ -101,7 +99,7 @@ class ThumbnailWidget(QLabel):
             if not image.isNull():
                 return image
 
-        return QPixmap(os.path.abspath(r'resources\image_error.png'))
+        return QPixmap(r'resources\image_error.png')
 
 
 class DuplicateCandidateWidget(QWidget):
