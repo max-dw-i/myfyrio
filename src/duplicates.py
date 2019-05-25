@@ -147,10 +147,12 @@ def hashes_calculating(paths):
     image_objs = []
     for path in paths:
         image = Image(path)
-        image.hash = cached_hashes.get(image.path, image.calc_dhash())
-        image_objs.append(image)
-        if image.path not in cached_hashes:
+        if image.path in cached_hashes:
+            image.hash = cached_hashes[image.path]
+        else:
+            image.hash = image.calc_dhash()
             cached_hashes[image.path] = image.hash
+        image_objs.append(image)
 
     _save_cached_hashes(cached_hashes)
 
