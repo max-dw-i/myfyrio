@@ -1,6 +1,7 @@
 '''Functions to process images and find duplicates'''
 
 import os
+from collections import defaultdict
 
 import imagehash
 from PIL import Image as pilimage
@@ -103,12 +104,9 @@ def images_grouping(images):
 
     closest_images = _closest_images_search(images)
 
-    final_groups = {}
+    final_groups = defaultdict(list)
     for i in closest_images:
-        if closest_images[i] in final_groups:
-            final_groups[closest_images[i]].append(images[i])
-        else:
-            final_groups[closest_images[i]] = [images[i]]
+        final_groups[closest_images[i]].append(images[i])
 
     return [sorted(final_groups[g], key=lambda x: x.difference) for g in final_groups]
 
