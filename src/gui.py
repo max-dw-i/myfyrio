@@ -123,7 +123,7 @@ class DuplicateCandidateWidget(QWidget):
         layout.addWidget(imageLabel)
 
         imageInfo = ImageInfoWidget(image.path, image.difference,
-                                    image.dimensions, image.filesize)
+                                    image.get_dimensions(), image.get_filesize())
         layout.addWidget(imageInfo)
 
         self.setAutoFillBackground(True)

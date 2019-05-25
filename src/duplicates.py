@@ -132,8 +132,6 @@ class Image():
         self.path = path
         self.difference = difference
         self.hash = self.calc_dhash()
-        self.dimensions = self.get_dimensions()
-        self.filesize = self.get_filesize()
 
     def calc_dhash(self):
         '''Calculate an image's difference hash using
