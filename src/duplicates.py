@@ -150,7 +150,10 @@ def hashes_calculating(paths):
         if image.path in cached_hashes:
             image.hash = cached_hashes[image.path]
         else:
-            image.hash = image.calc_dhash()
+            try:
+                image.hash = image.calc_dhash()
+            except IOError:
+                continue
             cached_hashes[image.path] = image.hash
         image_objs.append(image)
 
@@ -184,19 +187,33 @@ class Image():
         '''Calculate an image's difference hash using
         'dhash' function from 'imagehash' lib
 
-        :returns: <class ImageHash> instance
+        :returns: <class ImageHash> instance,
+        :raise OSError: if there's any problem with
+                        opening or reading an image
         '''
 
-        return imagehash.dhash(pilimage.open(self.path))
+        try:
+            image = pilimage.open(self.path)
+        except OSError as e:
+            print(e)
+            raise OSError(e)
+        return imagehash.dhash(image)
 
     def get_dimensions(self):
         '''Return an image dimensions
 
         :param path: str, full path to an image,
-        :returns: tuple, (width: int, height: int)
+        :returns: tuple, (width: int, height: int),
+        :raise OSError: if there's any problem with
+                        opening or reading an image
         '''
 
-        return pilimage.open(self.path).size
+        try:
+            image = pilimage.open(self.path)
+        except OSError as e:
+            print(e)
+            raise OSError(e)
+        return image.size
 
     def get_filesize(self, size_format='KB'):
         '''Return an image file size
@@ -204,11 +221,17 @@ class Image():
         :param size_format: str, ('B', 'KB', 'MB'),
         :returns: float, file size in bytes, kilobytes or megabytes,
                   rounded to the first decimal place,
-        :raise ValueError: raise exception if :size_format:
-                           not amongst the allowed values
+        :raise ValueError: if :size_format: not amongst
+                           the allowed values,
+        :raise OSError: if the file does not exist or is
+                        inaccessible
         '''
 
-        image_size = os.path.getsize(self.path)
+        try:
+            image_size = os.path.getsize(self.path)
+        except OSError as e:
+            print(e)
+            raise OSError(e)
 
         if size_format == 'B':
             return image_size
@@ -220,6 +243,14 @@ class Image():
         raise ValueError('Wrong size format')
 
     def delete_image(self):
-        '''Delete an image from the disk'''
+        '''Delete an image from the disk
 
-        os.remove(self.path)
+        :raise OSError: if the file does not exist,
+                        is a folder, is in use, etc.
+        '''
+
+        try:
+            os.remove(self.path)
+        except OSError as e:
+            print(e)
+            raise OSError(e)

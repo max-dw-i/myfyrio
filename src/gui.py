@@ -140,8 +140,16 @@ class DuplicateCandidateWidget(QWidget):
         imageLabel = ThumbnailWidget(image.path)
         layout.addWidget(imageLabel)
 
+        try:
+            dimensions = image.get_dimensions()
+            filesize = image.get_filesize()
+        except OSError:
+            dimensions = (-1, -1)
+            filesize = 0
+        except ValueError:
+            filesize = image.get_filesize()
         imageInfo = ImageInfoWidget(image.path, image.difference,
-                                    image.get_dimensions(), image.get_filesize())
+                                    dimensions, filesize)
         layout.addWidget(imageInfo)
 
         self.setAutoFillBackground(True)
@@ -175,8 +183,12 @@ class DuplicateCandidateWidget(QWidget):
         instance
         '''
 
-        self.image.delete_image()
-        self.deleteLater()
+        try:
+            self.image.delete_image()
+        except OSError:
+            pass # Add pop-up or something else
+        else:
+            self.deleteLater()
 
     def mouseRelease(self, event):
         '''Function called on mouse release event'''
