@@ -16,7 +16,7 @@ def get_images_paths(folders):
     :returns: list, images' full paths
     '''
 
-    IMG_EXTENSIONS = {'png', 'jpg', 'jpeg', 'bmp'}
+    IMG_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp'}
     images_paths = []
 
     for path in folders:
@@ -24,8 +24,8 @@ def get_images_paths(folders):
             for filename in filenames:
                 full_path = os.path.join(path, dirpath, filename)
                 if os.path.isfile(full_path):
-                    end = filename.split('.')[-1].lower()
-                    if end in IMG_EXTENSIONS:
+                    _, extension = os.path.splitext(filename)
+                    if extension in IMG_EXTENSIONS:
                         images_paths.append(full_path)
     return images_paths
 
@@ -166,7 +166,8 @@ def image_processing(folders):
                      [<class Image> obj 2.1, <class Image> obj 2.2, ...], ...]
     '''
 
-    paths = get_images_paths(folders)
+    #paths = get_images_paths(folders)
+    paths = get_images_paths([r'C:\Users\Remote\Downloads\new folder\iAHFY'])
     images = hashes_calculating(paths)
     return images_grouping(images)
 
