@@ -1,7 +1,7 @@
 '''Graphical user interface is implemented in here'''
 
-from PyQt5.QtCore import Qt, pyqtSlot
-from PyQt5.QtGui import QColor, QPalette, QPixmap
+from PyQt5.QtCore import QSize, Qt, pyqtSlot
+from PyQt5.QtGui import QColor, QImageReader, QPalette, QPixmap
 from PyQt5.QtWidgets import (
     QFileDialog, QHBoxLayout, QLabel, QListWidgetItem, QMainWindow,
     QSizePolicy, QVBoxLayout, QWidget)
@@ -76,30 +76,50 @@ class ThumbnailWidget(QLabel):
         super().__init__()
         self.setAlignment(Qt.AlignHCenter)
         # Pixmap can read BMP, GIF, JPG, JPEG, PNG, PBM, PGM, PPM, XBM, XPM
-        image = self.open_image(path)
-        scaledImage = image.scaled(self.SIZE, self.SIZE, Qt.KeepAspectRatio)
+        try:
+            scaledImage = self.open_image(path)
+        except IOError as e:
+            scaledImage = self.open_image(r'resources\image_error.png')
+            print(e)
         self.setPixmap(scaledImage)
 
     def open_image(self, path):
         '''Open an image
 
         :param path: str, full image's path,
-        :returns: <class QPixmap> obj
+        :return: <class QPixmap> obj,
+        :raise IOError: if there's any problem with opening
+                        and reading an image
         '''
 
-        # Sometimes image's format != the one's path extension so when
-        # the app try to open it automatically, we get 'Null'. If it's
-        # the case, try to open it with the 'specific format' setting
-        image = QPixmap(path)
-        if not image.isNull():
-            return image
+        reader = QImageReader(path)
+        reader.setDecideFormatFromContent(True)
+        if not reader.canRead():
+            raise IOError('The image cannot be read')
+        width, height = self._get_scaling_dimensions(reader)
+        reader.setScaledSize(QSize(width, height))
+        pixmap = QPixmap.fromImageReader(reader)
+        if pixmap.isNull():
+            e = pixmap.errorString()
+            raise IOError(e)
+        return pixmap
 
-        for ext in ('PNG', 'JPG', 'JPEG', 'BMP'):
-            image = QPixmap(path, ext)
-            if not image.isNull():
-                return image
+    def _get_scaling_dimensions(self, reader):
+        '''Returns image thumbnail's dimensions
 
-        return QPixmap(r'resources\image_error.png')
+        :param reader: <class QImageReader> object,
+        :returns: tuple, (width: int, height: int)
+        '''
+
+        size = reader.size()
+        width, height = size.width(), size.height()
+        if width >= height:
+            width, height = (int(width * self.SIZE / width),
+                             int(height * self.SIZE / width))
+        else:
+            width, height = (int(width * self.SIZE / height),
+                             int(height * self.SIZE / height))
+        return width, height
 
 
 class DuplicateCandidateWidget(QWidget):
