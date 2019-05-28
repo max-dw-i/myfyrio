@@ -108,3 +108,12 @@ venv.bak/
 
 # VS Code files
 /.vscode
+
+# Cache (picke)
+*.p
+
+# TODO
+TODO
+
+# Resources
+/resources
