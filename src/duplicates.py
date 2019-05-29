@@ -2,6 +2,7 @@
 
 import os
 import pickle
+import pathlib
 from collections import defaultdict
 
 import imagehash
@@ -13,20 +14,18 @@ def get_images_paths(folders):
     the passed 'folders' argument
 
     :param folders: a collection of folders' paths,
-    :returns: list, images' full paths
+    :returns: list of str, images' full paths
     '''
 
     IMG_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp'}
     images_paths = []
 
     for path in folders:
-        for dirpath, _, filenames in os.walk(path):
-            for filename in filenames:
-                full_path = os.path.join(path, dirpath, filename)
-                if os.path.isfile(full_path):
-                    _, extension = os.path.splitext(filename)
-                    if extension in IMG_EXTENSIONS:
-                        images_paths.append(full_path)
+        p = pathlib.Path(path)
+        for ext in IMG_EXTENSIONS:
+            for filename in p.glob('**/*{}'.format(ext)):
+                if filename.is_file():
+                    images_paths.append(str(filename))
     return images_paths
 
 def _closest_images_populating(closest_images, images, i, j):
