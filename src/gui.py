@@ -1,10 +1,10 @@
 '''Graphical user interface is implemented in here'''
 
-from PyQt5.QtCore import QSize, Qt, pyqtSlot
+from PyQt5.QtCore import QFileInfo, QSize, Qt, pyqtSlot
 from PyQt5.QtGui import QColor, QImageReader, QPalette, QPixmap
-from PyQt5.QtWidgets import (
-    QFileDialog, QHBoxLayout, QLabel, QListWidgetItem, QMainWindow,
-    QSizePolicy, QVBoxLayout, QWidget)
+from PyQt5.QtWidgets import (QFileDialog, QFrame, QHBoxLayout, QLabel,
+                             QListWidgetItem, QMainWindow, QTextEdit,
+                             QVBoxLayout, QWidget)
 from PyQt5.uic import loadUi
 
 from . import duplicates
@@ -27,12 +27,20 @@ class ImageSizeLabel(InfoLabelWidget):
     '''Label class to show info about the image size'''
 
 
-class ImagePathLabel(InfoLabelWidget):
-    '''Label class to show the path to an image'''
+class ImagePathLabel(QTextEdit):
+    '''TextEdit class to show the path to an image'''
 
     def __init__(self, text):
-        super().__init__(text)
-        self.setWordWrap(True)
+        super().__init__()
+        self.setReadOnly(True)
+        self.setFrameStyle(QFrame.NoFrame)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        pal = QPalette()
+        pal.setColor(QPalette.Base, Qt.transparent)
+        self.setPalette(pal)
+
+        self.setText(QFileInfo(text).canonicalFilePath())
+        self.setAlignment(Qt.AlignCenter)
 
 
 class ImageInfoWidget(QWidget):
@@ -51,6 +59,7 @@ class ImageInfoWidget(QWidget):
         )
         for widget in widgets:
             layout.addWidget(widget)
+        self.setLayout(layout)
 
     def get_image_size(self, dimensions, filesize):
         '''Return info about image dimensions and file size
@@ -134,7 +143,7 @@ class DuplicateCandidateWidget(QWidget):
         self.SELECTED_BACKGROUND_COLOR = '#d3d3d3'
         self.selected = False
 
-        self.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        self.setFixedWidth(200)
         layout = QVBoxLayout(self)
 
         imageLabel = ThumbnailWidget(image.path)
@@ -151,6 +160,7 @@ class DuplicateCandidateWidget(QWidget):
         imageInfo = ImageInfoWidget(image.path, image.difference,
                                     dimensions, filesize)
         layout.addWidget(imageInfo)
+        self.setLayout(layout)
 
         self.setAutoFillBackground(True)
         self.setWidgetEvents()
@@ -207,10 +217,11 @@ class ImageGroupWidget(QWidget):
     def __init__(self, image_group):
         super().__init__()
         layout = QHBoxLayout(self)
-        layout.setAlignment(Qt.AlignLeft)
+        layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         for image in image_group:
             thumbnail = DuplicateCandidateWidget(image)
             layout.addWidget(thumbnail)
+        self.setLayout(layout)
 
     def getSelectedWidgets(self):
         '''Return list of the selected DuplicateCandidateWidget instances'''
@@ -285,7 +296,8 @@ class App(QMainWindow):
         for group_widget in group_widgets:
             group_widget.deleteLater()
 
-        paths = [self.pathLW.item(i).data(Qt.DisplayRole) for i in range(self.pathLW.count())]
+        paths = [self.pathLW.item(i).data(Qt.DisplayRole)
+                 for i in range(self.pathLW.count())]
         image_groups = duplicates.image_processing(paths)
         for image_group in image_groups:
             self.scrollAreaLayout.addWidget(ImageGroupWidget(image_group))
