@@ -1,9 +1,10 @@
 '''Functions to process images and find duplicates'''
 
 import os
-import pickle
 import pathlib
+import pickle
 from collections import defaultdict
+from multiprocessing import Pool
 
 import imagehash
 from PIL import Image as pilimage
@@ -143,22 +144,25 @@ def hashes_calculating(paths):
 
     cached_hashes = _load_cached_hashes()
 
-    image_objs = []
+    images = []
+    not_cached_images_paths = []
     for path in paths:
-        image = Image(path)
-        if image.path in cached_hashes:
-            image.hash = cached_hashes[image.path]
+        if path in cached_hashes:
+            images.append(Image(path, dhash=cached_hashes[path]))
         else:
-            try:
-                image.hash = image.calc_dhash()
-            except IOError:
-                continue
-            cached_hashes[image.path] = image.hash
-        image_objs.append(image)
+            not_cached_images_paths.append(path)
+
+    if not_cached_images_paths:
+        with Pool() as p:
+            new_hashes = p.map(Image.calc_dhash, not_cached_images_paths)
+
+        for i, dhash in enumerate(new_hashes):
+            images.append(Image(not_cached_images_paths[i], dhash=dhash))
+            cached_hashes[not_cached_images_paths[i]] = dhash
 
     _save_cached_hashes(cached_hashes)
 
-    return image_objs
+    return images
 
 def image_processing(folders):
     '''Process images to find the duplicates
@@ -168,8 +172,7 @@ def image_processing(folders):
                      [<class Image> obj 2.1, <class Image> obj 2.2, ...], ...]
     '''
 
-    #paths = get_images_paths(folders)
-    paths = get_images_paths([r'C:\Users\Remote\Downloads\new folder\iAHFY'])
+    paths = get_images_paths(folders)
     images = hashes_calculating(paths)
     return images_grouping(images)
 
@@ -182,17 +185,19 @@ class Image():
         self.difference = difference
         self.hash = dhash
 
-    def calc_dhash(self):
+    @staticmethod
+    def calc_dhash(path):
         '''Calculate an image's difference hash using
         'dhash' function from 'imagehash' lib
 
+        :param path: str, an image's path,
         :returns: <class ImageHash> instance,
         :raise OSError: if there's any problem with
                         opening or reading an image
         '''
 
         try:
-            image = pilimage.open(self.path)
+            image = pilimage.open(path)
         except OSError as e:
             print(e)
             raise OSError(e)
