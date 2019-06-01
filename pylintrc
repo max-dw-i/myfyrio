@@ -6,4 +6,4 @@ extension-pkg-whitelist=PyQt5
 
 [MESSAGES CONTROL]
 enable=all
-disable=too-few-public-methods,no-self-use,unused-argument,invalid-name,relative-beyond-top-level
+disable=too-few-public-methods,no-self-use,unused-argument,invalid-name,relative-beyond-top-level,broad-except,missing-docstring
