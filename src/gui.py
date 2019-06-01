@@ -1,6 +1,10 @@
 '''Graphical user interface is implemented in here'''
 
-from PyQt5.QtCore import QFileInfo, QSize, Qt, pyqtSlot
+import sys
+import traceback
+
+from PyQt5.QtCore import (QFileInfo, QObject, QRunnable, QSize, Qt,
+                          QThreadPool, pyqtSignal, pyqtSlot)
 from PyQt5.QtGui import QColor, QImageReader, QPalette, QPixmap
 from PyQt5.QtWidgets import (QFileDialog, QFrame, QHBoxLayout, QLabel,
                              QListWidgetItem, QMainWindow, QTextEdit,
@@ -8,6 +12,42 @@ from PyQt5.QtWidgets import (QFileDialog, QFrame, QHBoxLayout, QLabel,
 from PyQt5.uic import loadUi
 
 from . import duplicates
+
+
+class WorkerSignals(QObject):
+    '''The signals available from a running worker thread
+
+    Supported signals are:
+    :error: tuple, (exctype, value, traceback.format_exc()),
+    :result: object, data returned from processing
+    '''
+
+    error = pyqtSignal(tuple)
+    result = pyqtSignal(object)
+
+
+class Worker(QRunnable):
+    '''QRunnable class reimplementation to handle image
+    processing threads
+    '''
+
+    def __init__(self, fn, *args, **kwargs):
+        super().__init__()
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+        self.signals = WorkerSignals()
+
+    @pyqtSlot()
+    def run(self):
+        try:
+            result = self.fn(*self.args, **self.kwargs)
+        except Exception:
+            traceback.print_exc()
+            exctype, value = sys.exc_info()[:2]
+            self.signals.error.emit((exctype, value, traceback.format_exc()))
+        else:
+            self.signals.result.emit(result)
 
 
 class InfoLabelWidget(QLabel):
@@ -242,6 +282,8 @@ class App(QMainWindow):
         self.setWidgetEvents()
         self.show()
 
+        self.threadpool = QThreadPool()
+
     def setWidgetEvents(self):
         '''Link events and functions called on the events'''
 
@@ -263,6 +305,40 @@ class App(QMainWindow):
             QFileDialog.ShowDirsOnly
         )
         return folder_path
+
+    def clear_form_before_start(self):
+        '''Clear the form from the previous duplicate images
+        found before doing another search
+        '''
+
+        group_widgets = self.scrollAreaWidget.findChildren(
+            ImageGroupWidget,
+            options=Qt.FindDirectChildrenOnly
+        )
+        for group_widget in group_widgets:
+            group_widget.deleteLater()
+
+    def get_user_paths(self):
+        '''Get all the paths a user added to the 'pathLW'
+
+        :returns: list of str, the paths the user wants to
+                  process
+        '''
+
+        return [self.pathLW.item(i).data(Qt.DisplayRole)
+                for i in range(self.pathLW.count())]
+
+    def render_image_groups(self, image_groups):
+        '''Make all the necessary widgets to render duplicate images
+
+        :param image_groups: list, [[<class Image> obj 1.1,
+                                     <class Image> obj 1.2, ...],
+                                   [<class Image> obj 2.1,
+                                    <class Image> obj 2.2, ...], ...]
+        '''
+
+        for image_group in image_groups:
+            self.scrollAreaLayout.addWidget(ImageGroupWidget(image_group))
 
     @pyqtSlot()
     def addFolderBtn_click(self):
@@ -289,18 +365,14 @@ class App(QMainWindow):
     def startBtn_click(self):
         '''Function called on 'Start' button click event'''
 
-        group_widgets = self.scrollAreaWidget.findChildren(
-            ImageGroupWidget,
-            options=Qt.FindDirectChildrenOnly
-        )
-        for group_widget in group_widgets:
-            group_widget.deleteLater()
+        self.clear_form_before_start()
+        paths = self.get_user_paths()
+        fn = duplicates.image_processing
 
-        paths = [self.pathLW.item(i).data(Qt.DisplayRole)
-                 for i in range(self.pathLW.count())]
-        image_groups = duplicates.image_processing(paths)
-        for image_group in image_groups:
-            self.scrollAreaLayout.addWidget(ImageGroupWidget(image_group))
+        worker = Worker(fn, paths)
+        worker.signals.result.connect(self.render_image_groups)
+
+        self.threadpool.start(worker)
 
     @pyqtSlot()
     def stopBtn_click(self):
