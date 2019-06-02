@@ -111,10 +111,11 @@ def images_grouping(images):
 
     return [sorted(final_groups[g], key=lambda x: x.difference) for g in final_groups]
 
-def _load_cached_hashes():
-    '''Returns cached image hashes
+def load_cached_hashes():
+    '''Returns cached images' hashes
 
-    :returns: dict, {image_path: str, image_hash: <class ImageHash> obj}
+    :returns: dict, {image_path: str,
+                     image_hash: <class ImageHash> obj, ...}
     '''
 
     try:
@@ -124,8 +125,8 @@ def _load_cached_hashes():
         cached_hashes = {}
     return cached_hashes
 
-def _save_cached_hashes(cached_hashes):
-    '''Save cached image hashes on the disk
+def save_cached_hashes(cached_hashes):
+    '''Save cached images' hashes on the disk
 
     :param cached_hashes: dict, {image_path: str,
                                  image_hash: <class ImageHash> obj}
@@ -134,35 +135,57 @@ def _save_cached_hashes(cached_hashes):
     with open('image_hashes.p', 'wb') as f:
         pickle.dump(cached_hashes, f)
 
-def hashes_calculating(paths):
-    '''Return a list with <class Image> objects which are
-    ready for comparing (with hashes calculated)
+def find_not_cached_images(paths, cached_hashes):
+    '''Return a list with not cached images' paths
 
     :param paths: list, images' full paths,
-    :returns: list, [<class Image> obj 1, <class Image> obj 2, ...]
+    :param cached_hashes: dict, {image_path: str,
+                                 image_hash: <class ImageHash> obj},
+    :returns: list, [not_cached_image_path: str, ...]
     '''
 
-    cached_hashes = _load_cached_hashes()
+    return [path for path in paths if path not in cached_hashes]
 
-    images = []
-    not_cached_images_paths = []
-    for path in paths:
-        if path in cached_hashes:
-            images.append(Image(path, dhash=cached_hashes[path]))
-        else:
-            not_cached_images_paths.append(path)
+def hashes_calculating(images_paths):
+    '''Return a list with new calculated hashes
 
-    if not_cached_images_paths:
-        with Pool() as p:
-            new_hashes = p.map(Image.calc_dhash, not_cached_images_paths)
+    :param images_paths: list of str, images' full paths,
+    :returns: list, [<class ImageHash> obj, ...]
+    '''
 
-        for i, dhash in enumerate(new_hashes):
-            images.append(Image(not_cached_images_paths[i], dhash=dhash))
-            cached_hashes[not_cached_images_paths[i]] = dhash
+    with Pool() as p:
+        new_hashes = p.map(Image.calc_dhash, images_paths)
 
-    _save_cached_hashes(cached_hashes)
+    return new_hashes
 
-    return images
+def images_constructor(image_paths, image_hashes):
+    '''Returns a list of <class Image> objects ready
+    for comparing
+
+    :param image_paths: list of str, images' full paths,
+    :param image_hashes: dict, {image_path: str,
+                                image_hash: <class ImageHash> obj, ...},
+    :returns: list of <class Image> objs
+    '''
+
+    return [Image(path, dhash=image_hashes[path]) for path in image_paths]
+
+def caching_images(paths, hashes, cached_hashes):
+    '''Add new images to the cache, save them on the disk
+    and returns an updated dictionary with hashes
+
+    :param paths: list of str, images' full paths,
+    :param hashes: list of <class ImageHash> objs,
+    :param cached_hashes: dict, {image_path: str,
+                                 image_hash: <class ImageHash> obj}
+    '''
+
+    for i, path in enumerate(paths):
+        cached_hashes[path] = hashes[i]
+
+    save_cached_hashes(cached_hashes)
+
+    return cached_hashes
 
 def image_processing(folders):
     '''Process images to find the duplicates
@@ -173,7 +196,12 @@ def image_processing(folders):
     '''
 
     paths = get_images_paths(folders)
-    images = hashes_calculating(paths)
+    cached_hashes = load_cached_hashes()
+    not_cached_images_paths = find_not_cached_images(paths, cached_hashes)
+    if not_cached_images_paths:
+        hashes = hashes_calculating(not_cached_images_paths)
+        cached_hashes = caching_images(not_cached_images_paths, hashes, cached_hashes)
+    images = images_constructor(paths, cached_hashes)
     return images_grouping(images)
 
 
