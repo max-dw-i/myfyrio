@@ -257,6 +257,13 @@
            </widget>
           </item>
           <item>
+           <widget class="QLabel" name="foundInCacheLabel">
+            <property name="text">
+             <string>Found pictures in cache ... 0</string>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QLabel" name="remainingPicLabel">
             <property name="text">
              <string>Remaining pictures ... 0</string>
@@ -296,7 +303,7 @@
               <number>0</number>
              </property>
              <property name="topMargin">
-              <number>30</number>
+              <number>15</number>
              </property>
              <property name="rightMargin">
               <number>0</number>
