@@ -1,6 +1,6 @@
 [MASTER]
 
-init-hook='import sys; sys.path.append("F:\Maxim\Projects\Envs\image_duplicates\Lib\site-packages")'
+init-hook='import sys; sys.path.append("F:\Maxim\Projects\Envs\image_duplicates_env\Lib\site-packages")'
 extension-pkg-whitelist=PyQt5
 
 
