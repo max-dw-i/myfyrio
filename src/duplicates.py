@@ -146,16 +146,28 @@ def find_not_cached_images(paths, cached_hashes):
 
     return [path for path in paths if path not in cached_hashes]
 
-def hashes_calculating(images_paths):
+def hashes_calculating(images_paths, callback=None):
     '''Return a list with new calculated hashes
 
     :param images_paths: list of str, images' full paths,
+    :param callback: <class pyqtSignal> obj, used to inform
+                     the main GUI thread about the progress,
     :returns: list, [<class ImageHash> obj, ...]
     '''
 
+    new_hashes = []
     with Pool() as p:
-        new_hashes = p.map(Image.calc_dhash, images_paths)
-
+        # If this function is used without any threads that want to know
+        # about the progress, just run 'map' function and get the result
+        if callback is None:
+            new_hashes = p.map(Image.calc_dhash, images_paths)
+        # If info about the progress is needed, run lazy version
+        # of 'map' - 'imap'
+        else:
+            images_num = len(images_paths)
+            for i, dhash in enumerate(p.imap(Image.calc_dhash, images_paths)):
+                new_hashes.append(dhash)
+                callback.emit(images_num-i-1)
     return new_hashes
 
 def images_constructor(image_paths, image_hashes):

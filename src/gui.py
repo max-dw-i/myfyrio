@@ -14,40 +14,76 @@ from PyQt5.uic import loadUi
 from . import duplicates
 
 
-class WorkerSignals(QObject):
-    '''The signals available from a running worker thread
+class ImageProcessingWorkerSignals(QObject):
+    '''The signals available from a running
+    ImageProcessingWorker thread
 
-    Supported signals are:
+    Supported signals:
+    :loaded: int, number of images to process,
+    :found_in_cache: int, number of images found in cache,
+    :remaining: int, number of images left to process,
+    :calculated_hashes: int, number of images whose hashes
+                        are calculated at the moment,
+    :groups: int, number of groups with duplicate images,
     :error: tuple, (exctype, value, traceback.format_exc()),
-    :result: object, data returned from processing
+    :result: object, final data returned from processing
     '''
 
+    loaded = pyqtSignal(int)
+    found_in_cache = pyqtSignal(int)
+    remaining = pyqtSignal(int)
+    calculated_hashes = pyqtSignal(int)
+    groups = pyqtSignal(int)
     error = pyqtSignal(tuple)
     result = pyqtSignal(object)
 
 
-class Worker(QRunnable):
+class ImageProcessingWorker(QRunnable):
     '''QRunnable class reimplementation to handle image
     processing threads
     '''
 
-    def __init__(self, fn, *args, **kwargs):
+    def __init__(self, folders):
         super().__init__()
-        self.fn = fn
-        self.args = args
-        self.kwargs = kwargs
-        self.signals = WorkerSignals()
+        self.folders = folders
+        self.signals = ImageProcessingWorkerSignals()
+
+        self.progress_callback = self.signals.calculated_hashes
 
     @pyqtSlot()
     def run(self):
         try:
-            result = self.fn(*self.args, **self.kwargs)
+            paths = duplicates.get_images_paths(self.folders)
+            self.signals.loaded.emit(len(paths))
+
+            cached_hashes = duplicates.load_cached_hashes()
+            not_cached_images_paths = duplicates.find_not_cached_images(
+                paths,
+                cached_hashes
+            )
+            self.signals.found_in_cache.emit(len(paths)-len(not_cached_images_paths))
+            self.signals.remaining.emit(len(not_cached_images_paths))
+
+            if not_cached_images_paths:
+                hashes = duplicates.hashes_calculating(
+                    not_cached_images_paths,
+                    self.progress_callback
+                )
+                cached_hashes = duplicates.caching_images(
+                    not_cached_images_paths,
+                    hashes,
+                    cached_hashes
+                )
+
+            images = duplicates.images_constructor(paths, cached_hashes)
+            image_groups = duplicates.images_grouping(images)
+            self.signals.groups.emit(len(image_groups))
         except Exception:
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
             self.signals.error.emit((exctype, value, traceback.format_exc()))
         else:
-            self.signals.result.emit(result)
+            self.signals.result.emit(image_groups)
 
 
 class InfoLabelWidget(QLabel):
@@ -318,10 +354,10 @@ class App(QMainWindow):
         for group_widget in group_widgets:
             group_widget.deleteLater()
 
-    def get_user_paths(self):
-        '''Get all the paths a user added to the 'pathLW'
+    def get_user_folders(self):
+        '''Get all the folders a user added to the 'pathLW'
 
-        :returns: list of str, the paths the user wants to
+        :returns: list of str, the folders the user wants to
                   process
         '''
 
@@ -339,6 +375,26 @@ class App(QMainWindow):
 
         for image_group in image_groups:
             self.scrollAreaLayout.addWidget(ImageGroupWidget(image_group))
+
+    def _loaded_images_number(self, num):
+        self.loadedPicLabel.setText(
+            'Loaded pictures ... {}'.format(num)
+        )
+
+    def _found_in_cache_images_number(self, num):
+        self.foundInCacheLabel.setText(
+            'Found pictures in cache ... {}'.format(num)
+        )
+
+    def _remaining_images_number(self, num):
+        self.remainingPicLabel.setText(
+            'Remaining pictures ... {}'.format(num)
+        )
+
+    def _image_groups_number(self, num):
+        self.dupGroupLabel.setText(
+            'Duplicate groups ... {}'.format(num)
+        )
 
     @pyqtSlot()
     def addFolderBtn_click(self):
@@ -366,12 +422,15 @@ class App(QMainWindow):
         '''Function called on 'Start' button click event'''
 
         self.clear_form_before_start()
-        paths = self.get_user_paths()
-        fn = duplicates.image_processing
+        folders = self.get_user_folders()
 
-        worker = Worker(fn, paths)
+        worker = ImageProcessingWorker(folders)
+        worker.signals.loaded.connect(self._loaded_images_number)
+        worker.signals.found_in_cache.connect(self._found_in_cache_images_number)
+        worker.signals.remaining.connect(self._remaining_images_number)
+        worker.signals.calculated_hashes.connect(self._remaining_images_number)
+        worker.signals.groups.connect(self._image_groups_number)
         worker.signals.result.connect(self.render_image_groups)
-
         self.threadpool.start(worker)
 
     @pyqtSlot()
