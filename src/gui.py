@@ -2,9 +2,11 @@
 
 import sys
 import traceback
+from multiprocessing import Pool
 
-from PyQt5.QtCore import (QFileInfo, QObject, QRunnable, QSize, Qt,
-                          QThreadPool, pyqtSignal, pyqtSlot)
+from PyQt5.QtCore import (QBuffer, QByteArray, QFileInfo, QIODevice, QObject,
+                          QRunnable, QSize, Qt, QThreadPool, pyqtSignal,
+                          pyqtSlot)
 from PyQt5.QtGui import QColor, QImageReader, QPalette, QPixmap
 from PyQt5.QtWidgets import (QFileDialog, QFrame, QHBoxLayout, QLabel,
                              QListWidgetItem, QMainWindow, QTextEdit,
@@ -25,8 +27,9 @@ class ImageProcessingWorkerSignals(QObject):
     :calculated_hashes: int, number of images whose hashes
                         are calculated at the moment,
     :groups: int, number of groups with duplicate images,
+    :thumbnails: int, number of thumbnails to get left,
     :error: tuple, (exctype, value, traceback.format_exc()),
-    :result: object, final data returned from processing
+    :result: list, group of duplicate images
     '''
 
     loaded = pyqtSignal(int)
@@ -34,8 +37,9 @@ class ImageProcessingWorkerSignals(QObject):
     remaining = pyqtSignal(int)
     calculated_hashes = pyqtSignal(int)
     groups = pyqtSignal(int)
+    thumbnails = pyqtSignal(int)
     error = pyqtSignal(tuple)
-    result = pyqtSignal(object)
+    result = pyqtSignal(list)
 
 
 class ImageProcessingWorker(QRunnable):
@@ -46,44 +50,73 @@ class ImageProcessingWorker(QRunnable):
     def __init__(self, folders):
         super().__init__()
         self.folders = folders
-        self.signals = ImageProcessingWorkerSignals()
 
+        self.signals = ImageProcessingWorkerSignals()
         self.progress_callback = self.signals.calculated_hashes
+
+    def _paths_processing(self):
+        paths = duplicates.get_images_paths(self.folders)
+        self.signals.loaded.emit(len(paths))
+        return paths
+
+    def _check_cache(self, paths, cached_hashes):
+        not_cached_images_paths = duplicates.find_not_cached_images(
+            paths,
+            cached_hashes
+        )
+        self.signals.found_in_cache.emit(len(paths)-len(not_cached_images_paths))
+        self.signals.remaining.emit(len(not_cached_images_paths))
+        return not_cached_images_paths
+
+    def _hashes_calculating(self, not_cached_images_paths, cached_hashes):
+        hashes = duplicates.hashes_calculating(
+            not_cached_images_paths,
+            self.progress_callback
+        )
+        cached_hashes = duplicates.caching_images(
+            not_cached_images_paths,
+            hashes,
+            cached_hashes
+        )
+        return cached_hashes
+
+    def _images_comparing(self, paths, cached_hashes):
+        images = duplicates.images_constructor(paths, cached_hashes)
+        image_groups = duplicates.images_grouping(images)
+        self.signals.groups.emit(len(image_groups))
+        return image_groups
+
+    def _thumbnails_processing(self, image_groups):
+        flat = [image for group in image_groups for image in group]
+        thumbnails_left = len(flat)
+        self.signals.thumbnails.emit(thumbnails_left)
+        with Pool() as p:
+            thumbnails = []
+            for th in p.imap(ThumbnailWidget.get_thumbnail, flat):
+                thumbnails.append(th)
+                thumbnails_left -= 1
+                self.signals.thumbnails.emit(thumbnails_left)
+        j = 0
+        for group in image_groups:
+            for image in group:
+                image.thumbnail = thumbnails[j]
+                j += 1
+            self.signals.result.emit(group)
 
     @pyqtSlot()
     def run(self):
         try:
-            paths = duplicates.get_images_paths(self.folders)
-            self.signals.loaded.emit(len(paths))
-
+            paths = self._paths_processing()
             cached_hashes = duplicates.load_cached_hashes()
-            not_cached_images_paths = duplicates.find_not_cached_images(
-                paths,
-                cached_hashes
-            )
-            self.signals.found_in_cache.emit(len(paths)-len(not_cached_images_paths))
-            self.signals.remaining.emit(len(not_cached_images_paths))
-
+            not_cached_images_paths = self._check_cache(paths, cached_hashes)
             if not_cached_images_paths:
-                hashes = duplicates.hashes_calculating(
-                    not_cached_images_paths,
-                    self.progress_callback
-                )
-                cached_hashes = duplicates.caching_images(
-                    not_cached_images_paths,
-                    hashes,
-                    cached_hashes
-                )
-
-            images = duplicates.images_constructor(paths, cached_hashes)
-            image_groups = duplicates.images_grouping(images)
-            self.signals.groups.emit(len(image_groups))
+                self._hashes_calculating(not_cached_images_paths, cached_hashes)
+            image_groups = self._images_comparing(paths, cached_hashes)
+            self._thumbnails_processing(image_groups)
         except Exception:
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
             self.signals.error.emit((exctype, value, traceback.format_exc()))
-        else:
-            self.signals.result.emit(image_groups)
 
 
 class InfoLabelWidget(QLabel):
@@ -157,54 +190,42 @@ class ThumbnailWidget(QLabel):
 
     SIZE = 200
 
-    def __init__(self, path):
+    def __init__(self, image):
         super().__init__()
         self.setAlignment(Qt.AlignHCenter)
         # Pixmap can read BMP, GIF, JPG, JPEG, PNG, PBM, PGM, PPM, XBM, XPM
         try:
-            scaledImage = self.open_image(path)
+            pixmap = QPixmap()
+            pixmap.loadFromData(image.thumbnail)
+            if pixmap.isNull():
+                e = pixmap.errorString()
+                raise IOError(e)
         except IOError as e:
-            scaledImage = self.open_image(r'resources\image_error.png')
+            pixmap = QPixmap(r'resources\image_error.png')
             print(e)
-        self.setPixmap(scaledImage)
+        self.setPixmap(pixmap)
 
-    def open_image(self, path):
-        '''Open an image
+    @staticmethod
+    def get_thumbnail(image):
+        '''Returns an image's thumbnail
 
-        :param path: str, full image's path,
-        :return: <class QPixmap> obj,
-        :raise IOError: if there's any problem with opening
-                        and reading an image
+        :param image: <class Image> obj,
+        :returns: <class QByteArray> obj,
+                  image's thumbnail
         '''
 
-        reader = QImageReader(path)
+        reader = QImageReader(image.path)
         reader.setDecideFormatFromContent(True)
         if not reader.canRead():
             raise IOError('The image cannot be read')
-        width, height = self._get_scaling_dimensions(reader)
+        width, height = image.get_scaling_dimensions(200)
         reader.setScaledSize(QSize(width, height))
-        pixmap = QPixmap.fromImageReader(reader)
-        if pixmap.isNull():
-            e = pixmap.errorString()
-            raise IOError(e)
-        return pixmap
-
-    def _get_scaling_dimensions(self, reader):
-        '''Returns image thumbnail's dimensions
-
-        :param reader: <class QImageReader> object,
-        :returns: tuple, (width: int, height: int)
-        '''
-
-        size = reader.size()
-        width, height = size.width(), size.height()
-        if width >= height:
-            width, height = (int(width * self.SIZE / width),
-                             int(height * self.SIZE / width))
-        else:
-            width, height = (int(width * self.SIZE / height),
-                             int(height * self.SIZE / height))
-        return width, height
+        img = reader.read()
+        ba = QByteArray()
+        buf = QBuffer(ba)
+        buf.open(QIODevice.WriteOnly)
+        img.save(buf, image.suffix[1:].upper(), 100)
+        return ba
 
 
 class DuplicateCandidateWidget(QWidget):
@@ -222,7 +243,7 @@ class DuplicateCandidateWidget(QWidget):
         self.setFixedWidth(200)
         layout = QVBoxLayout(self)
 
-        imageLabel = ThumbnailWidget(image.path)
+        imageLabel = ThumbnailWidget(image)
         layout.addWidget(imageLabel)
 
         try:
@@ -364,17 +385,13 @@ class App(QMainWindow):
         return [self.pathLW.item(i).data(Qt.DisplayRole)
                 for i in range(self.pathLW.count())]
 
-    def render_image_groups(self, image_groups):
-        '''Make all the necessary widgets to render duplicate images
+    def render_image_group(self, image_group):
+        '''Render ImageGroupWidget with duplicate images
 
-        :param image_groups: list, [[<class Image> obj 1.1,
-                                     <class Image> obj 1.2, ...],
-                                   [<class Image> obj 2.1,
-                                    <class Image> obj 2.2, ...], ...]
+        :param image_groups: list, [<class Image> obj 1.1, ...]
         '''
 
-        for image_group in image_groups:
-            self.scrollAreaLayout.addWidget(ImageGroupWidget(image_group))
+        self.scrollAreaLayout.addWidget(ImageGroupWidget(image_group))
 
     def _loaded_images_number(self, num):
         self.loadedPicLabel.setText(
@@ -394,6 +411,11 @@ class App(QMainWindow):
     def _image_groups_number(self, num):
         self.dupGroupLabel.setText(
             'Duplicate groups ... {}'.format(num)
+        )
+
+    def _thumbnails_number(self, num):
+        self.thumbnailsLabel.setText(
+            'Thumbnails left ... {}'.format(num)
         )
 
     @pyqtSlot()
@@ -430,7 +452,8 @@ class App(QMainWindow):
         worker.signals.remaining.connect(self._remaining_images_number)
         worker.signals.calculated_hashes.connect(self._remaining_images_number)
         worker.signals.groups.connect(self._image_groups_number)
-        worker.signals.result.connect(self.render_image_groups)
+        worker.signals.thumbnails.connect(self._thumbnails_number)
+        worker.signals.result.connect(self.render_image_group)
         self.threadpool.start(worker)
 
     @pyqtSlot()

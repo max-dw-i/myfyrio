@@ -180,7 +180,8 @@ def images_constructor(image_paths, image_hashes):
     :returns: list of <class Image> objs
     '''
 
-    return [Image(path, dhash=image_hashes[path]) for path in image_paths]
+    return [Image(path, dhash=image_hashes[path], suffix=pathlib.Path(path).suffix)
+            for path in image_paths]
 
 def caching_images(paths, hashes, cached_hashes):
     '''Add new images to the cache, save them on the disk
@@ -220,10 +221,12 @@ def image_processing(folders):
 class Image():
     '''Class that represents images'''
 
-    def __init__(self, path, difference=0, dhash=None):
+    def __init__(self, path, difference=0, dhash=None, thumbnail=None, suffix=None):
         self.path = path
         self.difference = difference
         self.hash = dhash
+        self.thumbnail = thumbnail
+        self.suffix = suffix
 
     @staticmethod
     def calc_dhash(path):
@@ -258,6 +261,24 @@ class Image():
             print(e)
             raise OSError(e)
         return image.size
+
+    def get_scaling_dimensions(self, size):
+        '''Returns the dimensions an image should
+        have after having scaled
+
+        :param size: tuple, (width: int, height: int),
+        :returns: tuple, (width: int, height: int) with
+                  kept aspect ratio
+        '''
+
+        width, height = self.get_dimensions()
+        if width >= height:
+            width, height = (width * size // width,
+                             height * size // width)
+        else:
+            width, height = (width * size // height,
+                             height * size // height)
+        return width, height
 
     def get_filesize(self, size_format='KB'):
         '''Return an image file size

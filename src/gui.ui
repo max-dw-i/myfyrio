@@ -290,9 +290,9 @@
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="dupPicLabel">
+           <widget class="QLabel" name="thumbnailsLabel">
             <property name="text">
-             <string>Duplicate pictures ... 0</string>
+             <string>Thumbnails left ... 0</string>
             </property>
            </widget>
           </item>
