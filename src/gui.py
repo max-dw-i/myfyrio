@@ -14,32 +14,46 @@ from PyQt5.QtWidgets import (QFileDialog, QFrame, QHBoxLayout, QLabel,
 from PyQt5.uic import loadUi
 
 from . import duplicates
+from .exceptions import InterruptProcessing
 
 
-class ImageProcessingWorkerSignals(QObject):
-    '''The signals available from a running
-    ImageProcessingWorker thread
+class WorkerSignals(QObject):
+    '''The signals available from running
+    ImageProcessingWorker or main (GUI) threads
 
     Supported signals:
+    :interrupt: means the processing should be stopped and
+               thread - killed,
     :update_label: label to update: str, text to set: str,
     :error: tuple, (exctype, value, traceback.format_exc()),
-    :result: list, group of duplicate images
+    :result: list, group of duplicate images,
+    :finished: means the processing is done
     '''
 
+    interrupt = pyqtSignal()
     update_label = pyqtSignal(str, str)
     error = pyqtSignal(tuple)
     result = pyqtSignal(list)
+    finished = pyqtSignal()
 
 
 class ImageProcessingWorker(QRunnable):
     '''QRunnable class reimplementation to handle image
-    processing threads
+    processing thread
     '''
 
-    def __init__(self, folders):
+    def __init__(self, main_window, folders):
         super().__init__()
         self.folders = folders
-        self.signals = ImageProcessingWorkerSignals()
+
+        self.signals = WorkerSignals()
+        # If a user's clicked button 'Stop' in the main (GUI) thread,
+        # 'interrupt' flag is changed to True
+        main_window.signals.interrupt.connect(self._is_interrupted)
+        self.interrupt = False
+
+    def _is_interrupted(self):
+        self.interrupt = True
 
     def _paths_processing(self):
         paths = duplicates.get_images_paths(self.folders)
@@ -66,10 +80,15 @@ class ImageProcessingWorker(QRunnable):
         with Pool() as p:
             images_num = len(not_cached_paths)
             for i, dhash in enumerate(p.imap(duplicates.Image.calc_dhash, not_cached_paths)):
+                if self.interrupt:
+                    raise InterruptProcessing
                 hashes.append(dhash)
                 self.signals.update_label.emit('remaining_images', str(images_num-i-1))
+        return hashes
+
+    def _populate_cache(self, paths, hashes, cached_hashes):
         cached_hashes = duplicates.caching_images(
-            not_cached_paths,
+            paths,
             hashes,
             cached_hashes
         )
@@ -81,16 +100,24 @@ class ImageProcessingWorker(QRunnable):
         self.signals.update_label.emit('image_groups', str(len(image_groups)))
         return image_groups
 
-    def _thumbnails_processing(self, image_groups):
-        flat = [image for group in image_groups for image in group]
+    def _making_thumbnails(self, flat):
+        thumbnails = []
         thumbnails_left = len(flat)
-        self.signals.update_label.emit('thumbnails', str(thumbnails_left))
         with Pool() as p:
-            thumbnails = []
             for th in p.imap(ThumbnailWidget.get_thumbnail, flat):
+                if self.interrupt:
+                    raise InterruptProcessing
                 thumbnails.append(th)
                 thumbnails_left -= 1
                 self.signals.update_label.emit('thumbnails', str(thumbnails_left))
+        return thumbnails
+
+    def _thumbnails_processing(self, image_groups):
+        flat = [image for group in image_groups for image in group]
+        self.signals.update_label.emit('thumbnails', str(len(flat)))
+
+        thumbnails = self._making_thumbnails(flat)
+
         j = 0
         for group in image_groups:
             for image in group:
@@ -103,15 +130,22 @@ class ImageProcessingWorker(QRunnable):
         try:
             paths = self._paths_processing()
             cached_hashes = duplicates.load_cached_hashes()
-            not_cached_images_paths = self._check_cache(paths, cached_hashes)
-            if not_cached_images_paths:
-                self._hashes_calculating(not_cached_images_paths, cached_hashes)
+            not_cached_paths = self._check_cache(paths, cached_hashes)
+            if not_cached_paths:
+                hashes = self._hashes_calculating(not_cached_paths, cached_hashes)
+                cached_hashes = self._populate_cache(not_cached_paths, hashes,
+                                                     cached_hashes)
             image_groups = self._images_comparing(paths, cached_hashes)
             self._thumbnails_processing(image_groups)
+        except InterruptProcessing:
+            self.signals.finished.emit()
+            print('Image processing has been interrupted')
         except Exception:
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
             self.signals.error.emit((exctype, value, traceback.format_exc()))
+        else:
+            self.signals.finished.emit()
 
 
 class InfoLabelWidget(QLabel):
@@ -336,6 +370,7 @@ class App(QMainWindow):
     def __init__(self):
         super().__init__()
         loadUi(r'src\gui.ui', self)
+        self.signals = WorkerSignals()
         self.setWidgetEvents()
         self.show()
 
@@ -435,6 +470,10 @@ class App(QMainWindow):
                 return True
         return False
 
+    def image_processing_finished(self):
+        self.startBtn.setEnabled(True)
+        self.stopBtn.setEnabled(False)
+
     @pyqtSlot()
     def addFolderBtn_click(self):
         '''Function called on 'Add Path' button click event'''
@@ -461,16 +500,23 @@ class App(QMainWindow):
         '''Function called on 'Start' button click event'''
 
         self.clear_form_before_start()
+        self.stopBtn.setEnabled(True)
+        self.startBtn.setEnabled(False)
         folders = self.get_user_folders()
 
-        worker = ImageProcessingWorker(folders)
+        worker = ImageProcessingWorker(self, folders)
         worker.signals.update_label.connect(self._update_label_info)
         worker.signals.result.connect(self.render_image_group)
+        worker.signals.finished.connect(self.image_processing_finished)
         self.threadpool.start(worker)
 
     @pyqtSlot()
     def stopBtn_click(self):
         '''Function called on 'Stop' button click event'''
+
+        self.signals.interrupt.emit()
+        self.stopBtn.setEnabled(False)
+        # TODO Add popup or something about stopping the program
 
     @pyqtSlot()
     def pauseBtn_click(self):
