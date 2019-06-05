@@ -365,7 +365,7 @@ class App(QMainWindow):
 
     def clear_form_before_start(self):
         '''Clear the form from the previous duplicate images
-        found before doing another search
+        found and labels before doing another search
         '''
 
         group_widgets = self.scrollAreaWidget.findChildren(
@@ -374,6 +374,10 @@ class App(QMainWindow):
         )
         for group_widget in group_widgets:
             group_widget.deleteLater()
+
+        for label in ['thumbnails', 'image_groups', 'remaining_images',
+                      'found_in_cache', 'loaded_images']:
+            self._update_label_info(label, str(0))
 
     def get_user_folders(self):
         '''Get all the folders a user added to the 'pathLW'
