@@ -21,23 +21,12 @@ class ImageProcessingWorkerSignals(QObject):
     ImageProcessingWorker thread
 
     Supported signals:
-    :loaded: int, number of images to process,
-    :found_in_cache: int, number of images found in cache,
-    :remaining: int, number of images left to process,
-    :calculated_hashes: int, number of images whose hashes
-                        are calculated at the moment,
-    :groups: int, number of groups with duplicate images,
-    :thumbnails: int, number of thumbnails to get left,
+    :update_label: label to update: str, text to set: str,
     :error: tuple, (exctype, value, traceback.format_exc()),
     :result: list, group of duplicate images
     '''
 
-    loaded = pyqtSignal(int)
-    found_in_cache = pyqtSignal(int)
-    remaining = pyqtSignal(int)
-    calculated_hashes = pyqtSignal(int)
-    groups = pyqtSignal(int)
-    thumbnails = pyqtSignal(int)
+    update_label = pyqtSignal(str, str)
     error = pyqtSignal(tuple)
     result = pyqtSignal(list)
 
@@ -50,13 +39,11 @@ class ImageProcessingWorker(QRunnable):
     def __init__(self, folders):
         super().__init__()
         self.folders = folders
-
         self.signals = ImageProcessingWorkerSignals()
-        self.progress_callback = self.signals.calculated_hashes
 
     def _paths_processing(self):
         paths = duplicates.get_images_paths(self.folders)
-        self.signals.loaded.emit(len(paths))
+        self.signals.update_label.emit('loaded_images', str(len(paths)))
         return paths
 
     def _check_cache(self, paths, cached_hashes):
@@ -64,17 +51,25 @@ class ImageProcessingWorker(QRunnable):
             paths,
             cached_hashes
         )
-        self.signals.found_in_cache.emit(len(paths)-len(not_cached_images_paths))
-        self.signals.remaining.emit(len(not_cached_images_paths))
+        self.signals.update_label.emit(
+            'found_in_cache',
+            str(len(paths)-len(not_cached_images_paths))
+        )
+        self.signals.update_label.emit(
+            'remaining_images',
+            str(len(not_cached_images_paths))
+        )
         return not_cached_images_paths
 
-    def _hashes_calculating(self, not_cached_images_paths, cached_hashes):
-        hashes = duplicates.hashes_calculating(
-            not_cached_images_paths,
-            self.progress_callback
-        )
+    def _hashes_calculating(self, not_cached_paths, cached_hashes):
+        hashes = []
+        with Pool() as p:
+            images_num = len(not_cached_paths)
+            for i, dhash in enumerate(p.imap(duplicates.Image.calc_dhash, not_cached_paths)):
+                hashes.append(dhash)
+                self.signals.update_label.emit('remaining_images', str(images_num-i-1))
         cached_hashes = duplicates.caching_images(
-            not_cached_images_paths,
+            not_cached_paths,
             hashes,
             cached_hashes
         )
@@ -83,19 +78,19 @@ class ImageProcessingWorker(QRunnable):
     def _images_comparing(self, paths, cached_hashes):
         images = duplicates.images_constructor(paths, cached_hashes)
         image_groups = duplicates.images_grouping(images)
-        self.signals.groups.emit(len(image_groups))
+        self.signals.update_label.emit('image_groups', str(len(image_groups)))
         return image_groups
 
     def _thumbnails_processing(self, image_groups):
         flat = [image for group in image_groups for image in group]
         thumbnails_left = len(flat)
-        self.signals.thumbnails.emit(thumbnails_left)
+        self.signals.update_label.emit('thumbnails', str(thumbnails_left))
         with Pool() as p:
             thumbnails = []
             for th in p.imap(ThumbnailWidget.get_thumbnail, flat):
                 thumbnails.append(th)
                 thumbnails_left -= 1
-                self.signals.thumbnails.emit(thumbnails_left)
+                self.signals.update_label.emit('thumbnails', str(thumbnails_left))
         j = 0
         for group in image_groups:
             for image in group:
@@ -398,30 +393,25 @@ class App(QMainWindow):
 
         self.scrollAreaLayout.addWidget(ImageGroupWidget(image_group))
 
-    def _loaded_images_number(self, num):
-        self.loadedPicLabel.setText(
-            'Loaded pictures ... {}'.format(num)
-        )
+    def _update_label_info(self, label, text):
+        '''Update a label's info
 
-    def _found_in_cache_images_number(self, num):
-        self.foundInCacheLabel.setText(
-            'Found pictures in cache ... {}'.format(num)
-        )
+        :param label: str, one of ('thumbnails', 'image_groups',
+                           'remaining_images', 'found_in_cache',
+                           'loaded_images'),
+        :param text: str, text to add to a label
+        '''
 
-    def _remaining_images_number(self, num):
-        self.remainingPicLabel.setText(
-            'Remaining pictures ... {}'.format(num)
-        )
+        labels = {'thumbnails': self.thumbnailsLabel,
+                  'image_groups': self.dupGroupLabel,
+                  'remaining_images': self.remainingPicLabel,
+                  'found_in_cache': self.foundInCacheLabel,
+                  'loaded_images': self.loadedPicLabel}
 
-    def _image_groups_number(self, num):
-        self.dupGroupLabel.setText(
-            'Duplicate groups ... {}'.format(num)
-        )
-
-    def _thumbnails_number(self, num):
-        self.thumbnailsLabel.setText(
-            'Thumbnails left ... {}'.format(num)
-        )
+        label_to_change = labels[label]
+        label_text = label_to_change.text().split(' ')
+        label_text[-1] = text
+        label_to_change.setText(' '.join(label_text))
 
     def has_selected_widgets(self):
         '''Checks if there are selected DuplicateCandidateWidget
@@ -470,12 +460,7 @@ class App(QMainWindow):
         folders = self.get_user_folders()
 
         worker = ImageProcessingWorker(folders)
-        worker.signals.loaded.connect(self._loaded_images_number)
-        worker.signals.found_in_cache.connect(self._found_in_cache_images_number)
-        worker.signals.remaining.connect(self._remaining_images_number)
-        worker.signals.calculated_hashes.connect(self._remaining_images_number)
-        worker.signals.groups.connect(self._image_groups_number)
-        worker.signals.thumbnails.connect(self._thumbnails_number)
+        worker.signals.update_label.connect(self._update_label_info)
         worker.signals.result.connect(self.render_image_group)
         self.threadpool.start(worker)
 
