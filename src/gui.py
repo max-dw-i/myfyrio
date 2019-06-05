@@ -300,12 +300,17 @@ class DuplicateCandidateWidget(QWidget):
     def mouseRelease(self, event):
         '''Function called on mouse release event'''
 
+        window = self.window()
+
         if self.selected:
             self.changeBackgroundColor(self.UNSELECTED_BACKGROUND_COLOR)
             self.selected = False
+            if not window.has_selected_widgets():
+                window.deleteBtn.setEnabled(False)
         else:
             self.changeBackgroundColor(self.SELECTED_BACKGROUND_COLOR)
             self.selected = True
+            window.deleteBtn.setEnabled(True)
 
 
 class ImageGroupWidget(QWidget):
@@ -418,6 +423,24 @@ class App(QMainWindow):
             'Thumbnails left ... {}'.format(num)
         )
 
+    def has_selected_widgets(self):
+        '''Checks if there are selected DuplicateCandidateWidget
+        in the form
+
+        :returns: bool, True if there are any
+        '''
+
+        group_widgets = self.scrollAreaWidget.findChildren(
+            ImageGroupWidget,
+            options=Qt.FindDirectChildrenOnly
+        )
+        for group_widget in group_widgets:
+            selected_widgets = group_widget.getSelectedWidgets()
+            if selected_widgets:
+                self.deleteBtn.setEnabled(True)
+                return True
+        return False
+
     @pyqtSlot()
     def addFolderBtn_click(self):
         '''Function called on 'Add Path' button click event'''
@@ -486,3 +509,5 @@ class App(QMainWindow):
                 selected_widget.delete()
             if len(selected_widgets) == duplicate_candidate_widgets_num:
                 group_widget.deleteLater()
+
+        self.deleteBtn.setEnabled(False)
