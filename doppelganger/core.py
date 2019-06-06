@@ -82,19 +82,23 @@ def _closest_images_search(images, sensitivity):
     # similar image) are added to dict 'closest_images'
     closest_images = {}
     for i, image1 in enumerate(images):
-        closest_image = None
-        min_diff = float('inf')
-        for j, image2 in enumerate(images):
-            diff = image1.hash - image2.hash
-            # If the difference less/equal than 'sensitivity' and this
-            # image (image2) is closer to image1 (diff is less),
-            # we remember image2 index
-            if diff <= sensitivity and i != j and min_diff > diff:
-                closest_image = j
-                min_diff = diff
-        # If ith image has the closest one...
-        if closest_image is not None:
-            _closest_images_populating(closest_images, images, i, closest_image)
+        # If a hash is None there were some problem with
+        # calculating it so we don't process the image
+        if image1.hash is not None:
+            closest_image = None
+            min_diff = float('inf')
+            for j, image2 in enumerate(images):
+                if image2.hash is not None:
+                    diff = image1.hash - image2.hash
+                    # If the difference less/equal than 'sensitivity' and this
+                    # image (image2) is closer to image1 (diff is less),
+                    # we remember image2 index
+                    if diff <= sensitivity and i != j and min_diff > diff:
+                        closest_image = j
+                        min_diff = diff
+            # If ith image has the closest one...
+            if closest_image is not None:
+                _closest_images_populating(closest_images, images, i, closest_image)
     return closest_images
 
 def images_grouping(images, sensitivity):
@@ -200,10 +204,12 @@ class Image():
     def __init__(self, path, difference=0, dhash=None,
                  thumbnail=None, suffix=None):
         self.path = path
+        # Difference between the image's hash and the 1st
+        # image's hash in the group
         self.difference = difference
         self.hash = dhash
         self.thumbnail = thumbnail
-        self.suffix = suffix
+        self.suffix = suffix # '.jpg', '.png', etc.
 
     @staticmethod
     def calc_dhash(path):
@@ -211,32 +217,30 @@ class Image():
         'dhash' function from 'imagehash' lib
 
         :param path: str, an image's path,
-        :returns: <class ImageHash> instance,
-        :raise OSError: if there's any problem with
-                        opening or reading an image
+        :returns: <class ImageHash> instance or None
+                  if there's any problem
         '''
 
         try:
             image = PILImage.open(path)
         except OSError as e:
             print(e)
-            raise OSError(e)
+            return None
         return imagehash.dhash(image)
 
     def get_dimensions(self):
         '''Returns an image dimensions
 
         :param path: str, full path to an image,
-        :returns: tuple, (width: int, height: int),
-        :raise OSError: if there's any problem with
-                        opening or reading an image
+        :returns: tuple, (width: int, height: int)
+                  or (0, 0) if there's any problem
         '''
 
         try:
             image = PILImage.open(self.path)
         except OSError as e:
             print(e)
-            raise OSError(e)
+            return (0, 0)
         return image.size
 
     def get_scaling_dimensions(self, size):
@@ -262,18 +266,17 @@ class Image():
 
         :param size_format: str, ('B', 'KB', 'MB'),
         :returns: float, file size in bytes, kilobytes or megabytes,
-                  rounded to the first decimal place,
+                  rounded to the first decimal place or 0 if there's
+                  any problem
         :raise ValueError: if :size_format: not amongst
-                           the allowed values,
-        :raise OSError: if the file does not exist or is
-                        inaccessible
+                           the allowed values
         '''
 
         try:
             image_size = os.path.getsize(self.path)
         except OSError as e:
             print(e)
-            raise OSError(e)
+            return 0
 
         if size_format == 'B':
             return image_size
