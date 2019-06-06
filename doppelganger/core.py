@@ -1,4 +1,4 @@
-'''Functions to process images and find duplicates'''
+'''Core functions to process images and find duplicates'''
 
 import os
 import pathlib
@@ -14,7 +14,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 def get_images_paths(folders):
-    '''Return all the images' full paths from
+    '''Returns all the images' full paths from
     the passed 'folders' argument
 
     :param folders: a collection of folders' paths,
@@ -35,12 +35,12 @@ def get_images_paths(folders):
 def _closest_images_populating(closest_images, images, i, j):
     '''Populates :closest_images:
 
-    :param closest_images: dict of :images:' indices,
+    :param closest_images: dict of :images: indices,
                            eg. {0: 0, 1: 0, 5: 0}. The 1st
                            and 5th's closest image is 0th,
     :param images: collection of <class Image> objects,
-    :param i: int, :images:' index,
-    :param j: int, :images:' index
+    :param i: int, :images: index,
+    :param j: int, :images: index
     '''
 
     # Do nothing if ith and jth images have been added already
@@ -68,27 +68,28 @@ def _closest_images_populating(closest_images, images, i, j):
         closest_images[j] = i
         closest_images[i] = i
 
-def _closest_images_search(images):
-    '''Search every image's closest one
+def _closest_images_search(images, sensitivity):
+    '''Searches every image's closest one
 
+    :param sensitivity: int, min difference between images' hashes
+                        when the images are considered similar,
     :param images: collection of <class Image> objects,
     :returns: dict of :images:' indices, eg. {0: 0, 1: 0, 5: 0}.
               The 1st and 5th's closest image is 0th
     '''
 
-    SENSITIVITY = 10
     # Here all the hashes are compared to each other and the closest (most
-    # similar image) are added to dict 'closest_images'.
+    # similar image) are added to dict 'closest_images'
     closest_images = {}
     for i, image1 in enumerate(images):
         closest_image = None
         min_diff = float('inf')
         for j, image2 in enumerate(images):
             diff = image1.hash - image2.hash
-            # If the difference less/equal than SENSITIVITY and this
+            # If the difference less/equal than 'sensitivity' and this
             # image (image2) is closer to image1 (diff is less),
             # we remember image2 index
-            if diff <= SENSITIVITY and i != j and min_diff > diff:
+            if diff <= sensitivity and i != j and min_diff > diff:
                 closest_image = j
                 min_diff = diff
         # If ith image has the closest one...
@@ -96,17 +97,19 @@ def _closest_images_search(images):
             _closest_images_populating(closest_images, images, i, closest_image)
     return closest_images
 
-def images_grouping(images):
+def images_grouping(images, sensitivity):
     '''Returns groups of similar images
 
     :param images: collection of <class Image> objects,
+    :param sensitivity: int, min difference between images' hashes
+                        when the images are considered similar,
     :returns: list, [[<class Image> obj 1.1, <class Image> obj 1.2, ...],
                      [<class Image> obj 2.1, <class Image> obj 2.2, ...], ...],
-                    each sublist of which is sorted by image difference in
-                    ascending order
+              each sublist of which is sorted by image difference in
+              ascending order
     '''
 
-    closest_images = _closest_images_search(images)
+    closest_images = _closest_images_search(images, sensitivity)
 
     final_groups = defaultdict(list)
     for i in closest_images:
@@ -129,7 +132,7 @@ def load_cached_hashes():
     return cached_hashes
 
 def save_cached_hashes(cached_hashes):
-    '''Save cached images' hashes on the disk
+    '''Saves cached images' hashes on the disk
 
     :param cached_hashes: dict, {image_path: str,
                                  image_hash: <class ImageHash> obj}
@@ -139,9 +142,9 @@ def save_cached_hashes(cached_hashes):
         pickle.dump(cached_hashes, f)
 
 def find_not_cached_images(paths, cached_hashes):
-    '''Return a list with not cached images' paths
+    '''Returns a list with not cached images' paths
 
-    :param paths: list, images' full paths,
+    :param paths: list of str, images' full paths,
     :param cached_hashes: dict, {image_path: str,
                                  image_hash: <class ImageHash> obj},
     :returns: list, [not_cached_image_path: str, ...]
@@ -150,7 +153,7 @@ def find_not_cached_images(paths, cached_hashes):
     return [path for path in paths if path not in cached_hashes]
 
 def hashes_calculating(images_paths):
-    '''Return a list with new calculated hashes
+    '''Returns a list with new calculated hashes
 
     :param images_paths: list of str, images' full paths,
     :returns: list, [<class ImageHash> obj, ...]
@@ -174,7 +177,7 @@ def images_constructor(image_paths, image_hashes):
             for path in image_paths]
 
 def caching_images(paths, hashes, cached_hashes):
-    '''Add new images to the cache, save them on the disk
+    '''Adds new images to the cache, save them on the disk
     and returns an updated dictionary with hashes
 
     :param paths: list of str, images' full paths,
@@ -190,28 +193,12 @@ def caching_images(paths, hashes, cached_hashes):
 
     return cached_hashes
 
-def image_processing(folders):
-    '''Process images to find the duplicates
-
-    :param folders: collection of str, folders to process,
-    :returns: list, [[<class Image> obj 1.1, <class Image> obj 1.2, ...],
-                     [<class Image> obj 2.1, <class Image> obj 2.2, ...], ...]
-    '''
-
-    paths = get_images_paths(folders)
-    cached_hashes = load_cached_hashes()
-    not_cached_images_paths = find_not_cached_images(paths, cached_hashes)
-    if not_cached_images_paths:
-        hashes = hashes_calculating(not_cached_images_paths)
-        cached_hashes = caching_images(not_cached_images_paths, hashes, cached_hashes)
-    images = images_constructor(paths, cached_hashes)
-    return images_grouping(images)
-
 
 class Image():
     '''Class that represents images'''
 
-    def __init__(self, path, difference=0, dhash=None, thumbnail=None, suffix=None):
+    def __init__(self, path, difference=0, dhash=None,
+                 thumbnail=None, suffix=None):
         self.path = path
         self.difference = difference
         self.hash = dhash
@@ -220,7 +207,7 @@ class Image():
 
     @staticmethod
     def calc_dhash(path):
-        '''Calculate an image's difference hash using
+        '''Calculates an image's difference hash using
         'dhash' function from 'imagehash' lib
 
         :param path: str, an image's path,
@@ -237,7 +224,7 @@ class Image():
         return imagehash.dhash(image)
 
     def get_dimensions(self):
-        '''Return an image dimensions
+        '''Returns an image dimensions
 
         :param path: str, full path to an image,
         :returns: tuple, (width: int, height: int),
@@ -271,7 +258,7 @@ class Image():
         return width, height
 
     def get_filesize(self, size_format='KB'):
-        '''Return an image file size
+        '''Returns an image file size
 
         :param size_format: str, ('B', 'KB', 'MB'),
         :returns: float, file size in bytes, kilobytes or megabytes,
@@ -298,7 +285,7 @@ class Image():
         raise ValueError('Wrong size format')
 
     def delete_image(self):
-        '''Delete an image from the disk
+        '''Deletes an image from the disk
 
         :raise OSError: if the file does not exist,
                         is a folder, is in use, etc.
@@ -309,3 +296,46 @@ class Image():
         except OSError as e:
             print(e)
             raise OSError(e)
+
+    def __str__(self):
+        return self.path
+
+
+if __name__ == '__main__':
+
+    print('This is a demonstration of finding duplicate (similar) images')
+    print('It might take some time, Be patient')
+    print('------------------------')
+
+    folders = input("""Type the folder's path you want to find duplicate images in\n""")
+    message = '''Type the searching sensitivity (a value between 0 and 100 is recommended)\n'''
+    sensitivity = input(message)
+    print('------------------------')
+
+    paths = get_images_paths([folders])
+    print('There are {} images in the folder'.format(len(paths)))
+
+    cached_hashes = load_cached_hashes()
+    not_cached_paths = find_not_cached_images(paths, cached_hashes)
+    print('{} images have been found in the cache'.format(
+        len(paths)-len(not_cached_paths)
+    ))
+
+    if not_cached_paths:
+        hashes = hashes_calculating(not_cached_paths)
+        cached_hashes = caching_images(not_cached_paths, hashes, cached_hashes)
+    images = images_constructor(paths, cached_hashes)
+
+    image_groups = images_grouping(images, int(sensitivity))
+    print('{} duplicate image groups have been found'.format(len(image_groups)))
+    print('------------------------')
+    print('Here are your duplicate images')
+    for i, group in enumerate(image_groups):
+        print('Group {}:'.format(i+1))
+        print('------------------------')
+        for image in group:
+            print(image)
+        print('------------------------')
+
+    print('That is it')
+    input('Press any key to continue...')
