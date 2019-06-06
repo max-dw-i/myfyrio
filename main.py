@@ -2,7 +2,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
-import src.gui as gui
+import doppelganger.gui as gui
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
