@@ -7,7 +7,10 @@ from collections import defaultdict
 from multiprocessing import Pool
 
 import imagehash
-from PIL import Image as pilimage
+from PIL import Image as PILImage, ImageFile
+
+# Crazy hack not to get error 'IOError: image file is truncated...'
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 def get_images_paths(folders):
@@ -227,7 +230,7 @@ class Image():
         '''
 
         try:
-            image = pilimage.open(path)
+            image = PILImage.open(path)
         except OSError as e:
             print(e)
             raise OSError(e)
@@ -243,7 +246,7 @@ class Image():
         '''
 
         try:
-            image = pilimage.open(self.path)
+            image = PILImage.open(self.path)
         except OSError as e:
             print(e)
             raise OSError(e)
