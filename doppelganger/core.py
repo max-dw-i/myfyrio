@@ -6,6 +6,8 @@ import pickle
 from collections import defaultdict
 from multiprocessing import Pool
 
+from functools import wraps
+
 import imagehash
 from PIL import Image as PILImage, ImageFile
 
@@ -145,27 +147,38 @@ def save_cached_hashes(cached_hashes):
     with open('image_hashes.p', 'wb') as f:
         pickle.dump(cached_hashes, f)
 
-def find_not_cached_images(paths, cached_hashes):
-    '''Returns a list with not cached images' paths
+def check_cache(paths, cached_hashes):
+    '''Returns a tuple with 2 lists. The images that are found
+    in the cache are in the 1st one, the images that are not
+    found in the cache are in the 2nd one
 
     :param paths: list of str, images' full paths,
     :param cached_hashes: dict, {image_path: str,
                                  image_hash: <class ImageHash> obj},
-    :returns: list, [not_cached_image_path: str, ...]
+    :returns: tuple, ([<class Image> obj, ...], [<class Image> obj, ...])
     '''
 
-    return [path for path in paths if path not in cached_hashes]
+    cached, not_cached = [], []
+    for path in paths:
+        suffix = pathlib.Path(path).suffix
+        if path in cached_hashes:
+            cached.append(Image(path, dhash=cached_hashes[path], suffix=suffix))
+        else:
+            not_cached.append(Image(path, suffix=suffix))
+    return cached, not_cached
 
-def hashes_calculating(images_paths):
-    '''Returns a list with new calculated hashes
+def hashes_calculating(images):
+    '''Returns a list with the images whose hashes
+    are calculated now
 
-    :param images_paths: list of str, images' full paths,
-    :returns: list, [<class ImageHash> obj, ...]
+    :param images: list of <class Image> objects,
+                   images without calculated hashes,
+    :returns: list of <class Image> objects
     '''
 
     with Pool() as p:
-        new_hashes = p.map(Image.calc_dhash, images_paths)
-    return new_hashes
+        calculated_images = p.map(Image.calc_dhash, images)
+    return calculated_images
 
 def images_constructor(image_paths, image_hashes):
     '''Returns a list of <class Image> objects ready
@@ -180,22 +193,32 @@ def images_constructor(image_paths, image_hashes):
     return [Image(path, dhash=image_hashes[path], suffix=pathlib.Path(path).suffix)
             for path in image_paths]
 
-def caching_images(paths, hashes, cached_hashes):
+def caching_images(images, cached_hashes):
     '''Adds new images to the cache, save them on the disk
-    and returns an updated dictionary with hashes
 
-    :param paths: list of str, images' full paths,
-    :param hashes: list of <class ImageHash> objs,
+    :param images: list of <class Image> objects,
     :param cached_hashes: dict, {image_path: str,
                                  image_hash: <class ImageHash> obj}
     '''
 
-    for i, path in enumerate(paths):
-        cached_hashes[path] = hashes[i]
+    for image in images:
+        cached_hashes[image.path] = image.hash
 
     save_cached_hashes(cached_hashes)
 
-    return cached_hashes
+def return_obj(func):
+    '''Decorator needed for parallel hashes calculating.
+    Multiprocessing lib does not allow to change an object
+    in place (because it's a different process). So it's
+    passed to the process, changed in there and then
+    must be returned
+    '''
+
+    @wraps(func)
+    def wrapper(obj):
+        func(obj)
+        return obj
+    return wrapper
 
 
 class Image():
@@ -211,22 +234,23 @@ class Image():
         self.thumbnail = thumbnail
         self.suffix = suffix # '.jpg', '.png', etc.
 
-    @staticmethod
-    def calc_dhash(path):
+    @return_obj
+    def calc_dhash(self):
         '''Calculates an image's difference hash using
         'dhash' function from 'imagehash' lib
 
-        :param path: str, an image's path,
         :returns: <class ImageHash> instance or None
                   if there's any problem
         '''
 
         try:
-            image = PILImage.open(path)
+            image = PILImage.open(self.path)
         except OSError as e:
             print(e)
-            return None
-        return imagehash.dhash(image)
+            self.hash = None
+        else:
+            self.hash = imagehash.dhash(image)
+        return self.hash
 
     def get_dimensions(self):
         '''Returns an image dimensions
@@ -319,19 +343,23 @@ if __name__ == '__main__':
     print('There are {} images in the folder'.format(len(paths)))
 
     cached_hashes = load_cached_hashes()
-    not_cached_paths = find_not_cached_images(paths, cached_hashes)
+    cached, not_cached = check_cache(paths, cached_hashes)
     print('{} images have been found in the cache'.format(
-        len(paths)-len(not_cached_paths)
+        len(paths)-len(not_cached)
     ))
 
-    if not_cached_paths:
-        hashes = hashes_calculating(not_cached_paths)
-        cached_hashes = caching_images(not_cached_paths, hashes, cached_hashes)
-    images = images_constructor(paths, cached_hashes)
+    print('Starting to calculate hashes...')
+    if not_cached:
+        calculated = hashes_calculating(not_cached)
+        caching_images(calculated, cached_hashes)
+        cached.extend(calculated)
+    print('All the hashes have been calculated')
 
-    image_groups = images_grouping(images, int(sensitivity))
+    print('Starting to compare images...')
+    image_groups = images_grouping(cached, int(sensitivity))
     print('{} duplicate image groups have been found'.format(len(image_groups)))
     print('------------------------')
+
     print('Here are your duplicate images')
     for i, group in enumerate(image_groups):
         print('Group {}:'.format(i+1))
