@@ -180,19 +180,6 @@ def hashes_calculating(images):
         calculated_images = p.map(Image.calc_dhash, images)
     return calculated_images
 
-def images_constructor(image_paths, image_hashes):
-    '''Returns a list of <class Image> objects ready
-    for comparing
-
-    :param image_paths: list of str, images' full paths,
-    :param image_hashes: dict, {image_path: str,
-                                image_hash: <class ImageHash> obj, ...},
-    :returns: list of <class Image> objs
-    '''
-
-    return [Image(path, dhash=image_hashes[path], suffix=pathlib.Path(path).suffix)
-            for path in image_paths]
-
 def caching_images(images, cached_hashes):
     '''Adds new images to the cache, save them on the disk
 
