@@ -11,151 +11,192 @@ from .exception import InterruptProcessing
 def thumbnail(image):
     '''Returns an image's thumbnail
 
-    :param image: <class Image> obj,
-    :returns: <class QByteArray> obj,
-              image's thumbnail
+    :param image: <class Image> object,
+    :returns: <class QByteArray> object or None
+              if there's any problem
     '''
 
     reader = QtGui.QImageReader(image.path)
     reader.setDecideFormatFromContent(True)
     if not reader.canRead():
-        raise IOError('The image cannot be read')
+        print('The image cannot be read')
+        return None
     width, height = image.get_scaling_dimensions(200)
     reader.setScaledSize(QtCore.QSize(width, height))
+
     img = reader.read()
+    if img.isNull():
+        e = reader.errorString()
+        print(e)
+        return None
+    return _QImage_to_QByteArray(img, image.suffix[1:].upper())
+
+def _QImage_to_QByteArray(image, suffix):
+    '''Converts a <class QImage> object to
+    a <class QByteArray> object
+
+    :param image: <class QImage> object,
+    :returns: <class QByteArray> object
+    '''
+
     ba = QtCore.QByteArray()
     buf = QtCore.QBuffer(ba)
-    buf.open(QtCore.QIODevice.WriteOnly)
-    img.save(buf, image.suffix[1:].upper(), 100)
+    if not buf.open(QtCore.QIODevice.WriteOnly):
+        print('Something wrong happened while opening buffer')
+        return None
+    if not image.save(buf, suffix, 100):
+        print('Something wrong happened while saving image into buffer')
+        return None
+    buf.close()
     return ba
 
 
-class WorkerSignals(QtCore.QObject):
-    '''The signals available from running
-    ImageProcessingWorker or main (GUI) threads
+class Signals(QtCore.QObject):
+    '''Supported signals:
 
-    Supported signals:
-    :interrupt: means the processing should be stopped and
-               thread - killed,
-    :update_label: label to update: str, text to set: str,
+    :interrupt: the processing should be stopped and
+               the thread - killed,
+    :update_info: label to update: str, text to set: str,
     :error: tuple, (exctype, value, traceback.format_exc()),
     :result: list, group of duplicate images,
-    :finished: means the processing is done
+    :finished: the processing is done
     '''
 
     interrupt = QtCore.pyqtSignal()
-    update_label = QtCore.pyqtSignal(str, str)
+    update_info = QtCore.pyqtSignal(str, str)
     error = QtCore.pyqtSignal(tuple)
     result = QtCore.pyqtSignal(list)
     finished = QtCore.pyqtSignal()
 
 
-class ImageProcessingWorker(QtCore.QRunnable):
-    '''QRunnable class reimplementation to handle image
-    processing thread
+class Worker(QtCore.QRunnable):
+    '''QRunnable class reimplementation to handle a separate thread
+    '''
+
+    def __init__(self, func, *args, **kwargs):
+        super().__init__()
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+
+    @QtCore.pyqtSlot()
+    def run(self):
+        self.func(*self.args, **self.kwargs)
+
+
+class ImageProcessing:
+    '''All the machinery happenning in a separate thread while
+    processing images including reporting about the progress
+
+    :param main_window: <class QMainWindow> instance
+                        from the main (GUI) thread,
+    :param folders: list of str, folders to process
     '''
 
     def __init__(self, main_window, folders):
         super().__init__()
         self.folders = folders
 
-        self.signals = WorkerSignals()
+        self.signals = Signals()
         # If a user's clicked button 'Stop' in the main (GUI) thread,
         # 'interrupt' flag is changed to True
         main_window.signals.interrupt.connect(self._is_interrupted)
         self.interrupt = False
+
+    def run(self):
+        '''Main processing function'''
+
+        try:
+            paths = self._paths_processing()
+            cached_hashes = self._load_cached()
+            cached, not_cached = self._check_cache(paths, cached_hashes)
+
+            if not_cached:
+                calculated = self._imap(core.Image.calc_dhash, not_cached,
+                                        'remaining_images')
+                self._populate_cache(calculated, cached_hashes)
+                cached.extend(calculated)
+
+            image_groups = self._images_comparing(cached, 10)
+            self._thumbnails_processing(image_groups)
+        except InterruptProcessing:
+            print('Image processing has been interrupted by the user')
+            self.signals.finished.emit()
+        except Exception:
+            traceback.print_exc()
+            exctype, value = sys.exc_info()[:2]
+            self.signals.error.emit((exctype, value, traceback.format_exc()))
+            self.signals.finished.emit()
+        else:
+            self.signals.finished.emit()
 
     def _is_interrupted(self):
         self.interrupt = True
 
     def _paths_processing(self):
         paths = core.get_images_paths(self.folders)
-        self.signals.update_label.emit('loaded_images', str(len(paths)))
+        self.signals.update_info.emit('loaded_images', str(len(paths)))
         return paths
 
+    def _load_cached(self):
+        return core.load_cached_hashes()
+
     def _check_cache(self, paths, cached_hashes):
-        not_cached_images_paths = core.find_not_cached_images(
-            paths,
-            cached_hashes
-        )
-        self.signals.update_label.emit(
-            'found_in_cache',
-            str(len(paths)-len(not_cached_images_paths))
-        )
-        self.signals.update_label.emit(
-            'remaining_images',
-            str(len(not_cached_images_paths))
-        )
-        return not_cached_images_paths
+        cached, not_cached = core.check_cache(paths, cached_hashes)
+        self.signals.update_info.emit('found_in_cache', str(len(paths)-len(not_cached)))
+        self.signals.update_info.emit('remaining_images', str(len(not_cached)))
+        return cached, not_cached
 
-    def _hashes_calculating(self, not_cached_paths, cached_hashes):
-        hashes = []
-        with Pool() as p:
-            images_num = len(not_cached_paths)
-            for i, dhash in enumerate(p.imap(core.Image.calc_dhash, not_cached_paths)):
-                if self.interrupt:
-                    raise InterruptProcessing
-                hashes.append(dhash)
-                self.signals.update_label.emit('remaining_images', str(images_num-i-1))
-        return hashes
+    def _populate_cache(self, hashes, cached_hashes):
+        core.caching_images(hashes, cached_hashes)
 
-    def _populate_cache(self, paths, hashes, cached_hashes):
-        cached_hashes = core.caching_images(
-            paths,
-            hashes,
-            cached_hashes
-        )
-        return cached_hashes
-
-    def _images_comparing(self, paths, cached_hashes):
-        images = core.images_constructor(paths, cached_hashes)
-        image_groups = core.images_grouping(images)
-        self.signals.update_label.emit('image_groups', str(len(image_groups)))
+    def _images_comparing(self, paths, sensitivity):
+        image_groups = core.images_grouping(paths, sensitivity)
+        self.signals.update_info.emit('image_groups', str(len(image_groups)))
         return image_groups
 
-    def _making_thumbnails(self, flat):
-        thumbnails = []
-        thumbnails_left = len(flat)
+    def _imap(self, func, collection, label):
+        '''Reimplementation of 'imap' from multiprocessing lib
+
+        :param func: function to apply to :collection:,
+        :param collection: collection for processing,
+        :param label: label to update, one of
+                      ('remaining_images', 'thumbnails')
+        :returns: list of processed elements
+        '''
+
+        processed = []
+        num = len(collection)
         with Pool() as p:
-            for th in p.imap(thumbnail, flat):
+            for i, elem in enumerate(p.imap(func, collection)):
                 if self.interrupt:
                     raise InterruptProcessing
-                thumbnails.append(th)
-                thumbnails_left -= 1
-                self.signals.update_label.emit('thumbnails', str(thumbnails_left))
-        return thumbnails
+                processed.append(elem)
+                self.signals.update_info.emit(label, str(num-i-1))
+        return processed
 
     def _thumbnails_processing(self, image_groups):
+        '''Makes thumbnails for the duplicate images
+
+        :param image_groups: list, [[<class Image> obj 1.1,
+                                     <class Image> obj 1.2, ...],
+                                    [<class Image> obj 2.1,
+                                     <class Image> obj 2.2, ...], ...]
+        '''
+
+        # 'Flat' list is processed better in parallel
         flat = [image for group in image_groups for image in group]
-        self.signals.update_label.emit('thumbnails', str(len(flat)))
+        self.signals.update_info.emit('thumbnails', str(len(flat)))
 
-        thumbnails = self._making_thumbnails(flat)
+        thumbnails = self._imap(thumbnail, flat, 'thumbnails')
 
+        # Go through already formed list with groups
+        # of duplicate images and assign thumbnails to
+        # the corresponding attributes. It's easy cause
+        # the original image order is preserved in 'flat'
         j = 0
         for group in image_groups:
             for image in group:
                 image.thumbnail = thumbnails[j]
                 j += 1
             self.signals.result.emit(group)
-
-    @QtCore.pyqtSlot()
-    def run(self):
-        try:
-            paths = self._paths_processing()
-            cached_hashes = core.load_cached_hashes()
-            not_cached_paths = self._check_cache(paths, cached_hashes)
-            if not_cached_paths:
-                hashes = self._hashes_calculating(not_cached_paths, cached_hashes)
-                cached_hashes = self._populate_cache(not_cached_paths, hashes,
-                                                     cached_hashes)
-            image_groups = self._images_comparing(paths, cached_hashes)
-            self._thumbnails_processing(image_groups)
-        except InterruptProcessing:
-            self.signals.finished.emit()
-            print('Image processing has been interrupted')
-        except Exception:
-            traceback.print_exc()
-            exctype, value = sys.exc_info()[:2]
-            self.signals.error.emit((exctype, value, traceback.format_exc()))
-        else:
-            self.signals.finished.emit()
