@@ -230,7 +230,6 @@ class App(QMainWindow):
         self.delFolderBtn.clicked.connect(self.delFolderBtn_click)
         self.startBtn.clicked.connect(self.startBtn_click)
         self.stopBtn.clicked.connect(self.stopBtn_click)
-        self.pauseBtn.clicked.connect(self.pauseBtn_click)
         self.moveBtn.clicked.connect(self.moveBtn_click)
         self.deleteBtn.clicked.connect(self.deleteBtn_click)
 
@@ -260,6 +259,8 @@ class App(QMainWindow):
         for label in ['thumbnails', 'image_groups', 'remaining_images',
                       'found_in_cache', 'loaded_images']:
             self.update_label_info(label, str(0))
+
+        self.progressBar.setValue(0)
 
     def get_user_folders(self):
         '''Get all the folders a user added to the 'pathListWidget'
@@ -355,6 +356,7 @@ class App(QMainWindow):
 
         img_proc = processing.ImageProcessing(self, folders)
         img_proc.signals.update_info.connect(self.update_label_info)
+        img_proc.signals.update_progressbar.connect(self.progressBar.setValue)
         img_proc.signals.result.connect(self.render_image_group)
         img_proc.signals.finished.connect(self.image_processing_finished)
         worker = processing.Worker(img_proc.run)

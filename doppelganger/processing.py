@@ -57,6 +57,7 @@ class Signals(QtCore.QObject):
     :interrupt: the processing should be stopped and
                the thread - killed,
     :update_info: label to update: str, text to set: str,
+    :update_progressbar: int, new progress bar's value,
     :error: tuple, (exctype, value, traceback.format_exc()),
     :result: list, group of duplicate images,
     :finished: the processing is done
@@ -64,6 +65,7 @@ class Signals(QtCore.QObject):
 
     interrupt = QtCore.pyqtSignal()
     update_info = QtCore.pyqtSignal(str, str)
+    update_progressbar = QtCore.pyqtSignal(int)
     error = QtCore.pyqtSignal(tuple)
     result = QtCore.pyqtSignal(list)
     finished = QtCore.pyqtSignal()
@@ -103,6 +105,9 @@ class ImageProcessing:
         main_window.signals.interrupt.connect(self._is_interrupted)
         self.interrupt = False
 
+        self.progress_bar = main_window.progressBar
+        self.progress_bar_value = 0
+
     def run(self):
         '''Main processing function'''
 
@@ -128,31 +133,44 @@ class ImageProcessing:
             self.signals.error.emit((exctype, value, traceback.format_exc()))
             self.signals.finished.emit()
         else:
+            self.progress_bar.setValue(100)
             self.signals.finished.emit()
 
     def _is_interrupted(self):
         self.interrupt = True
 
+    def _increase_progress_bar_value(self, value):
+        self.signals.update_progressbar.emit(self.progress_bar_value + value)
+        self.progress_bar_value += value
+
     def _paths_processing(self):
         paths = core.get_images_paths(self.folders)
         self.signals.update_info.emit('loaded_images', str(len(paths)))
+        self._increase_progress_bar_value(5)
         return paths
 
     def _load_cached(self):
-        return core.load_cached_hashes()
+        cached_hashes = core.load_cached_hashes()
+        self._increase_progress_bar_value(5)
+        return cached_hashes
 
     def _check_cache(self, paths, cached_hashes):
         cached, not_cached = core.check_cache(paths, cached_hashes)
         self.signals.update_info.emit('found_in_cache', str(len(paths)-len(not_cached)))
         self.signals.update_info.emit('remaining_images', str(len(not_cached)))
+        self._increase_progress_bar_value(5)
+        if not not_cached:
+            self._increase_progress_bar_value(40)
         return cached, not_cached
 
     def _populate_cache(self, hashes, cached_hashes):
         core.caching_images(hashes, cached_hashes)
+        self._increase_progress_bar_value(5)
 
     def _images_comparing(self, paths, sensitivity):
         image_groups = core.images_grouping(paths, sensitivity)
         self.signals.update_info.emit('image_groups', str(len(image_groups)))
+        self._increase_progress_bar_value(10)
         return image_groups
 
     def _imap(self, func, collection, label):
@@ -167,12 +185,14 @@ class ImageProcessing:
 
         processed = []
         num = len(collection)
+        step = 35 / num
         with Pool() as p:
             for i, elem in enumerate(p.imap(func, collection)):
                 if self.interrupt:
                     raise InterruptProcessing
                 processed.append(elem)
                 self.signals.update_info.emit(label, str(num-i-1))
+                self._increase_progress_bar_value(step)
         return processed
 
     def _thumbnails_processing(self, image_groups):
