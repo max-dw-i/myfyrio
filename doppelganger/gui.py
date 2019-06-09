@@ -224,6 +224,7 @@ class App(QMainWindow):
         self.signals = processing.Signals()
         self.threadpool = QThreadPool()
 
+        self.show_menubar()
         self.show()
 
     def setWidgetEvents(self):
@@ -235,6 +236,27 @@ class App(QMainWindow):
         self.stopBtn.clicked.connect(self.stopBtn_click)
         self.moveBtn.clicked.connect(self.moveBtn_click)
         self.deleteBtn.clicked.connect(self.deleteBtn_click)
+
+    def show_menubar(self):
+        fileMenu = self.menubar.addMenu('File')
+        #fileMenu.addAction(self.addFolderAct)
+        #fileMenu.addSeparator(self.exitAct)
+
+        editMenu = self.menubar.addMenu('Edit')
+
+        viewMenu = self.menubar.addMenu('View')
+        #viewMenu.addAction(self.showDifference)
+
+        optionsMenu = self.menubar.addMenu('Options')
+        #optionsMenu.addAction(self.showHiddenFolders)
+        #optionsMenu.addAction(self.includeSubfolders)
+        #optionsMenu.addAction(self.betweenFoldersOnly)
+        #optionsMenu.addAction(self.confirmToClose)
+
+        helpMenu = self.menubar.addMenu('Help')
+        #helpMenu.addAction(self.help)
+        #helpMenu.addAction(self.homePage)
+        #helpMenu.addAction(self.About)
 
     def openFolderNameDialog(self):
         '''Open file dialog and return the folder full path'''
