@@ -56,25 +56,31 @@
          <x>0</x>
          <y>0</y>
          <width>620</width>
-         <height>238</height>
+         <height>213</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="scrollAreaLayout"/>
       </widget>
      </widget>
     </item>
-    <item alignment="Qt::AlignLeft|Qt::AlignBottom">
+    <item>
      <widget class="QWidget" name="widget_3" native="true">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
+      <property name="minimumSize">
+       <size>
+        <width>0</width>
+        <height>0</height>
+       </size>
+      </property>
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>16777215</height>
+        <height>200</height>
        </size>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -96,21 +102,21 @@
           <bool>true</bool>
          </property>
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
          <property name="minimumSize">
           <size>
-           <width>320</width>
-           <height>175</height>
+           <width>330</width>
+           <height>0</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>550</width>
-           <height>175</height>
+           <width>500</width>
+           <height>16777215</height>
           </size>
          </property>
          <property name="title">
@@ -124,7 +130,7 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
           <item>
-           <widget class="QListWidget" name="pathLW">
+           <widget class="QListWidget" name="pathListWidget">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
               <horstretch>0</horstretch>
@@ -213,21 +219,21 @@
        <item>
         <widget class="QGroupBox" name="groupBox_2">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
          <property name="minimumSize">
           <size>
-           <width>0</width>
-           <height>0</height>
+           <width>200</width>
+           <height>200</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>210</width>
-           <height>175</height>
+           <width>250</width>
+           <height>16777215</height>
           </size>
          </property>
          <property name="title">
@@ -238,61 +244,86 @@
            <number>9</number>
           </property>
           <item>
-           <widget class="QLabel" name="loadedPicLabel">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Loaded pictures ... 0</string>
-            </property>
+           <widget class="QWidget" name="widget_5" native="true">
+            <layout class="QVBoxLayout" name="verticalLayout_7">
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QLabel" name="loadedPicLabel">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Loaded images ... 0</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="foundInCacheLabel">
+               <property name="text">
+                <string>Images found in cache ... 0</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="remainingPicLabel">
+               <property name="text">
+                <string>Hashes to calculate left ... 0</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="dupGroupLabel">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>0</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Groups with duplicate images ... 0</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="thumbnailsLabel">
+               <property name="text">
+                <string>Thumbnails to make left ... 0</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="foundInCacheLabel">
-            <property name="text">
-             <string>Found pictures in cache ... 0</string>
+           <widget class="QProgressBar" name="progressBar">
+            <property name="value">
+             <number>0</number>
             </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="remainingPicLabel">
-            <property name="text">
-             <string>Remaining pictures ... 0</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="dupGroupLabel">
-            <property name="minimumSize">
-             <size>
-              <width>0</width>
-              <height>0</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>16777215</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>Duplicate groups ... 0</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="thumbnailsLabel">
-            <property name="text">
-             <string>Thumbnails left ... 0</string>
+            <property name="alignment">
+             <set>Qt::AlignCenter</set>
             </property>
            </widget>
           </item>
@@ -303,13 +334,22 @@
               <number>0</number>
              </property>
              <property name="topMargin">
-              <number>15</number>
+              <number>0</number>
              </property>
              <property name="rightMargin">
               <number>0</number>
              </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
              <item>
               <widget class="QPushButton" name="startBtn">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
                <property name="minimumSize">
                 <size>
                  <width>60</width>
@@ -318,7 +358,7 @@
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>60</width>
+                 <width>80</width>
                  <height>16777215</height>
                 </size>
                </property>
@@ -335,6 +375,12 @@
                <property name="enabled">
                 <bool>false</bool>
                </property>
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
                <property name="minimumSize">
                 <size>
                  <width>60</width>
@@ -343,7 +389,7 @@
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>60</width>
+                 <width>80</width>
                  <height>16777215</height>
                 </size>
                </property>
@@ -364,38 +410,13 @@
                </property>
               </widget>
              </item>
-             <item>
-              <widget class="QPushButton" name="pauseBtn">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="minimumSize">
-                <size>
-                 <width>60</width>
-                 <height>0</height>
-                </size>
-               </property>
-               <property name="maximumSize">
-                <size>
-                 <width>60</width>
-                 <height>16777215</height>
-                </size>
-               </property>
-               <property name="toolTip">
-                <string>Pause finding duplicate images</string>
-               </property>
-               <property name="text">
-                <string>Pause</string>
-               </property>
-              </widget>
-             </item>
             </layout>
            </widget>
           </item>
          </layout>
         </widget>
        </item>
-       <item>
+       <item alignment="Qt::AlignTop">
         <widget class="QWidget" name="widget_4" native="true">
          <layout class="QVBoxLayout" name="verticalLayout_3">
           <property name="spacing">
@@ -430,7 +451,7 @@
             <property name="maximumSize">
              <size>
               <width>16777215</width>
-              <height>90</height>
+              <height>16777215</height>
              </size>
             </property>
             <property name="toolTip">
@@ -496,7 +517,7 @@
             <property name="maximumSize">
              <size>
               <width>80</width>
-              <height>90</height>
+              <height>16777215</height>
              </size>
             </property>
             <property name="title">
