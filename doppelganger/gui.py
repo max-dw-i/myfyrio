@@ -1,4 +1,4 @@
-'''Graphical user interface is implemented in here'''
+'''Graphical user interface'''
 
 from PyQt5.QtCore import QFileInfo, Qt, QThreadPool, pyqtSlot
 from PyQt5.QtGui import QColor, QPalette, QPixmap
@@ -163,8 +163,11 @@ class DuplicateCandidateWidget(QWidget):
         try:
             self.image.delete_image()
         except OSError:
-            msgBox = QMessageBox()
-            msgBox.setText('One (or more) of the selected images cannot be deleted')
+            msgBox = QMessageBox(
+                QMessageBox.Warning,
+                'Removing image',
+                'Error occured while removing image {}'.format(self.iamge.path)
+            )
             msgBox.exec()
         else:
             self.deleteLater()
@@ -368,8 +371,8 @@ class App(QMainWindow):
 
         self.signals.interrupt.emit()
 
-        msgBox = QMessageBox()
-        msgBox.setText('The processing has been stopped')
+        msgBox = QMessageBox(QMessageBox.Information, 'Interruption request',
+                             'The image processing has been stopped')
         msgBox.exec()
 
         self.stopBtn.setEnabled(False)
