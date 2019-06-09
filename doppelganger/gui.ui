@@ -284,7 +284,7 @@
              <item>
               <widget class="QLabel" name="remainingPicLabel">
                <property name="text">
-                <string>Hashes to calculate left ... 0</string>
+                <string>Not cached images left ... 0</string>
                </property>
               </widget>
              </item>
@@ -310,7 +310,7 @@
              <item>
               <widget class="QLabel" name="thumbnailsLabel">
                <property name="text">
-                <string>Thumbnails to make left ... 0</string>
+                <string>Duplicate images ... 0</string>
                </property>
               </widget>
              </item>
@@ -604,6 +604,9 @@
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="geometry">
     <rect>
      <x>0</x>
