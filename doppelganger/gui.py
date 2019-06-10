@@ -166,7 +166,7 @@ class DuplicateCandidateWidget(QWidget):
             msgBox = QMessageBox(
                 QMessageBox.Warning,
                 'Removing image',
-                'Error occured while removing image {}'.format(self.iamge.path)
+                'Error occured while removing image {}'.format(self.image.path)
             )
             msgBox.exec()
         else:
