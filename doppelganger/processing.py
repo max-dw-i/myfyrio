@@ -105,7 +105,6 @@ class ImageProcessing:
         main_window.signals.interrupt.connect(self._is_interrupted)
         self.interrupt = False
 
-        self.progress_bar = main_window.progressBar
         self.progress_bar_value = 0
 
     def run(self):
@@ -133,7 +132,6 @@ class ImageProcessing:
             self.signals.error.emit((exctype, value, traceback.format_exc()))
             self.signals.finished.emit()
         else:
-            self.progress_bar.setValue(100)
             self.signals.finished.emit()
 
     def _is_interrupted(self):

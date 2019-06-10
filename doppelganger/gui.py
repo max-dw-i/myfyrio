@@ -345,6 +345,7 @@ class App(QMainWindow):
     def image_processing_finished(self):
         '''Called when image processing is finished'''
 
+        self.progressBar.setValue(100)
         self.startBtn.setEnabled(True)
         self.stopBtn.setEnabled(False)
 
