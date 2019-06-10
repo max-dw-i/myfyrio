@@ -233,7 +233,13 @@ class Image():
         try:
             image = PILImage.open(self.path)
         except OSError as e:
-            print(e)
+            print(e, self.path)
+            self.hash = None
+        except UnboundLocalError as e:
+            # Sometimes UnboundLocalError in PIL/JpegImagePlugin.py
+            # happens with some images. Should be fixed in PIL 6.1.0.
+            # Till then these images are not processed
+            print(e, self.path)
             self.hash = None
         else:
             self.hash = imagehash.dhash(image)
