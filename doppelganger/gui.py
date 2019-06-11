@@ -408,17 +408,24 @@ class App(QMainWindow):
     def deleteBtn_click(self):
         '''Function called on 'Delete' button click event'''
 
-        group_widgets = self.scrollAreaWidget.findChildren(
-            ImageGroupWidget,
-            options=Qt.FindDirectChildrenOnly
+        confirm = QMessageBox.question(
+            self,
+            'Deletion confirmation',
+            'Do you really want to remove the selected images?',
+            QMessageBox.Yes|QMessageBox.Cancel
         )
-        for group_widget in group_widgets:
-            selected_widgets = group_widget.getSelectedWidgets()
-            for selected_widget in selected_widgets:
-                selected_widget.delete()
-            # If we delete all (or except one) the images in a group,
-            # delete this group widget from scrollArea
-            if len(group_widget) - len(selected_widgets) <= 1:
-                group_widget.deleteLater()
+        if confirm == QMessageBox.Yes:
+            group_widgets = self.scrollAreaWidget.findChildren(
+                ImageGroupWidget,
+                options=Qt.FindDirectChildrenOnly
+            )
+            for group_widget in group_widgets:
+                selected_widgets = group_widget.getSelectedWidgets()
+                for selected_widget in selected_widgets:
+                    selected_widget.delete()
+                # If we delete all (or except one) the images in a group,
+                # delete this group widget from scrollArea
+                if len(group_widget) - len(selected_widgets) <= 1:
+                    group_widget.deleteLater()
 
-        self.deleteBtn.setEnabled(False)
+            self.deleteBtn.setEnabled(False)
