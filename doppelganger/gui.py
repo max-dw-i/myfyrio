@@ -1,14 +1,13 @@
 '''Graphical user interface'''
 
 from PyQt5.QtCore import QFileInfo, Qt, QThreadPool, pyqtSlot
-from PyQt5.QtGui import QColor, QPalette, QPixmap
+from PyQt5.QtGui import QBrush, QColor, QPainter, QPalette, QPixmap
 from PyQt5.QtWidgets import (QFileDialog, QFrame, QHBoxLayout, QLabel,
                              QListWidgetItem, QMainWindow, QMessageBox,
                              QTextEdit, QVBoxLayout, QWidget)
 from PyQt5.uic import loadUi
 
 from . import processing
-
 
 UI = r'doppelganger\gui.ui'
 IMAGE_ERROR = r'doppelganger\resources\image_error.png'
@@ -92,35 +91,48 @@ class ThumbnailWidget(QLabel):
         self.setAlignment(Qt.AlignHCenter)
         # Pixmap can read BMP, GIF, JPG, JPEG, PNG, PBM, PGM, PPM, XBM, XPM
         try:
-            pixmap = QPixmap()
+            self.pixmap = QPixmap()
             if thumbnail is None:
                 raise IOError
-            pixmap.loadFromData(thumbnail)
-            if pixmap.isNull():
+            self.pixmap.loadFromData(thumbnail)
+            if self.pixmap.isNull():
                 print('Something happened while converting QByteArray into QPixmap')
                 raise IOError
         except IOError:
-            pixmap = QPixmap(IMAGE_ERROR)
-        self.setPixmap(pixmap)
+            self.pixmap = QPixmap(IMAGE_ERROR)
+        self.setPixmap(self.pixmap)
+
+    def mark(self):
+        '''Mark a thumbnail as selected'''
+
+        marked = self.pixmap.copy()
+        width, height = marked.width(), marked.height()
+
+        painter = QPainter(marked)
+        brush = QBrush(QColor(0, 0, 0, 128))
+        painter.setBrush(brush)
+        painter.drawRect(0, 0, width, height)
+        painter.end()
+        self.setPixmap(marked)
+
+    def unmark(self):
+        '''Mark a thumbnail as not selected'''
+
+        self.setPixmap(self.pixmap)
 
 
 class DuplicateCandidateWidget(QWidget):
     '''Widget class to render a duplicate candidate image and
-    all the info about it (its similarityrate, size and path)
+    all the info about it (its similarity rate, size and path)
     '''
 
     def __init__(self, image):
         super().__init__()
-        self.image = image
-        self.UNSELECTED_BACKGROUND_COLOR = self.getBackgroundColor()
-        self.SELECTED_BACKGROUND_COLOR = SELECTED_BACKGROUND_COLOR
-        self.selected = False
-
         self.setFixedWidth(SIZE)
         layout = QVBoxLayout(self)
 
-        imageLabel = ThumbnailWidget(image.thumbnail)
-        layout.addWidget(imageLabel)
+        self.imageLabel = ThumbnailWidget(image.thumbnail)
+        layout.addWidget(self.imageLabel)
 
         dimensions = image.get_dimensions()
         filesize = image.get_filesize()
@@ -129,7 +141,8 @@ class DuplicateCandidateWidget(QWidget):
         layout.addWidget(imageInfo)
         self.setLayout(layout)
 
-        self.setAutoFillBackground(True)
+        self.image = image
+        self.selected = False
         self.setWidgetEvents()
 
     def setWidgetEvents(self):
@@ -137,23 +150,20 @@ class DuplicateCandidateWidget(QWidget):
 
         self.mouseReleaseEvent = self.mouseRelease
 
-    def changeBackgroundColor(self, color):
-        '''Change DuplicateCandidateWidget background color
+    def mouseRelease(self, event):
+        '''Function called on mouse release event'''
 
-        :color: str, hex format '#ffffff'
-        '''
+        window = self.window()
 
-        palette = QPalette()
-        palette.setColor(QPalette.Background, QColor(color))
-        self.setPalette(palette)
-
-    def getBackgroundColor(self):
-        '''Return DuplicateCandidateWidget background color
-
-        :returns: str, hex format '#ffffff'
-        '''
-
-        return self.palette().color(QPalette.Background).name()
+        if self.selected:
+            self.selected = False
+            self.imageLabel.unmark()
+            if not window.has_selected_widgets():
+                window.deleteBtn.setEnabled(False)
+        else:
+            self.selected = True
+            self.imageLabel.mark()
+            window.deleteBtn.setEnabled(True)
 
     def delete(self):
         '''Delete an image from disk and its DuplicateCandidateWidget
@@ -171,21 +181,6 @@ class DuplicateCandidateWidget(QWidget):
             msgBox.exec()
         else:
             self.deleteLater()
-
-    def mouseRelease(self, event):
-        '''Function called on mouse release event'''
-
-        window = self.window()
-
-        if self.selected:
-            self.changeBackgroundColor(self.UNSELECTED_BACKGROUND_COLOR)
-            self.selected = False
-            if not window.has_selected_widgets():
-                window.deleteBtn.setEnabled(False)
-        else:
-            self.changeBackgroundColor(self.SELECTED_BACKGROUND_COLOR)
-            self.selected = True
-            window.deleteBtn.setEnabled(True)
 
 
 class ImageGroupWidget(QWidget):
