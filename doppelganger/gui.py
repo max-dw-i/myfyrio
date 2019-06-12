@@ -292,13 +292,22 @@ class App(QMainWindow):
         return [self.pathListWidget.item(i).data(Qt.DisplayRole)
                 for i in range(self.pathListWidget.count())]
 
-    def render_image_group(self, image_group):
+    def render_image_groups(self, image_groups):
         '''Add ImageGroupWidget to scrollArea
 
         :param image_groups: list, [<class Image> obj, ...]
         '''
 
-        self.scrollAreaLayout.addWidget(ImageGroupWidget(image_group))
+        for group in image_groups:
+            self.scrollAreaLayout.addWidget(ImageGroupWidget(group))
+
+        if not image_groups:
+            msg_box = QMessageBox(
+                QMessageBox.Information,
+                'No duplicate images found',
+                'No duplicate images have been found in the selected folders'
+            )
+            msg_box.exec()
 
     def update_label_info(self, label, text):
         '''Update a label's info
@@ -378,7 +387,7 @@ class App(QMainWindow):
         img_proc = processing.ImageProcessing(self, folders)
         img_proc.signals.update_info.connect(self.update_label_info)
         img_proc.signals.update_progressbar.connect(self.progressBar.setValue)
-        img_proc.signals.result.connect(self.render_image_group)
+        img_proc.signals.result.connect(self.render_image_groups)
         img_proc.signals.finished.connect(self.image_processing_finished)
         worker = processing.Worker(img_proc.run)
         self.threadpool.start(worker)

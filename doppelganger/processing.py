@@ -5,7 +5,7 @@ from multiprocessing import Pool
 from PyQt5 import QtCore, QtGui
 
 from . import core
-from .exception import InterruptProcessing
+from .exception import InterruptProcessing, ProcessingDone
 
 
 def thumbnail(image):
@@ -125,13 +125,13 @@ class ImageProcessing:
             self._thumbnails_processing(image_groups)
         except InterruptProcessing:
             print('Image processing has been interrupted by the user')
-            self.signals.finished.emit()
+        except ProcessingDone:
+            self.signals.result.emit([])
         except Exception:
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
             self.signals.error.emit((exctype, value, traceback.format_exc()))
-            self.signals.finished.emit()
-        else:
+        finally:
             self.signals.finished.emit()
 
     def _is_interrupted(self):
@@ -144,6 +144,8 @@ class ImageProcessing:
     def _paths_processing(self):
         paths = core.get_images_paths(self.folders)
         self.signals.update_info.emit('loaded_images', str(len(paths)))
+        if len(paths) in (0, 1):
+            raise ProcessingDone
         self._increase_progress_bar_value(5)
         return paths
 
@@ -168,6 +170,8 @@ class ImageProcessing:
     def _images_comparing(self, paths, sensitivity):
         image_groups = core.images_grouping(paths, sensitivity)
         self.signals.update_info.emit('image_groups', str(len(image_groups)))
+        if not image_groups:
+            raise ProcessingDone
         self._increase_progress_bar_value(10)
         return image_groups
 
@@ -217,4 +221,5 @@ class ImageProcessing:
             for image in group:
                 image.thumbnail = thumbnails[j]
                 j += 1
-            self.signals.result.emit(group)
+
+        self.signals.result.emit(image_groups)
