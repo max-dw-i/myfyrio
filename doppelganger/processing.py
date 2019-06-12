@@ -95,9 +95,10 @@ class ImageProcessing:
     :param folders: list of str, folders to process
     '''
 
-    def __init__(self, main_window, folders):
+    def __init__(self, main_window, folders, sensitivity):
         super().__init__()
         self.folders = folders
+        self.sensitivity = sensitivity
 
         self.signals = Signals()
         # If a user's clicked button 'Stop' in the main (GUI) thread,
@@ -121,7 +122,7 @@ class ImageProcessing:
                 self._populate_cache(calculated, cached_hashes)
                 cached.extend(calculated)
 
-            image_groups = self._images_comparing(cached, 10)
+            image_groups = self._images_comparing(cached, self.sensitivity)
             self._thumbnails_processing(image_groups)
         except InterruptProcessing:
             print('Image processing has been interrupted by the user')

@@ -474,7 +474,7 @@
              <item>
               <widget class="QRadioButton" name="mediumRb">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
                <property name="text">
                 <string>Medium</string>
@@ -487,7 +487,7 @@
              <item>
               <widget class="QRadioButton" name="lowRb">
                <property name="enabled">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
                <property name="text">
                 <string>Low</string>

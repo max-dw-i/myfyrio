@@ -219,6 +219,8 @@ class App(QMainWindow):
         self.signals = processing.Signals()
         self.threadpool = QThreadPool()
 
+        self.sensitivity = 0
+
         self.show_menubar()
         self.show()
 
@@ -227,10 +229,15 @@ class App(QMainWindow):
 
         self.addFolderBtn.clicked.connect(self.addFolderBtn_click)
         self.delFolderBtn.clicked.connect(self.delFolderBtn_click)
+
         self.startBtn.clicked.connect(self.startBtn_click)
         self.stopBtn.clicked.connect(self.stopBtn_click)
         self.moveBtn.clicked.connect(self.moveBtn_click)
         self.deleteBtn.clicked.connect(self.deleteBtn_click)
+
+        self.highRb.clicked.connect(self.highRb_click)
+        self.mediumRb.clicked.connect(self.mediumRb_click)
+        self.lowRb.clicked.connect(self.lowRb_click)
 
     def show_menubar(self):
         fileMenu = self.menubar.addMenu('File')
@@ -354,6 +361,24 @@ class App(QMainWindow):
         self.stopBtn.setEnabled(False)
 
     @pyqtSlot()
+    def highRb_click(self):
+        '''Function called on 'High' radio button click event'''
+
+        self.sensitivity = 0
+
+    @pyqtSlot()
+    def mediumRb_click(self):
+        '''Function called on 'Medium' radio button click event'''
+
+        self.sensitivity = 5
+
+    @pyqtSlot()
+    def lowRb_click(self):
+        '''Function called on 'Low' radio button click event'''
+
+        self.sensitivity = 10
+
+    @pyqtSlot()
     def addFolderBtn_click(self):
         '''Function called on 'Add Path' button click event'''
 
@@ -384,7 +409,7 @@ class App(QMainWindow):
 
         folders = self.get_user_folders()
 
-        img_proc = processing.ImageProcessing(self, folders)
+        img_proc = processing.ImageProcessing(self, folders, self.sensitivity)
         img_proc.signals.update_info.connect(self.update_label_info)
         img_proc.signals.update_progressbar.connect(self.progressBar.setValue)
         img_proc.signals.result.connect(self.render_image_groups)
