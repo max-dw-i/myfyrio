@@ -112,8 +112,12 @@ def images_grouping(images, sensitivity):
     :returns: list, [[<class Image> obj 1.1, <class Image> obj 1.2, ...],
                      [<class Image> obj 2.1, <class Image> obj 2.2, ...], ...],
               each sublist of which is sorted by image difference in
-              ascending order
+              ascending order. If there are no duplicate images, an empty list
+              is returned
     '''
+
+    if len(images) <= 1:
+        return []
 
     closest_images = _closest_images_search(images, sensitivity)
 
@@ -353,7 +357,6 @@ if __name__ == '__main__':
     print('{} duplicate image groups have been found'.format(len(image_groups)))
     print('------------------------')
 
-    print('Here are your duplicate images')
     for i, group in enumerate(image_groups):
         print('Group {}:'.format(i+1))
         print('------------------------')
