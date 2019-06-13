@@ -2,7 +2,3 @@
 
 class InterruptProcessing(Exception):
     pass
-
-
-class ProcessingDone(Exception):
-    pass
