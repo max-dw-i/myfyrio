@@ -134,8 +134,18 @@ class DuplicateCandidateWidget(QWidget):
         self.imageLabel = ThumbnailWidget(image.thumbnail)
         layout.addWidget(self.imageLabel)
 
-        dimensions = image.get_dimensions()
-        filesize = image.get_filesize()
+        try:
+            dimensions = image.get_dimensions()
+        except OSError as e:
+            print(e)
+            dimensions = (0, 0)
+
+        try:
+            filesize = image.get_filesize()
+        except OSError as e:
+            print(e)
+            filesize = 0
+
         imageInfo = ImageInfoWidget(image.path, image.difference,
                                     dimensions, filesize)
         layout.addWidget(imageInfo)

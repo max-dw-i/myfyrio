@@ -8,6 +8,9 @@ from . import core
 from .exception import InterruptProcessing
 
 
+SIZE = 200
+
+
 def thumbnail(image):
     '''Returns an image's thumbnail
 
@@ -16,12 +19,18 @@ def thumbnail(image):
               if there's any problem
     '''
 
+    try:
+        width, height = image.get_scaling_dimensions(SIZE)
+    except OSError as e:
+        print(e)
+        return None
+
     reader = QtGui.QImageReader(image.path)
     reader.setDecideFormatFromContent(True)
     if not reader.canRead():
         print('The image cannot be read')
         return None
-    width, height = image.get_scaling_dimensions(200)
+
     reader.setScaledSize(QtCore.QSize(width, height))
 
     img = reader.read()

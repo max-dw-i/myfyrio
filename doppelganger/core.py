@@ -254,32 +254,45 @@ class Image():
 
         :param path: str, full path to an image,
         :returns: tuple, (width: int, height: int)
-                  or (0, 0) if there's any problem
+                  or (0, 0) if there's any problem,
+        :raise OSError: if there's any problem while
+                        opening the image
         '''
 
         try:
             image = PILImage.open(self.path)
         except OSError as e:
             print(e)
-            return (0, 0)
+            raise OSError("Cannot get the image's dimensions")
         return image.size
 
-    def get_scaling_dimensions(self, size):
+    def get_scaling_dimensions(self, biggest_dim):
         '''Returns the dimensions an image should
         have after having scaled
 
-        :param size: tuple, (width: int, height: int),
-        :returns: tuple, (width: int, height: int) with
-                  kept aspect ratio
+        :param biggest_dim: int, the biggest dimension of the image after
+                            having scaled,
+        :returns: tuple, (width: int, height: int) with kept aspect ratio,
+        :raise OSError: if there's any problem while getting
+                        the image's dimensions,
+        :raise ValuError: if the new :biggest_dim: is not positive
         '''
 
-        width, height = self.get_dimensions()
+        if biggest_dim <= 0:
+            raise ValueError('The new size values must be positive')
+
+        try:
+            width, height = self.get_dimensions()
+        except OSError as e:
+            print(e)
+            raise OSError("Cannot get scaling dimensions")
+
         if width >= height:
-            width, height = (width * size // width,
-                             height * size // width)
+            width, height = (width * biggest_dim // width,
+                             height * biggest_dim // width)
         else:
-            width, height = (width * size // height,
-                             height * size // height)
+            width, height = (width * biggest_dim // height,
+                             height * biggest_dim // height)
         return width, height
 
     def get_filesize(self, size_format='KB'):
@@ -288,16 +301,16 @@ class Image():
         :param size_format: str, ('B', 'KB', 'MB'),
         :returns: float, file size in bytes, kilobytes or megabytes,
                   rounded to the first decimal place or 0 if there's
-                  any problem
-        :raise ValueError: if :size_format: not amongst
-                           the allowed values
+                  any problem,
+        :raise OSError: if there's any problem while opening the image,
+        :raise ValueError: if :size_format: not amongst the allowed values
         '''
 
         try:
             image_size = os.path.getsize(self.path)
         except OSError as e:
             print(e)
-            return 0
+            raise OSError
 
         if size_format == 'B':
             return image_size
