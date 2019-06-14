@@ -127,29 +127,20 @@ def images_grouping(images, sensitivity):
 
     return [sorted(final_groups[g], key=lambda x: x.difference) for g in final_groups]
 
-def load_cached_hashes():
+def load_cached_hashes(cache_path='image_hashes.p'):
     '''Returns cached images' hashes
 
+    :param cache_path: str, full file name of the cache,
     :returns: dict, {image_path: str,
                      image_hash: <class ImageHash> obj, ...}
     '''
 
     try:
-        with open('image_hashes.p', 'rb') as f:
+        with open(cache_path, 'rb') as f:
             cached_hashes = pickle.load(f)
     except FileNotFoundError:
         cached_hashes = {}
     return cached_hashes
-
-def save_cached_hashes(cached_hashes):
-    '''Saves cached images' hashes on the disk
-
-    :param cached_hashes: dict, {image_path: str,
-                                 image_hash: <class ImageHash> obj}
-    '''
-
-    with open('image_hashes.p', 'wb') as f:
-        pickle.dump(cached_hashes, f)
 
 def check_cache(paths, cached_hashes):
     '''Returns a tuple with 2 lists. The images that are found
@@ -184,18 +175,20 @@ def hashes_calculating(images):
         calculated_images = p.map(Image.calc_dhash, images)
     return calculated_images
 
-def caching_images(images, cached_hashes):
+def caching_images(images, cached_hashes, cache_path='image_hashes.p'):
     '''Adds new images to the cache, save them on the disk
 
     :param images: list of <class Image> objects,
     :param cached_hashes: dict, {image_path: str,
-                                 image_hash: <class ImageHash> obj}
+                                 image_hash: <class ImageHash> obj},
+    :param cache_path: str, full file name of the cache
     '''
 
     for image in images:
         cached_hashes[image.path] = image.hash
 
-    save_cached_hashes(cached_hashes)
+    with open(cache_path, 'wb') as f:
+        pickle.dump(cached_hashes, f)
 
 def return_obj(func):
     '''Decorator needed for parallel hashes calculating.
