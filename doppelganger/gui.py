@@ -229,7 +229,7 @@ class App(QMainWindow):
         self.signals = processing.Signals()
         self.threadpool = QThreadPool()
 
-        self.sensitivity = 0
+        self.sensitivity = 5
 
         self.show_menubar()
         self.show()
@@ -374,19 +374,19 @@ class App(QMainWindow):
     def highRb_click(self):
         '''Function called on 'High' radio button click event'''
 
-        self.sensitivity = 0
+        self.sensitivity = 5
 
     @pyqtSlot()
     def mediumRb_click(self):
         '''Function called on 'Medium' radio button click event'''
 
-        self.sensitivity = 5
+        self.sensitivity = 10
 
     @pyqtSlot()
     def lowRb_click(self):
         '''Function called on 'Low' radio button click event'''
 
-        self.sensitivity = 10
+        self.sensitivity = 20
 
     @pyqtSlot()
     def addFolderBtn_click(self):
