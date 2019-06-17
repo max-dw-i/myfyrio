@@ -4,8 +4,8 @@ from multiprocessing import Pool
 
 from PyQt5 import QtCore, QtGui
 
-from . import core
-from .exception import InterruptProcessing
+from doppelganger import core
+from doppelganger.exception import InterruptProcessing
 
 
 SIZE = 200
@@ -38,14 +38,16 @@ def thumbnail(image):
         e = reader.errorString()
         print(e)
         return None
-    return _QImage_to_QByteArray(img, image.suffix[1:].upper())
+    return _QImage_to_QByteArray(img, image.suffix[1:])
 
 def _QImage_to_QByteArray(image, suffix):
     '''Converts a <class QImage> object to
     a <class QByteArray> object
 
     :param image: <class QImage> object,
-    :returns: <class QByteArray> object
+    :param suffix: str, suffix of the image (without a dot),
+    :returns: <class QByteArray> object or None
+              if there's any problem
     '''
 
     ba = QtCore.QByteArray()
@@ -53,7 +55,7 @@ def _QImage_to_QByteArray(image, suffix):
     if not buf.open(QtCore.QIODevice.WriteOnly):
         print('Something wrong happened while opening buffer')
         return None
-    if not image.save(buf, suffix, 100):
+    if not image.save(buf, suffix.upper(), 100):
         print('Something wrong happened while saving image into buffer')
         return None
     buf.close()

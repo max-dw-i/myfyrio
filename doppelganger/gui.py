@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (QFileDialog, QFrame, QHBoxLayout, QLabel,
                              QTextEdit, QVBoxLayout, QWidget)
 from PyQt5.uic import loadUi
 
-from . import processing
+from doppelganger import processing
 
 UI = r'doppelganger\gui.ui'
 IMAGE_ERROR = r'doppelganger\resources\image_error.png'
