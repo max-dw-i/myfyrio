@@ -15,7 +15,6 @@ class TestImageClass(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Create a temporary directory
         cls.test_dir = pathlib.Path(tempfile.mkdtemp())
 
         # Create an image
@@ -31,50 +30,49 @@ class TestImageClass(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        # Remove the directory after the test
         shutil.rmtree(cls.test_dir)
 
     #############################TESTS##################################
 
-    def test_calc_dhash_returns_OSError(self):
+    def test_calc_dhash_returns_None_if_OSError(self):
         image = core.Image(self.txt)
         image.calc_dhash()
         self.assertIsNone(image.hash)
 
-    def test_calc_dhash_returns_no_error(self):
+    def test_calc_dhash_returns_ImageHash_if_no_error(self):
         image = core.Image(self.img)
         image.calc_dhash()
         self.assertIsInstance(image.hash, imagehash.ImageHash)
 
-    def test_get_dimensions_returns_OSError(self):
+    def test_get_dimensions_raises_OSError_if_pass_not_image(self):
         image = core.Image(self.txt)
         with self.assertRaises(OSError):
             image.get_dimensions()
 
-    def test_get_dimensions_returns_no_error(self):
+    def test_get_dimensions_returns_correct_values(self):
         image = core.Image(self.img)
         size = image.get_dimensions()
         self.assertEqual(size[0], self.w)
         self.assertEqual(size[1], self.h)
 
-    def test_get_scaling_dimensions_ValueError(self):
+    def test_get_scaling_dimensions_raises_ValueError_if_pass_not_positive(self):
         image = core.Image(self.img)
         for size in (-1, 0):
             with self.assertRaises(ValueError):
                 image.get_scaling_dimensions(size)
 
-    def test_get_scaling_dimensions_OSError(self):
+    def test_get_scaling_dimensions_raises_OSError_if_pass_not_image(self):
         image = core.Image(self.txt)
         with self.assertRaises(OSError):
             image.get_scaling_dimensions(1)
 
-    def test_get_scaling_dimensions_square_image(self):
+    def test_get_scaling_dimensions_return_if_pass_square_image(self):
         image = core.Image(self.img)
         new_size = image.get_scaling_dimensions(self.w*2)
         self.assertEqual(new_size[0], self.w*2)
         self.assertEqual(new_size[1], self.h*2)
 
-    def test_get_scaling_dimensions_portrait_image(self):
+    def test_get_scaling_dimensions_return_if_pass_portrait_image(self):
         suffix = 'jpg'
         img = str(self.test_dir / 'portrait.{}'.format(suffix))
         w, h = 1, 5
@@ -84,7 +82,7 @@ class TestImageClass(unittest.TestCase):
         self.assertEqual(new_size[0], w*2)
         self.assertEqual(new_size[1], h*2)
 
-    def test_get_scaling_dimensions_landscape_image(self):
+    def test_get_scaling_dimensions_return_if_pass_landscape_image(self):
         suffix = 'jpg'
         img = str(self.test_dir / 'landscape.{}'.format(suffix))
         w, h = 5, 1
@@ -94,42 +92,42 @@ class TestImageClass(unittest.TestCase):
         self.assertEqual(new_size[0], w*2)
         self.assertEqual(new_size[1], h*2)
 
-    def test_get_filesize_OSError(self):
+    def test_get_filesize_raises_OSError_if_pass_not_existing_file(self):
         not_existing = str(self.test_dir / 'not_existing.txt')
         image = core.Image(not_existing)
         with self.assertRaises(OSError):
             image.get_filesize()
 
-    def test_get_filesize_ValueError(self):
+    def test_get_filesize_raises_ValueError_if_pass_wrong_format(self):
         image = core.Image(self.img)
         with self.assertRaises(ValueError):
             image.get_filesize(size_format='Kg')
 
-    def test_get_filesize_Bytes(self):
+    def test_get_filesize_return_if_Bytes_format(self):
         image = core.Image(self.img)
         size = os.path.getsize(self.img)
         filesize = image.get_filesize(size_format='B')
         self.assertEqual(filesize, size)
 
-    def test_get_filesize_KiloBytes(self):
+    def test_get_filesize_return_if_KiloBytes_format(self):
         image = core.Image(self.img)
         size = round(os.path.getsize(self.img) / 1024, 1)
         filesize = image.get_filesize(size_format='KB')
         self.assertAlmostEqual(filesize, size)
 
-    def test_get_filesize_MegaBytes(self):
+    def test_get_filesize_return_if_MegaBytes_format(self):
         image = core.Image(self.img)
         size = round(os.path.getsize(self.img) / (1024**2), 1)
         filesize = image.get_filesize(size_format='MB')
         self.assertAlmostEqual(filesize, size)
 
-    def test_delete_image_OSError(self):
+    def test_delete_image_raises_OSError_if_pass_not_existing_file(self):
         not_existing = str(self.test_dir / 'not_existing.txt')
         image = core.Image(not_existing)
         with self.assertRaises(OSError):
             image.delete_image()
 
-    def test_delete_image_no_error(self):
+    def test_delete_image_deletes_image_correctly(self):
         suffix = 'jpg'
         img = str(self.test_dir / 'delete.{}'.format(suffix))
         utils.make_image(img, 1, 1, suffix)
@@ -139,7 +137,118 @@ class TestImageClass(unittest.TestCase):
         self.assertFalse(os.path.exists(img))
 
 
-class TestImageProcessingFunctions(unittest.TestCase):
+class TestGetImagesPathsFunction(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.test_dir = pathlib.Path(tempfile.mkdtemp())
+
+        # Sets with file names which suffixes are supported and not
+        cls.supported = [str(cls.test_dir / 'image.{}'.format(suffix))
+                         for suffix in ('.png', '.jpg', '.jpeg', '.bmp')]
+        cls.unsupported = [str(cls.test_dir / 'image.{}'.format(suffix))
+                           for suffix in ('.tiff', '.txt')]
+
+        # Create the files in the temporary directory
+        for filename in cls.supported + cls.unsupported:
+            with open(filename, 'w') as f:
+                f.write('Whatever...')
+
+        # Also create a dir and add it to 'unsupported'
+        dirs = str(cls.test_dir / 'dir')
+        cls.unsupported.append(dirs)
+        os.makedirs(dirs)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.test_dir)
+
+    ##############################TESTS#####################################
+
+    def test_get_images_paths_returns_empty_list_if_pass_empty_folders(self):
+        images = core.get_images_paths([])
+        self.assertSequenceEqual(images, [])
+
+    def test_get_images_paths_return_is_correct(self):
+        paths = set(core.get_images_paths([self.test_dir]))
+        for path in paths:
+            self.assertIn(path, self.supported)
+            self.assertNotIn(path, self.unsupported)
+
+
+class TestCacheFunctions(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.test_dir = pathlib.Path(tempfile.mkdtemp())
+
+        # Sets with file names that are cached and not
+        cls.cached = [str(cls.test_dir / 'image.{}'.format(suffix))
+                      for suffix in ('.png', '.jpg', '.jpeg', '.bmp')]
+        cls.not_cached = [str(cls.test_dir / 'image.{}'.format(suffix))
+                          for suffix in ('.tiff', '.txt')]
+
+        # Make cache
+        cls.cache = {filename: 666 for filename in cls.cached}
+        cls.cache_path = str(cls.test_dir / 'cache.p')
+        with open(cls.cache_path, 'wb') as f:
+            pickle.dump(cls.cache, f)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.test_dir)
+
+    ##############################TESTS#####################################
+
+    def test_load_cached_hashes_returns_empty_dict_if_pass_not_existing_cache_file(self):
+        loaded = core.load_cached_hashes(str(self.test_dir / 'no_hashes.p'))
+        self.assertDictEqual(loaded, {})
+
+    def test_load_cached_hashes_loads_cache_file_correctly(self):
+        loaded = core.load_cached_hashes(self.cache_path)
+        self.assertDictEqual(loaded, self.cache)
+
+    def test_check_cache_returns_empty_lists_if_pass_empty_paths(self):
+        paths, cache = [], {}
+        cached, not_cached = core.check_cache(paths, cache)
+        self.assertListEqual(cached, [])
+        self.assertListEqual(not_cached, [])
+
+    def test_check_cache_returns_empty_cached_list_if_pass_empty_cache(self):
+        cache = {}
+        cached, _ = core.check_cache(self.not_cached, cache)
+        self.assertListEqual(cached, [])
+
+    def test_check_cache_returns_correct_cached_list_if_pass_not_empty_cache(self):
+        cached, _ = core.check_cache(self.cached, self.cache)
+
+        for image in cached:
+            self.assertIn(image.path, self.cache)
+            self.assertEqual(image.hash, self.cache[image.path])
+
+    def test_check_cache_returns_correct_not_cached_list_if_pass_not_empty_cache(self):
+        expected_images = [core.Image(path, suffix=pathlib.Path(path).suffix)
+                           for path in self.not_cached]
+        _, not_cached = core.check_cache(self.not_cached, self.cache)
+
+        for i, _ in enumerate(not_cached):
+            self.assertEqual(expected_images[i].suffix, not_cached[i].suffix)
+            self.assertEqual(expected_images[i].path, not_cached[i].path)
+
+    def test_caching_images_saves_cache_correctly(self):
+        images = [core.Image(path, dhash=666) for path in self.cached]
+        cache = {}
+        cache_path = str(self.test_dir / 'new_cache.p')
+        core.caching_images(images, cache, cache_path)
+
+        # And now read cache and compare it with the expected_cache
+        with open(cache_path, 'rb') as f:
+            cached_hashes = pickle.load(f)
+
+        self.assertDictEqual(cached_hashes, self.cache)
+
+
+class TestImagesGroupingFunction(unittest.TestCase):
 
     class Number:
         '''When <class ImageHash> instances is subtracted
@@ -155,136 +264,38 @@ class TestImageProcessingFunctions(unittest.TestCase):
             return abs(self.x - num.x)
 
     @classmethod
-    def make_images(cls, number, name, suffix, filenames, dhash):
-        '''Create files and <class Image> instances'''
+    def image_factory(cls, num, filename, dhash):
+        '''Create <class Image> instances'''
 
         images = []
 
-        for i in range(number):
-            filename = str(cls.test_dir / '{name}{i}{suffix}'.format(
-                name=name,
-                i=i,
-                suffix=suffix
-            ))
-            filenames.append(filename)
-            with open(filename, 'w') as f:
-                f.write('Whatever...')
-
+        for i in range(num):
             val = None if dhash is None else cls.Number(dhash)
-            images.append(core.Image(filename, dhash=val))
+            name, suffix = filename.split('.')
+            name = str(cls.test_dir / '{}{}{}'.format(name, i, suffix))
+            images.append(core.Image(name, dhash=val))
 
         return images
 
     @classmethod
     def setUpClass(cls):
-        # Create a temporary directory
         cls.test_dir = pathlib.Path(tempfile.mkdtemp())
 
-        # Create good images
-        cls.good_paths = [] # The paths of the images which hashes are ok
-        cls.red = cls.make_images(3, 'red', '.jpg', cls.good_paths, 30)
-        cls.yellow = cls.make_images(2, 'yellow', '.jpg', cls.good_paths, 20)
-        cls.green = cls.make_images(1, 'green', '.jpg', cls.good_paths, 10)
+        # Create readable images
+        cls.red = cls.image_factory(3, 'red.jpg', 30)
+        cls.yellow = cls.image_factory(2, 'yellow.jpg', 20)
+        cls.green = cls.image_factory(1, 'green.jpg', 10)
 
         # Create 'corrupted' images (cannot be open without errors)
-        cls.bad_paths = [] # The paths of the images which hashes are not ok
-        cls.corrupted = [] # 'Corrupted' images
-        for suffix in ('.bmp', '.jpeg', '.png'):
-            cls.corrupted.extend(cls.make_images(1, 'corrupted', suffix,
-                                                 cls.bad_paths, None))
+        cls.corrupted = cls.image_factory(3, 'corrupted.png', None)
 
     @classmethod
     def tearDownClass(cls):
-        # Remove the directory after the test
         shutil.rmtree(cls.test_dir)
 
     ##############################TESTS#####################################
 
-    def test_get_images_paths_empty_folders(self):
-        images = core.get_images_paths([])
-        self.assertSequenceEqual(images, [])
-
-    def test_get_images_paths(self):
-        # Make files with not supported suffixes and a directory
-        # to test that they won't be in the 'paths'
-        not_supported_suffixes = []
-        self.make_images(1, 'not_supported', '.tiff', not_supported_suffixes, None)
-        dirs = str(self.test_dir / 'not_image')
-        not_supported_suffixes.append(dirs)
-        os.makedirs(dirs)
-
-        paths = set(core.get_images_paths([self.test_dir]))
-        # The suffixes in 'good_paths' and 'bad_paths' are supported
-        for name in self.good_paths + self.bad_paths:
-            self.assertIn(name, paths)
-        for name in not_supported_suffixes:
-            self.assertNotIn(name, paths)
-
-    def test_load_cached_hashes_FileNotFoundError(self):
-        loaded = core.load_cached_hashes(str(self.test_dir / 'no_hashes.p'))
-        self.assertDictEqual(loaded, {})
-
-    def test_load_cached_hashes(self):
-        # Create cache, write it on the disk and try to read
-        cache_path = str(self.test_dir / 'test_hashes.p')
-        cache = {'image.jpg': 1}
-        with open(cache_path, 'wb') as f:
-            pickle.dump(cache, f)
-
-        loaded = core.load_cached_hashes(cache_path)
-        self.assertDictEqual(loaded, cache)
-
-    def test_check_cache_empty_paths(self):
-        paths, cache = [], {}
-        cached, not_cached = core.check_cache(paths, cache)
-        self.assertListEqual(cached, [])
-        self.assertListEqual(not_cached, [])
-
-    def test_check_cache_empty_cache(self):
-        cache = {}
-        images_to_get = [core.Image(path, suffix=pathlib.Path(path).suffix)
-                         for path in self.good_paths]
-        cached, not_cached = core.check_cache(self.good_paths, cache)
-
-        self.assertListEqual(cached, [])
-
-        for i, _ in enumerate(not_cached):
-            self.assertEqual(images_to_get[i].suffix, not_cached[i].suffix)
-            self.assertEqual(images_to_get[i].path, not_cached[i].path)
-
-    def test_check_cache_not_empty_cache(self):
-        # Assume that images from 'bad_paths' are cached...
-        cache = {path: 666 for path in self.bad_paths}
-        # ...and from 'good_paths' are not
-        images_to_get = [core.Image(path, suffix=pathlib.Path(path).suffix)
-                         for path in self.good_paths]
-        cached, not_cached = core.check_cache(self.good_paths, cache)
-
-        for image in cached:
-            self.assertIn(image.path, cache)
-            self.assertEqual(image.hash, cache[image.path])
-            self.assertEqual(image.suffix,
-                             pathlib.Path(cache[image.path]).suffix)
-
-        for i, _ in enumerate(not_cached):
-            self.assertEqual(images_to_get[i].suffix, not_cached[i].suffix)
-            self.assertEqual(images_to_get[i].path, not_cached[i].path)
-
-    def test_caching_images(self):
-        cache = {}
-        cache_path = str(self.test_dir / 'test_hashes.p')
-        images = [core.Image(path, dhash=666) for path in self.good_paths]
-        cache_to_get = {path: 666 for path in self.good_paths}
-
-        core.caching_images(images, cache, cache_path)
-
-        # And now read cache and compare it with 'cache_to_get'
-        with open(cache_path, 'rb') as f:
-            cached_hashes = pickle.load(f)
-
-        self.assertDictEqual(cached_hashes, cache_to_get)
-
-    def test_images_grouping_0_or_1_images(self):
+    def test_images_grouping_returns_empty_list_if_pass_empty_or_with_one_image_list(self):
         images = []
         image_groups = core.images_grouping(images, 0)
         self.assertListEqual(image_groups, [])
@@ -293,7 +304,7 @@ class TestImageProcessingFunctions(unittest.TestCase):
         image_groups = core.images_grouping(images, 0)
         self.assertListEqual(image_groups, [])
 
-    def test_images_grouping(self):
+    def test_images_grouping_returns_duplicate_images(self):
         images = self.red + self.yellow + self.green + self.corrupted
         image_groups = core.images_grouping(images, 0)
 
@@ -306,9 +317,17 @@ class TestImageProcessingFunctions(unittest.TestCase):
         self.assertSetEqual(red, set(self.red))
         self.assertSetEqual(yellow, set(self.yellow))
 
+    def test_images_grouping_doesnt_return_not_duplicateor_corrupted_images(self):
+        images = self.red + self.yellow + self.green + self.corrupted
+        image_groups = core.images_grouping(images, 0)
+
+        flat_groups = [image for group in image_groups for image in group]
+
+        for image in self.green:
+            self.assertNotIn(image, flat_groups)
+
         for image in self.corrupted:
-            self.assertNotIn(image, red)
-            self.assertNotIn(image, yellow)
+            self.assertNotIn(image, flat_groups)
 
 
 if __name__ == '__main__':
