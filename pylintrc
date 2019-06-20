@@ -1,9 +1,3 @@
-[MASTER]
-
-init-hook='import sys; sys.path.append("F:\Maxim\Projects\Envs\doppelganger\Lib\site-packages")'
-extension-pkg-whitelist=PyQt5
-
-
 [MESSAGES CONTROL]
 enable=all
-disable=too-few-public-methods,no-self-use,unused-argument,invalid-name,relative-beyond-top-level,broad-except,missing-docstring,redefined-outer-name
+disable=too-few-public-methods,unused-argument,invalid-name,broad-except,missing-docstring,redefined-outer-name,import-error,protected-access
