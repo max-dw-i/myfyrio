@@ -29,7 +29,7 @@ def get_images_paths(folders):
     for path in folders:
         p = pathlib.Path(path)
         for ext in IMG_EXTENSIONS:
-            for filename in p.glob('**/*{}'.format(ext)):
+            for filename in p.glob(f'**/*{ext}'):
                 if filename.is_file():
                     images_paths.append(str(filename))
     return images_paths
@@ -127,18 +127,21 @@ def images_grouping(images, sensitivity):
 
     return [sorted(final_groups[g], key=lambda x: x.difference) for g in final_groups]
 
-def load_cached_hashes(cache_path='image_hashes.p'):
+def load_cached_hashes():
     '''Returns cached images' hashes
 
-    :param cache_path: str, full file name of the cache,
     :returns: dict, {image_path: str,
                      image_hash: <class ImageHash> obj, ...}
     '''
 
     try:
-        with open(cache_path, 'rb') as f:
+        with open('image_hashes.p', 'rb') as f:
             cached_hashes = pickle.load(f)
     except FileNotFoundError:
+        cached_hashes = {}
+    except EOFError:
+        print('{}, {}'.format('The cache file might be corrupted (empty)',
+                              'an empty dictionary will be returned'))
         cached_hashes = {}
     return cached_hashes
 
@@ -175,19 +178,18 @@ def hashes_calculating(images):
         calculated_images = p.map(Image.calc_dhash, images)
     return calculated_images
 
-def caching_images(images, cached_hashes, cache_path='image_hashes.p'):
+def caching_images(images, cached_hashes):
     '''Adds new images to the cache, save them on the disk
 
     :param images: list of <class Image> objects,
     :param cached_hashes: dict, {image_path: str,
-                                 image_hash: <class ImageHash> obj},
-    :param cache_path: str, full file name of the cache
+                                 image_hash: <class ImageHash> obj}
     '''
 
     for image in images:
         cached_hashes[image.path] = image.hash
 
-    with open(cache_path, 'wb') as f:
+    with open('image_hashes.p', 'wb') as f:
         pickle.dump(cached_hashes, f)
 
 def return_obj(func):
@@ -337,9 +339,14 @@ if __name__ == '__main__':
     print('It might take some time, Be patient')
     print('------------------------')
 
-    folders = input("""Type the folder's path you want to find duplicate images in\n""")
-    message = '''Type the searching sensitivity (a value between 0 and 100 is recommended)\n'''
-    sensitivity = input(message)
+    folders = input('{} {}\n'.format(
+        "Type the folder's path you want",
+        'to find duplicate images in',
+    ))
+    sensitivity = input('{} {}\n'.format(
+        'Type the searching sensitivity',
+        '(a value between 0 and 100 is recommended)'
+    ))
     print('------------------------')
 
     paths = get_images_paths([folders])
