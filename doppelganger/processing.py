@@ -25,20 +25,37 @@ def thumbnail(image):
         print(e)
         return None
 
-    reader = QtGui.QImageReader(image.path)
+    img = _scaled_image(image.path, width, height)
+
+    if img is None:
+        return None
+    return _QImage_to_QByteArray(img, image.suffix[1:])
+
+def _scaled_image(path, width, height):
+    '''Returns a scaled image
+
+    :param path: str, full path of an image,
+    :param width: int, its new width,
+    :param height: int, its new height,
+    :returns: <class QImage> object or None if
+              something went wrong
+    '''
+
+    reader = QtGui.QImageReader(path)
     reader.setDecideFormatFromContent(True)
+    reader.setScaledSize(QtCore.QSize(width, height))
+
     if not reader.canRead():
         print('The image cannot be read')
         return None
 
-    reader.setScaledSize(QtCore.QSize(width, height))
-
     img = reader.read()
+
     if img.isNull():
         e = reader.errorString()
         print(e)
         return None
-    return _QImage_to_QByteArray(img, image.suffix[1:])
+    return img
 
 def _QImage_to_QByteArray(image, suffix):
     '''Converts a <class QImage> object to
@@ -52,13 +69,17 @@ def _QImage_to_QByteArray(image, suffix):
 
     ba = QtCore.QByteArray()
     buf = QtCore.QBuffer(ba)
+
     if not buf.open(QtCore.QIODevice.WriteOnly):
         print('Something wrong happened while opening buffer')
         return None
+
     if not image.save(buf, suffix.upper(), 100):
         print('Something wrong happened while saving image into buffer')
         return None
+
     buf.close()
+
     return ba
 
 
@@ -123,63 +144,104 @@ class ImageProcessing:
         '''Main processing function'''
 
         try:
-            paths = self._paths_processing()
-            cached_hashes = self._load_cached()
-            cached, not_cached = self._check_cache(paths, cached_hashes)
+            paths = self.paths(self.folders)
+            cache = self.load_cache()
+            cached, not_cached = self.check_cache(paths, cache)
 
             if not_cached:
-                calculated = self._imap(core.Image.calc_dhash, not_cached,
-                                        'remaining_images')
-                self._populate_cache(calculated, cached_hashes)
+                calculated = self.calculating(not_cached)
+                self.caching(calculated, cache)
                 cached.extend(calculated)
 
-            image_groups = self._images_comparing(cached, self.sensitivity)
-            self._thumbnails_processing(image_groups)
+            image_groups = self.grouping(cached, self.sensitivity)
+            image_groups = self.thumbnails_generating(image_groups)
+
+            self.signals.result.emit(image_groups)
         except InterruptProcessing:
             print('Image processing has been interrupted by the user')
         except Exception:
-            traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
             self.signals.error.emit((exctype, value, traceback.format_exc()))
         finally:
             self.signals.finished.emit()
 
+    def paths(self, folders):
+        paths = core.get_images_paths(folders)
+
+        self.signals.update_info.emit('loaded_images', str(len(paths)))
+        self._update_progress_bar(5)
+
+        return paths
+
+    def load_cache(self):
+        cached_hashes = core.load_cached_hashes()
+
+        self._update_progress_bar(10)
+
+        return cached_hashes
+
+    def check_cache(self, paths, cache):
+        cached, not_cached = core.check_cache(paths, cache)
+
+        self.signals.update_info.emit('found_in_cache', str(len(cached)))
+        if not_cached:
+            self._update_progress_bar(15)
+        else:
+            self._update_progress_bar(55)
+
+        return cached, not_cached
+
+    def calculating(self, not_cached):
+        return self._imap(core.Image.calc_dhash, not_cached, 'remaining_images')
+
+    def caching(self, calculated, cache):
+        core.caching_images(calculated, cache)
+
+        self._update_progress_bar(55)
+
+    def grouping(self, cached, sensitivity):
+        image_groups = core.images_grouping(cached, sensitivity)
+
+        self.signals.update_info.emit('image_groups', str(len(image_groups)))
+        self._update_progress_bar(65)
+
+        return image_groups
+
+    def thumbnails_generating(self, image_groups):
+        '''Makes thumbnails for the duplicate images
+
+        :param image_groups: list, [[<class Image> obj 1.1,
+                                     <class Image> obj 1.2, ...],
+                                    [<class Image> obj 2.1,
+                                     <class Image> obj 2.2, ...], ...]
+        '''
+
+        # 'Flat' list is processed better in parallel
+        flat = [image for group in image_groups for image in group]
+        thumbnails = self._imap(thumbnail, flat, 'thumbnails')
+
+        # Go through already formed list with groups of duplicate images
+        # and assign thumbnails to the corresponding attributes. It's easy
+        # because the original image order is preserved in 'flat'
+        j = 0
+        for group in image_groups:
+            for image in group:
+                image.thumbnail = thumbnails[j]
+                j += 1
+
+        return image_groups
+
     def _is_interrupted(self):
         self.interrupt = True
 
-    def _increase_progress_bar_value(self, value):
-        self.signals.update_progressbar.emit(self.progress_bar_value + value)
-        self.progress_bar_value += value
+    def _update_progress_bar(self, value):
+        '''Emit a new progress bar value
 
-    def _paths_processing(self):
-        paths = core.get_images_paths(self.folders)
-        self.signals.update_info.emit('loaded_images', str(len(paths)))
-        self._increase_progress_bar_value(5)
-        return paths
+        :param value: int, new 'progress_bar_value'
+        '''
 
-    def _load_cached(self):
-        cached_hashes = core.load_cached_hashes()
-        self._increase_progress_bar_value(5)
-        return cached_hashes
-
-    def _check_cache(self, paths, cached_hashes):
-        cached, not_cached = core.check_cache(paths, cached_hashes)
-        self.signals.update_info.emit('found_in_cache', str(len(paths)-len(not_cached)))
-        self.signals.update_info.emit('remaining_images', str(len(not_cached)))
-        self._increase_progress_bar_value(5)
-        if not not_cached:
-            self._increase_progress_bar_value(40)
-        return cached, not_cached
-
-    def _populate_cache(self, hashes, cached_hashes):
-        core.caching_images(hashes, cached_hashes)
-        self._increase_progress_bar_value(5)
-
-    def _images_comparing(self, paths, sensitivity):
-        image_groups = core.images_grouping(paths, sensitivity)
-        self.signals.update_info.emit('image_groups', str(len(image_groups)))
-        self._increase_progress_bar_value(10)
-        return image_groups
+        self.progress_bar_value = value
+        self.signals.update_progressbar.emit(self.progress_bar_value)
 
     def _imap(self, func, collection, label):
         '''Reimplementation of 'imap' from multiprocessing lib
@@ -193,6 +255,7 @@ class ImageProcessing:
 
         processed = []
         num = len(collection)
+        self.signals.update_info.emit(label, str(len(collection)))
 
         try:
             step = 35 / num
@@ -201,36 +264,11 @@ class ImageProcessing:
 
         with Pool() as p:
             for i, elem in enumerate(p.imap(func, collection)):
+                processed.append(elem)
+
+                self.signals.update_info.emit(label, str(num-i-1))
+                self._update_progress_bar(self.progress_bar_value + step)
+
                 if self.interrupt:
                     raise InterruptProcessing
-                processed.append(elem)
-                self.signals.update_info.emit(label, str(num-i-1))
-                self._increase_progress_bar_value(step)
         return processed
-
-    def _thumbnails_processing(self, image_groups):
-        '''Makes thumbnails for the duplicate images
-
-        :param image_groups: list, [[<class Image> obj 1.1,
-                                     <class Image> obj 1.2, ...],
-                                    [<class Image> obj 2.1,
-                                     <class Image> obj 2.2, ...], ...]
-        '''
-
-        # 'Flat' list is processed better in parallel
-        flat = [image for group in image_groups for image in group]
-        self.signals.update_info.emit('thumbnails', str(len(flat)))
-
-        thumbnails = self._imap(thumbnail, flat, 'thumbnails')
-
-        # Go through already formed list with groups
-        # of duplicate images and assign thumbnails to
-        # the corresponding attributes. It's easy cause
-        # the original image order is preserved in 'flat'
-        j = 0
-        for group in image_groups:
-            for image in group:
-                image.thumbnail = thumbnails[j]
-                j += 1
-
-        self.signals.result.emit(image_groups)
