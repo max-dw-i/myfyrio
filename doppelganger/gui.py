@@ -61,14 +61,15 @@ class ImageInfoWidget(QWidget):
 
         widgets = (
             SimilarityLabel(str(difference)),
-            ImageSizeLabel(self.get_image_size(dimensions, filesize)),
+            ImageSizeLabel(self._get_image_size(dimensions, filesize)),
             ImagePathLabel(path)
         )
         for widget in widgets:
             layout.addWidget(widget)
         self.setLayout(layout)
 
-    def get_image_size(self, dimensions, filesize):
+    @staticmethod
+    def _get_image_size(dimensions, filesize):
         '''Return info about image dimensions and file size
 
         :param dimensions: tuple, (width: int, height: int),
@@ -89,18 +90,31 @@ class ThumbnailWidget(QLabel):
     def __init__(self, thumbnail):
         super().__init__()
         self.setAlignment(Qt.AlignHCenter)
-        # Pixmap can read BMP, GIF, JPG, JPEG, PNG, PBM, PGM, PPM, XBM, XPM
-        try:
-            self.pixmap = QPixmap()
-            if thumbnail is None:
-                raise IOError
-            self.pixmap.loadFromData(thumbnail)
-            if self.pixmap.isNull():
-                print('Something happened while converting QByteArray into QPixmap')
-                raise IOError
-        except IOError:
-            self.pixmap = QPixmap(IMAGE_ERROR)
+        self.pixmap = self._QByteArray_to_QPixmap(thumbnail)
         self.setPixmap(self.pixmap)
+
+    @staticmethod
+    def _QByteArray_to_QPixmap(thumbnail):
+        '''Converts a QByteArray image to QPixmap
+
+        :param thumbnails: <class QByteArray>, an image,
+        :returns: corresponding <class QPixmap> object or,
+                  if something's wrong - <class QPixmap>
+                  object with 'error image'
+        '''
+
+        # Pixmap can read BMP, GIF, JPG, JPEG, PNG, PBM, PGM, PPM, XBM, XPM
+        if thumbnail is None:
+            return QPixmap(IMAGE_ERROR)
+
+        pixmap = QPixmap()
+        pixmap.loadFromData(thumbnail)
+
+        if pixmap.isNull():
+            print('Something happened while converting QByteArray into QPixmap')
+            return QPixmap(IMAGE_ERROR)
+
+        return pixmap
 
     def mark(self):
         '''Mark a thumbnail as selected'''
@@ -128,39 +142,50 @@ class DuplicateCandidateWidget(QWidget):
 
     def __init__(self, image):
         super().__init__()
+        self.image = image
+        self.selected = False
+        self.imageLabel, self.imageInfo = self._widgets()
+        self._setWidgetEvents()
+
         self.setFixedWidth(SIZE)
         layout = QVBoxLayout(self)
+        for widget in (self.imageLabel, self.imageInfo):
+            layout.addWidget(widget)
+        self.setLayout(layout)
 
-        self.imageLabel = ThumbnailWidget(image.thumbnail)
-        layout.addWidget(self.imageLabel)
+    def _widgets(self):
+        '''Returns ThumbnailWidget and ImageInfoWidget objects
+        which are parts of a DuplicateCandidateWidget object
+
+        :returns: tuple, (<class ThumbnailWidget> obj,
+                          <class ImageInfoWidget> obj)
+        '''
+
+        imageLabel = ThumbnailWidget(self.image.thumbnail)
 
         try:
-            dimensions = image.get_dimensions()
+            dimensions = self.image.get_dimensions()
         except OSError as e:
             print(e)
             dimensions = (0, 0)
 
         try:
-            filesize = image.get_filesize()
+            filesize = self.image.get_filesize()
         except OSError as e:
             print(e)
             filesize = 0
 
-        imageInfo = ImageInfoWidget(image.path, image.difference,
+        imageInfo = ImageInfoWidget(self.image.path, self.image.difference,
                                     dimensions, filesize)
-        layout.addWidget(imageInfo)
-        self.setLayout(layout)
 
-        self.image = image
-        self.selected = False
-        self.setWidgetEvents()
+        return imageLabel, imageInfo
 
-    def setWidgetEvents(self):
+    def _setWidgetEvents(self):
         '''Link events and functions called on the events'''
 
-        self.mouseReleaseEvent = self.mouseRelease
+        self.mouseReleaseEvent = self._mouseRelease
 
-    def mouseRelease(self, event):
+    def _mouseRelease(self, event):
         '''Function called on mouse release event'''
 
         window = self.window()
@@ -219,22 +244,21 @@ class ImageGroupWidget(QWidget):
                                      options=Qt.FindDirectChildrenOnly))
 
 
-class App(QMainWindow):
+class MainForm(QMainWindow):
     '''Main GUI class'''
 
     def __init__(self):
         super().__init__()
         loadUi(UI, self)
-        self.setWidgetEvents()
+        self._setWidgetEvents()
         self.signals = processing.Signals()
         self.threadpool = QThreadPool()
 
         self.sensitivity = 5
 
-        self.show_menubar()
-        self.show()
+        self._show_menubar()
 
-    def setWidgetEvents(self):
+    def _setWidgetEvents(self):
         '''Link events and functions called on the events'''
 
         self.addFolderBtn.clicked.connect(self.addFolderBtn_click)
@@ -249,7 +273,7 @@ class App(QMainWindow):
         self.mediumRb.clicked.connect(self.mediumRb_click)
         self.lowRb.clicked.connect(self.lowRb_click)
 
-    def show_menubar(self):
+    def _show_menubar(self):
         fileMenu = self.menubar.addMenu('File')
         #fileMenu.addAction(self.addFolderAct)
         #fileMenu.addSeparator(self.exitAct)
@@ -270,7 +294,7 @@ class App(QMainWindow):
         #helpMenu.addAction(self.homePage)
         #helpMenu.addAction(self.About)
 
-    def openFolderNameDialog(self):
+    def _openFolderNameDialog(self):
         '''Open file dialog and return the folder full path'''
 
         folder_path = QFileDialog.getExistingDirectory(
@@ -281,7 +305,7 @@ class App(QMainWindow):
         )
         return folder_path
 
-    def clear_form_before_start(self):
+    def _clear_form_before_start(self):
         '''Clear the form from the previous duplicate images
         found and labels before doing another search
         '''
@@ -295,11 +319,11 @@ class App(QMainWindow):
 
         for label in ['thumbnails', 'image_groups', 'remaining_images',
                       'found_in_cache', 'loaded_images']:
-            self.update_label_info(label, str(0))
+            self._update_label_info(label, str(0))
 
         self.progressBar.setValue(0)
 
-    def get_user_folders(self):
+    def _get_user_folders(self):
         '''Get all the folders a user added to the 'pathListWidget'
 
         :returns: list of str, the folders the user wants to
@@ -309,7 +333,7 @@ class App(QMainWindow):
         return [self.pathListWidget.item(i).data(Qt.DisplayRole)
                 for i in range(self.pathListWidget.count())]
 
-    def render_image_groups(self, image_groups):
+    def _render_image_groups(self, image_groups):
         '''Add ImageGroupWidget to scrollArea
 
         :param image_groups: list, [<class Image> obj, ...]
@@ -326,7 +350,7 @@ class App(QMainWindow):
             )
             msg_box.exec()
 
-    def update_label_info(self, label, text):
+    def _update_label_info(self, label, text):
         '''Update a label's info
 
         :param label: str, one of ('thumbnails', 'image_groups',
@@ -363,12 +387,41 @@ class App(QMainWindow):
                 return True
         return False
 
-    def image_processing_finished(self):
+    def _image_processing_finished(self):
         '''Called when image processing is finished'''
 
         self.progressBar.setValue(100)
         self.startBtn.setEnabled(True)
         self.stopBtn.setEnabled(False)
+
+    def _delete_selected_widgets(self):
+        '''Delete selected DuplicateCandidateWidget widgets'''
+
+        group_widgets = self.scrollAreaWidget.findChildren(
+            ImageGroupWidget,
+            options=Qt.FindDirectChildrenOnly
+        )
+        for group_widget in group_widgets:
+            selected_widgets = group_widget.getSelectedWidgets()
+            for selected_widget in selected_widgets:
+                selected_widget.delete()
+            # If we delete all (or except one) the images in a group,
+            # delete this group widget from scrollArea
+            if len(group_widget) - len(selected_widgets) <= 1:
+                group_widget.deleteLater()
+
+    def _start_processing(self, folders):
+        '''Set up image processing and run it'''
+
+        img_proc = processing.ImageProcessing(self, folders, self.sensitivity)
+
+        img_proc.signals.update_info.connect(self._update_label_info)
+        img_proc.signals.update_progressbar.connect(self.progressBar.setValue)
+        img_proc.signals.result.connect(self._render_image_groups)
+        img_proc.signals.finished.connect(self._image_processing_finished)
+
+        worker = processing.Worker(img_proc.run)
+        self.threadpool.start(worker)
 
     @pyqtSlot()
     def highRb_click(self):
@@ -392,7 +445,7 @@ class App(QMainWindow):
     def addFolderBtn_click(self):
         '''Function called on 'Add Path' button click event'''
 
-        folder_path = self.openFolderNameDialog()
+        folder_path = self._openFolderNameDialog()
         folder_path_item = QListWidgetItem()
         folder_path_item.setData(Qt.DisplayRole, folder_path)
         self.pathListWidget.addItem(folder_path_item)
@@ -413,19 +466,12 @@ class App(QMainWindow):
     def startBtn_click(self):
         '''Function called on 'Start' button click event'''
 
-        self.clear_form_before_start()
+        self._clear_form_before_start()
         self.stopBtn.setEnabled(True)
         self.startBtn.setEnabled(False)
 
-        folders = self.get_user_folders()
-
-        img_proc = processing.ImageProcessing(self, folders, self.sensitivity)
-        img_proc.signals.update_info.connect(self.update_label_info)
-        img_proc.signals.update_progressbar.connect(self.progressBar.setValue)
-        img_proc.signals.result.connect(self.render_image_groups)
-        img_proc.signals.finished.connect(self.image_processing_finished)
-        worker = processing.Worker(img_proc.run)
-        self.threadpool.start(worker)
+        folders = self._get_user_folders()
+        self._start_processing(folders)
 
     @pyqtSlot()
     def stopBtn_click(self):
@@ -453,18 +499,7 @@ class App(QMainWindow):
             'Do you really want to remove the selected images?',
             QMessageBox.Yes|QMessageBox.Cancel
         )
-        if confirm == QMessageBox.Yes:
-            group_widgets = self.scrollAreaWidget.findChildren(
-                ImageGroupWidget,
-                options=Qt.FindDirectChildrenOnly
-            )
-            for group_widget in group_widgets:
-                selected_widgets = group_widget.getSelectedWidgets()
-                for selected_widget in selected_widgets:
-                    selected_widget.delete()
-                # If we delete all (or except one) the images in a group,
-                # delete this group widget from scrollArea
-                if len(group_widget) - len(selected_widgets) <= 1:
-                    group_widget.deleteLater()
 
+        if confirm == QMessageBox.Yes:
+            self._delete_selected_widgets()
             self.deleteBtn.setEnabled(False)
