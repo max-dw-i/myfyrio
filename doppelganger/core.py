@@ -3,12 +3,11 @@
 import os
 import pathlib
 import pickle
-from collections import defaultdict
+from functools import wraps
 from multiprocessing import Pool
 
-from functools import wraps
-
-import imagehash
+import dhash
+import pybktree
 from PIL import Image as PILImage, ImageFile
 
 # Crazy hack not to get error 'IOError: image file is truncated...'
@@ -34,74 +33,15 @@ def get_images_paths(folders):
                     images_paths.append(str(filename))
     return images_paths
 
-def _closest_images_populating(closest_images, images, i, j):
-    '''Populates :closest_images:
+def hamming_dist(image1, image2):
+    '''Calculates the Hamming distance between two images
 
-    :param closest_images: dict of :images: indices,
-                           eg. {0: 0, 1: 0, 5: 0}. The 1st
-                           and 5th's closest image is 0th,
-    :param images: collection of <class Image> objects,
-    :param i: int, :images: index,
-    :param j: int, :images: index
+    :param image1: <class Image> object,
+    :param image2: <class Image> object,
+    :returns: int, Hamming distance
     '''
 
-    # Do nothing if ith and jth images have been added already
-    if i in closest_images and j in closest_images:
-        return
-    # ...if the ith's closest image was added already, then the closest
-    # image of this already added (ith closest) image become the ith's
-    # closest image. Eg. we have :closest_images: = {0: 0, 1: 0} and
-    # the 5th's closest image is the 1st one; 1 is in :closest_images: and its
-    # closest image is the 0th one, so 0 becomes the 5th's closest image and
-    # now we have :closest_images: = {0: 0, 1: 0, 5: 0}...
-    if j in closest_images:
-        images[i].difference = images[i].hash - images[closest_images[j]].hash
-        closest_images[i] = closest_images[j]
-    # ...and vice versa
-    elif i in closest_images:
-        images[j].difference = images[j].hash - images[closest_images[i]].hash
-        closest_images[j] = closest_images[i]
-    else:
-        # else we add a new pair of images and the ith image pointing
-        # to itself. Eg. :closest_images: = {0: 0, 1: 0, 5: 0} and
-        # the 7th's closest image is the 2nd, then now we have
-        # :closest_images: = {0: 0, 1: 0, 5: 0, 2: 7, 7: 7}
-        images[j].difference = images[j].hash - images[i].hash
-        closest_images[j] = i
-        closest_images[i] = i
-
-def _closest_images_search(images, sensitivity):
-    '''Searches every image's closest one
-
-    :param sensitivity: int, min difference between images' hashes
-                        when the images are considered similar,
-    :param images: collection of <class Image> objects,
-    :returns: dict of :images:' indices, eg. {0: 0, 1: 0, 5: 0}.
-              The 1st and 5th's closest image is 0th
-    '''
-
-    # Here all the hashes are compared to each other and the closest (most
-    # similar image) are added to dict 'closest_images'
-    closest_images = {}
-    for i, image1 in enumerate(images):
-        # If a hash is None there were some problem with
-        # calculating it so we don't process the image
-        if image1.hash is not None:
-            closest_image = None
-            min_diff = float('inf')
-            for j, image2 in enumerate(images):
-                if image2.hash is not None:
-                    diff = image1.hash - image2.hash
-                    # If the difference less/equal than 'sensitivity' and this
-                    # image (image2) is closer to image1 (diff is less),
-                    # we remember image2 index
-                    if diff <= sensitivity and i != j and min_diff > diff:
-                        closest_image = j
-                        min_diff = diff
-            # If ith image has the closest one...
-            if closest_image is not None:
-                _closest_images_populating(closest_images, images, i, closest_image)
-    return closest_images
+    return dhash.get_num_bits_different(image1.hash, image2.hash)
 
 def images_grouping(images, sensitivity):
     '''Returns groups of similar images
@@ -119,13 +59,45 @@ def images_grouping(images, sensitivity):
     if len(images) <= 1:
         return []
 
-    closest_images = _closest_images_search(images, sensitivity)
+    image_groups = []
+    checked = {} # {<class Image> obj: index of the image group}
+    images = [image for image in images if image.hash is not None]
+    bkt = pybktree.BKTree(hamming_dist, images)
 
-    final_groups = defaultdict(list)
-    for i in closest_images:
-        final_groups[closest_images[i]].append(images[i])
+    for image in images:
+        # We don't need to get all the images with hash
+        # differences <= sensitivity, just the least one (in
+        # this algorithm). But it's not possible to do it in
+        # 'pybktree' lib, so...
+        closests = bkt.find(image, sensitivity)
 
-    return [sorted(final_groups[g], key=lambda x: x.difference) for g in final_groups]
+        # If there's one element in 'closests', it's the 'image' itself,
+        # so we need the next one (the 1st)
+        if len(closests) == 1:
+            continue
+
+        closest = closests[1][1]
+
+        # If 'image' is in a group already, its closest image goes to the same group
+        if image in checked and closest not in checked:
+            group_num = checked[image]
+            image_groups[group_num].append(closest)
+            closest.difference = hamming_dist(image_groups[group_num][0], closest)
+            checked[closest] = group_num
+        # and vice versa
+        elif image not in checked and closest in checked:
+            group_num = checked[closest]
+            image_groups[group_num].append(image)
+            image.difference = hamming_dist(image_groups[group_num][0], image)
+            checked[image] = group_num
+        # If neither of these is in groups, add a new group
+        elif image not in checked and closest not in checked:
+            closest.difference = closests[1][0]
+            image_groups.append([image, closest])
+            checked[image] = len(image_groups) - 1
+            checked[closest] = len(image_groups) - 1
+
+    return [sorted(g, key=lambda x: x.difference) for g in image_groups]
 
 def load_cached_hashes():
     '''Returns cached images' hashes
@@ -241,7 +213,7 @@ class Image():
             print(e, self.path)
             self.hash = None
         else:
-            self.hash = imagehash.dhash(image)
+            self.hash = dhash.dhash_int(image)
         return self.hash
 
     def get_dimensions(self):

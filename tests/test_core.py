@@ -20,7 +20,7 @@ class TestImageClass(TestCase):
         self.image.calc_dhash()
         self.assertIsNone(self.image.hash)
 
-    @mock.patch(CORE + 'imagehash.dhash', return_value='hash')
+    @mock.patch(CORE + 'dhash.dhash_int', return_value='hash')
     @mock.patch(CORE + 'PILImage.open')
     def test_undecorated_calc_dhash_returns_dhash(self, mock_open, mock_dhash):
         result = self.image.calc_dhash.__wrapped__(self.image)
@@ -227,19 +227,6 @@ class TestCacheFunctions(TestCase):
 
 class TestImagesGroupingFunction(TestCase):
 
-    class Number:
-        '''When <class ImageHash> instances is subtracted
-        from another, an absolute value is returned. In order
-        not to change (add abs()) the code because of the tests,
-        this class is used.
-        '''
-
-        def __init__(self, x):
-            self.x = x
-
-        def __sub__(self, num):
-            return abs(self.x - num.x)
-
     @classmethod
     def image_factory(cls, num, filename, dhash):
         '''Create <class Image> instances'''
@@ -247,10 +234,9 @@ class TestImagesGroupingFunction(TestCase):
         images = []
 
         for i in range(num):
-            val = None if dhash is None else cls.Number(dhash)
             name, suffix = filename.split('.')
             name = '{}{}{}'.format(name, i, suffix)
-            images.append(core.Image(name, dhash=val))
+            images.append(core.Image(name, dhash=dhash))
 
         return images
 
