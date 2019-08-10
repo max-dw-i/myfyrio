@@ -206,12 +206,12 @@ class Image():
         except OSError as e:
             print(e, self.path)
             self.hash = None
-        except UnboundLocalError as e:
+        #except UnboundLocalError as e:
             # Sometimes UnboundLocalError in PIL/JpegImagePlugin.py
             # happens with some images. Should be fixed in PIL 6.1.0.
             # Till then these images are not processed
-            print(e, self.path)
-            self.hash = None
+            #print(e, self.path)
+            #self.hash = None
         else:
             self.hash = dhash.dhash_int(image)
         return self.hash
