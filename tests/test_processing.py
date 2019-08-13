@@ -104,6 +104,12 @@ class TestImageProcessingClass(TestCase):
 
         self.assertEqual(c, 'cache')
 
+    @mock.patch('doppelganger.processing.core.load_cached_hashes', side_effect=EOFError)
+    def test_load_cache_return_empty_dict_if_EOFError(self, mock_cache):
+        c = self.im_pr.load_cache()
+
+        self.assertDictEqual(c, {})
+
     def test_load_cache_updates_progress_bar_value(self):
         self.im_pr.load_cache()
 

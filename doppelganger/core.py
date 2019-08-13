@@ -103,7 +103,9 @@ def load_cached_hashes():
     '''Returns cached images' hashes
 
     :returns: dict, {image_path: str,
-                     image_hash: <class ImageHash> obj, ...}
+                     image_hash: <class ImageHash> obj, ...},
+    :raises EOFError: if the cache file cannot be read,
+                      for some reason
     '''
 
     try:
@@ -112,9 +114,7 @@ def load_cached_hashes():
     except FileNotFoundError:
         cached_hashes = {}
     except EOFError:
-        print('{}, {}'.format('The cache file might be corrupted (empty)',
-                              'an empty dictionary will be returned'))
-        cached_hashes = {}
+        raise EOFError('The cache file might be corrupted (or empty)')
     return cached_hashes
 
 def check_cache(paths, cached_hashes):
@@ -324,7 +324,13 @@ if __name__ == '__main__':
     paths = get_images_paths([folders])
     print('There are {} images in the folder'.format(len(paths)))
 
-    cached_hashes = load_cached_hashes()
+    try:
+        cached_hashes = load_cached_hashes()
+    except EOFError as e:
+        print(e)
+        print('Delete (back up if needed) the corrupted (or empty) ',
+              'cache file and run the script again')
+
     cached, not_cached = check_cache(paths, cached_hashes)
     print('{} images have been found in the cache'.format(
         len(paths)-len(not_cached)

@@ -174,7 +174,11 @@ class ImageProcessing:
         return paths
 
     def load_cache(self):
-        cached_hashes = core.load_cached_hashes()
+        try:
+            cached_hashes = core.load_cached_hashes()
+        except EOFError as e:
+            print(e)
+            cached_hashes = {}
 
         self._update_progress_bar(10)
 

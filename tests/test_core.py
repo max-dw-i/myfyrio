@@ -174,9 +174,9 @@ class TestCacheFunctions(TestCase):
         self.assertDictEqual(loaded, {})
 
     @mock.patch(CORE + 'pickle.load', side_effect=EOFError)
-    def test_load_cached_hashes_returns_empty_dict_if_EOFError(self, mock_cache):
-        loaded = core.load_cached_hashes()
-        self.assertDictEqual(loaded, {})
+    def test_load_cached_hashes_raises_EOFError_if_EOFError(self, mock_cache):
+        with self.assertRaises(EOFError):
+            core.load_cached_hashes()
 
     @mock.patch(CORE + 'pickle.load')
     def test_load_cached_hashes_return(self, mock_cache):
