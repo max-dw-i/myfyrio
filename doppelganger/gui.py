@@ -1,5 +1,7 @@
 '''Graphical user interface'''
 
+import logging
+
 from PyQt5.QtCore import QFileInfo, Qt, QThreadPool, pyqtSlot
 from PyQt5.QtGui import QBrush, QColor, QPainter, QPalette, QPixmap
 from PyQt5.QtWidgets import (QFileDialog, QFrame, QHBoxLayout, QLabel,
@@ -14,6 +16,7 @@ IMAGE_ERROR = r'doppelganger\resources\image_error.png'
 SIZE = 200
 SELECTED_BACKGROUND_COLOR = '#d3d3d3'
 
+gui_logger = logging.getLogger('main.gui')
 
 class InfoLabelWidget(QLabel):
     '''Abstract Label class'''
@@ -111,7 +114,7 @@ class ThumbnailWidget(QLabel):
         pixmap.loadFromData(thumbnail)
 
         if pixmap.isNull():
-            print('Something happened while converting QByteArray into QPixmap')
+            gui_logger.error('Something happened while converting QByteArray into QPixmap')
             return QPixmap(IMAGE_ERROR)
 
         return pixmap
@@ -166,13 +169,13 @@ class DuplicateCandidateWidget(QWidget):
         try:
             dimensions = self.image.get_dimensions()
         except OSError as e:
-            print(e)
+            gui_logger.error(e)
             dimensions = (0, 0)
 
         try:
             filesize = self.image.get_filesize()
         except OSError as e:
-            print(e)
+            gui_logger.error(e)
             filesize = 0
 
         imageInfo = ImageInfoWidget(self.image.path, self.image.difference,
@@ -207,7 +210,9 @@ class DuplicateCandidateWidget(QWidget):
 
         try:
             self.image.delete_image()
-        except OSError:
+        except OSError as e:
+            gui_logger.error(e)
+
             msgBox = QMessageBox(
                 QMessageBox.Warning,
                 'Removing image',

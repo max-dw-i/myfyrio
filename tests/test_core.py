@@ -1,3 +1,4 @@
+import logging
 import os
 import pathlib
 import shutil
@@ -6,7 +7,7 @@ from unittest import TestCase, mock
 
 from doppelganger import core
 
-
+logging.lastResort = None
 CORE = 'doppelganger.core.'
 
 
@@ -260,7 +261,7 @@ class TestImagesGroupingFunction(TestCase):
         self.assertListEqual(image_groups, [])
 
     def test_images_grouping_returns_duplicate_images(self):
-        images = self.red + self.yellow + self.green + self.corrupted
+        images = self.red + self.yellow + self.green
         image_groups = core.images_grouping(images, 0)
 
         # In 'red' - 3 images, in 'yellow' - 2
@@ -272,14 +273,7 @@ class TestImagesGroupingFunction(TestCase):
         self.assertSetEqual(red, set(self.red))
         self.assertSetEqual(yellow, set(self.yellow))
 
-    def test_images_grouping_doesnt_return_not_duplicate_or_corrupted_images(self):
-        images = self.red + self.yellow + self.green + self.corrupted
-        image_groups = core.images_grouping(images, 0)
-
-        flat_groups = [image for group in image_groups for image in group]
-
-        for image in self.green:
-            self.assertNotIn(image, flat_groups)
-
-        for image in self.corrupted:
-            self.assertNotIn(image, flat_groups)
+    def test_images_grouping_raises_TypeError(self):
+        images = self.corrupted
+        with self.assertRaises(TypeError):
+            core.images_grouping(images, 0)

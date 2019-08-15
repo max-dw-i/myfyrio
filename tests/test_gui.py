@@ -1,3 +1,4 @@
+import logging
 import sys
 from unittest import TestCase, mock
 
@@ -5,7 +6,7 @@ from PyQt5 import QtCore, QtGui, QtTest, QtWidgets
 
 from doppelganger import core, gui, processing
 
-
+logging.lastResort = None
 app = QtWidgets.QApplication(sys.argv)
 
 
@@ -115,6 +116,12 @@ class TestThumbnailWidget(TestCase):
 
         self.assertIsInstance(qp, QtGui.QPixmap)
 
+    @mock.patch('doppelganger.gui.QPixmap.isNull', return_value=True)
+    @mock.patch('doppelganger.gui.QPixmap.loadFromData')
+    def test_QByteArray_to_QPixmap_logs_errors_if_isNull(self, mock_load, mock_null):
+        with self.assertLogs('main.gui', 'ERROR'):
+            gui.ThumbnailWidget._QByteArray_to_QPixmap('thumbnail')
+
     @mock.patch('doppelganger.gui.QPixmap.isNull', return_value=False)
     @mock.patch('doppelganger.gui.QPixmap.loadFromData')
     def test_QByteArray_to_QPixmap_returns_QPixmap_obj(self, mock_load, mock_null):
@@ -179,6 +186,13 @@ class TestDuplicateCandidateWidget(TestCase):
 
         mock_info.assert_called_once_with(self.path, self.difference, (0, 0), 3)
 
+    @mock.patch('doppelganger.core.Image.get_filesize', return_value=3)
+    @mock.patch('doppelganger.core.Image.get_dimensions', side_effect=OSError)
+    @mock.patch('doppelganger.gui.ImageInfoWidget')
+    def test_widgets_logs_if_get_dimensions_raises_OSError(self, mock_info, mock_dim, mock_size):
+        with self.assertLogs('main.gui', 'ERROR'):
+            self.w._widgets()
+
     @mock.patch('doppelganger.core.Image.get_filesize', side_effect=OSError)
     @mock.patch('doppelganger.core.Image.get_dimensions', return_value=2)
     @mock.patch('doppelganger.gui.ImageInfoWidget')
@@ -186,6 +200,13 @@ class TestDuplicateCandidateWidget(TestCase):
         self.w._widgets()
 
         mock_info.assert_called_once_with(self.path, self.difference, 2, 0)
+
+    @mock.patch('doppelganger.core.Image.get_filesize', side_effect=OSError)
+    @mock.patch('doppelganger.core.Image.get_dimensions', return_value=2)
+    @mock.patch('doppelganger.gui.ImageInfoWidget')
+    def test_widgets_logs_if_get_filesize_raises_OSError(self, mock_info, mock_dim, mock_size):
+        with self.assertLogs('main.gui', 'ERROR'):
+            self.w._widgets()
 
     @mock.patch('doppelganger.core.Image.get_filesize', return_value=3)
     @mock.patch('doppelganger.core.Image.get_dimensions', return_value=2)
@@ -243,6 +264,12 @@ class TestDuplicateCandidateWidget(TestCase):
         self.w.delete()
 
         self.assertTrue(mock_box.called)
+
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
+    @mock.patch('doppelganger.core.Image.delete_image', side_effect=OSError)
+    def test_delete_logs_errors(self, mock_img, mock_box):
+        with self.assertLogs('main.gui', 'ERROR'):
+            self.w.delete()
 
 
 class TestImageGroupWidget(TestCase):

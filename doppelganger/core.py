@@ -61,8 +61,10 @@ def images_grouping(images, sensitivity):
 
     image_groups = []
     checked = {} # {<class Image> obj: index of the image group}
-    images = [image for image in images if image.hash is not None]
-    bkt = pybktree.BKTree(hamming_dist, images)
+    try:
+        bkt = pybktree.BKTree(hamming_dist, images)
+    except TypeError:
+        raise TypeError('While grouping, image hashes must be integers')
 
     for image in images:
         # We don't need to get all the images with hash
@@ -203,8 +205,7 @@ class Image():
 
         try:
             image = PILImage.open(self.path)
-        except OSError as e:
-            print(e, self.path)
+        except OSError:
             self.hash = None
         #except UnboundLocalError as e:
             # Sometimes UnboundLocalError in PIL/JpegImagePlugin.py
@@ -228,9 +229,8 @@ class Image():
 
         try:
             image = PILImage.open(self.path)
-        except OSError as e:
-            print(e)
-            raise OSError("Cannot get the image's dimensions")
+        except OSError:
+            raise OSError(f'Cannot get the dimensions of {self.path}')
         return image.size
 
     def get_scaling_dimensions(self, biggest_dim):
@@ -250,9 +250,8 @@ class Image():
 
         try:
             width, height = self.get_dimensions()
-        except OSError as e:
-            print(e)
-            raise OSError("Cannot get scaling dimensions")
+        except OSError:
+            raise OSError(f'Cannot get the scaling dimensions of {self.path}')
 
         if width >= height:
             width, height = (width * biggest_dim // width,
@@ -275,9 +274,8 @@ class Image():
 
         try:
             image_size = os.path.getsize(self.path)
-        except OSError as e:
-            print(e)
-            raise OSError
+        except OSError:
+            raise OSError(f'Cannot get the file size of {self.path}')
 
         if size_format == 'B':
             return image_size
@@ -297,9 +295,8 @@ class Image():
 
         try:
             os.remove(self.path)
-        except OSError as e:
-            print(e)
-            raise OSError(e)
+        except OSError:
+            raise OSError(f'{self.path} cannot be removed')
 
     def __str__(self):
         return self.path
@@ -339,6 +336,7 @@ if __name__ == '__main__':
     print('Starting to calculate hashes...')
     if not_cached:
         calculated = hashes_calculating(not_cached)
+        calculated = [image for image in calculated if image.hash is not None]
         caching_images(calculated, cached_hashes)
         cached.extend(calculated)
     print('All the hashes have been calculated')

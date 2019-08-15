@@ -1,9 +1,12 @@
+import logging
 import sys
 from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtGui, QtTest, QtWidgets
 
 from doppelganger import core, exception, processing
+
+logging.lastResort = None
 
 
 class TestThumbnailFunction(TestCase):
@@ -15,6 +18,11 @@ class TestThumbnailFunction(TestCase):
     def test_thumbnail_returns_None_if_OSError(self, mock_dim):
         th = processing.thumbnail(self.image)
         self.assertIsNone(th)
+
+    @mock.patch('doppelganger.core.Image.get_scaling_dimensions', side_effect=OSError)
+    def test_thumbnail_logs_errors(self, mock_dim):
+        with self.assertLogs('main.processing', 'ERROR'):
+            processing.thumbnail(self.image)
 
     @mock.patch('doppelganger.processing._scaled_image', return_value=None)
     @mock.patch('doppelganger.core.Image.get_scaling_dimensions', return_value=(1, 1))
@@ -34,11 +42,22 @@ class TestThumbnailFunction(TestCase):
         th = processing._scaled_image(self.image.path, 10, 10)
         self.assertIsNone(th)
 
+    @mock.patch('PyQt5.QtGui.QImageReader.canRead', return_value=False)
+    def test_scaled_images_logs_errors_if_canRead_returns_False(self, mock_read):
+        with self.assertLogs('main.processing', 'ERROR'):
+            processing._scaled_image(self.image.path, 10, 10)
+
     @mock.patch('PyQt5.QtGui.QImage.isNull', return_value=True)
     @mock.patch('PyQt5.QtGui.QImageReader.canRead', return_value=True)
     def test_scaled_image_returns_None_if_isNull_returns_False(self, mock_canRead, mock_isNull):
         th = processing._scaled_image(self.image.path, 10, 10)
         self.assertIsNone(th)
+
+    @mock.patch('PyQt5.QtGui.QImage.isNull', return_value=True)
+    @mock.patch('PyQt5.QtGui.QImageReader.canRead', return_value=True)
+    def test_scaled_image_logs_errors_if_isNull_returns_False(self, mock_canRead, mock_isNull):
+        with self.assertLogs('main.processing', 'ERROR'):
+            processing._scaled_image(self.image.path, 10, 10)
 
     @mock.patch('PyQt5.QtGui.QImage.isNull', return_value=False)
     @mock.patch('PyQt5.QtGui.QImageReader.canRead', return_value=True)
@@ -51,10 +70,20 @@ class TestThumbnailFunction(TestCase):
         ba = processing._QImage_to_QByteArray(QtGui.QImage(), 'png')
         self.assertIsNone(ba)
 
+    @mock.patch('PyQt5.QtCore.QBuffer.open', return_value=False)
+    def test_QImage_to_QByteArray_logs_errors_if_open_returns_False(self, mock_open):
+        with self.assertLogs('main.processing', 'ERROR'):
+            processing._QImage_to_QByteArray(QtGui.QImage(), 'png')
+
     @mock.patch('PyQt5.QtGui.QImage.save', return_value=False)
     def test_QImage_to_QByteArray_returns_None_if_save_returns_False(self, mock_save):
         ba = processing._QImage_to_QByteArray(QtGui.QImage(), 'png')
         self.assertIsNone(ba)
+
+    @mock.patch('PyQt5.QtGui.QImage.save', return_value=False)
+    def test_QImage_to_QByteArray_logs_errors_if_save_returns_False(self, mock_save):
+        with self.assertLogs('main.processing', 'ERROR'):
+            processing._QImage_to_QByteArray(QtGui.QImage(), 'png')
 
     @mock.patch('PyQt5.QtGui.QImage.save', return_value=True)
     @mock.patch('PyQt5.QtCore.QBuffer.open', return_value=True)
@@ -143,9 +172,18 @@ class TestImageProcessingClass(TestCase):
 
     @mock.patch('doppelganger.processing.ImageProcessing._imap', return_value='calculated')
     def test_calculating_return(self, mock_calc):
+        calc_res = [core.Image('a', dhash=0), core.Image('a', dhash=None)]
+        mock_calc.return_value = calc_res
         c = self.im_pr.calculating([])
 
-        self.assertEqual(c, 'calculated')
+        self.assertListEqual(c, calc_res[:1])
+
+    @mock.patch('doppelganger.processing.ImageProcessing._imap', return_value='calculated')
+    def test_calculating_logs_if_hash_is_None(self, mock_calc):
+        calc_res = [core.Image('a', dhash=None)]
+        mock_calc.return_value = calc_res
+        with self.assertLogs('main.processing', 'ERROR'):
+            self.im_pr.calculating([])
 
     @mock.patch('doppelganger.processing.core.caching_images')
     def test_caching_core_func_called(self, mock_caching):
@@ -262,15 +300,25 @@ class TestImageProcessingClass(TestCase):
         self.assertEqual(len(spy), 1)
 
     @mock.patch('doppelganger.processing.ImageProcessing.paths')
+    def test_run_logs_info(self, mock):
+        mock.side_effect = exception.InterruptProcessing
+        with self.assertLogs('main.processing', 'INFO'):
+            self.im_pr.run()
+
+    @mock.patch('doppelganger.processing.ImageProcessing.paths')
     def test_run_if_raise_Exception(self, mock):
         mock.side_effect = Exception('General exception')
         spy_finished = QtTest.QSignalSpy(self.im_pr.signals.finished)
-        spy_error = QtTest.QSignalSpy(self.im_pr.signals.error)
 
         self.im_pr.run()
 
-        self.assertEqual(len(spy_error), 1)
         self.assertEqual(len(spy_finished), 1)
+
+    @mock.patch('doppelganger.processing.ImageProcessing.paths')
+    def test_run_logs_errors(self, mock):
+        mock.side_effect = Exception('General exception')
+        with self.assertLogs('main.processing', 'ERROR'):
+            self.im_pr.run()
 
     def test_run_emits_result_signal(self):
         spy_finished = QtTest.QSignalSpy(self.im_pr.signals.finished)

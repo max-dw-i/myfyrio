@@ -1,3 +1,4 @@
+import logging
 import sys
 import traceback
 from multiprocessing import Pool
@@ -7,9 +8,9 @@ from PyQt5 import QtCore, QtGui
 from doppelganger import core
 from doppelganger.exception import InterruptProcessing
 
-
 SIZE = 200
 
+processing_logger = logging.getLogger('main.processing')
 
 def thumbnail(image):
     '''Returns an image's thumbnail
@@ -22,7 +23,7 @@ def thumbnail(image):
     try:
         width, height = image.get_scaling_dimensions(SIZE)
     except OSError as e:
-        print(e)
+        processing_logger.error(e)
         return None
 
     img = _scaled_image(image.path, width, height)
@@ -46,14 +47,14 @@ def _scaled_image(path, width, height):
     reader.setScaledSize(QtCore.QSize(width, height))
 
     if not reader.canRead():
-        print('The image cannot be read')
+        processing_logger.error(f'{path} cannot be read')
         return None
 
     img = reader.read()
 
     if img.isNull():
         e = reader.errorString()
-        print(e)
+        processing_logger.error(e)
         return None
     return img
 
@@ -71,11 +72,11 @@ def _QImage_to_QByteArray(image, suffix):
     buf = QtCore.QBuffer(ba)
 
     if not buf.open(QtCore.QIODevice.WriteOnly):
-        print('Something wrong happened while opening buffer')
+        processing_logger.error('Something wrong happened while opening buffer')
         return None
 
     if not image.save(buf, suffix.upper(), 100):
-        print('Something wrong happened while saving image into buffer')
+        processing_logger.error('Something wrong happened while saving image into buffer')
         return None
 
     buf.close()
@@ -158,10 +159,9 @@ class ImageProcessing:
 
             self.signals.result.emit(image_groups)
         except InterruptProcessing:
-            print('Image processing has been interrupted by the user')
+            processing_logger.info('Image processing has been interrupted by the user')
         except Exception:
-            exctype, value = sys.exc_info()[:2]
-            self.signals.error.emit((exctype, value, traceback.format_exc()))
+            processing_logger.error('Unknown error: ', exc_info=True)
         finally:
             self.signals.finished.emit()
 
@@ -196,7 +196,16 @@ class ImageProcessing:
         return cached, not_cached
 
     def calculating(self, not_cached):
-        return self._imap(core.Image.calc_dhash, not_cached, 'remaining_images')
+        calculated = self._imap(core.Image.calc_dhash, not_cached, 'remaining_images')
+
+        good = []
+        for image in calculated:
+            if image.hash is None:
+                processing_logger.error(f'Hash of {image.path} cannot be calculated')
+            else:
+                good.append(image)
+
+        return good
 
     def caching(self, calculated, cache):
         core.caching_images(calculated, cache)
