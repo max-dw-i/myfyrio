@@ -53,7 +53,8 @@ def images_grouping(images, sensitivity):
                      [<class Image> obj 2.1, <class Image> obj 2.2, ...], ...],
               each sublist of which is sorted by image difference in
               ascending order. If there are no duplicate images, an empty list
-              is returned
+              is returned,
+    :raise TypeError: if any of the hashes are not integers
     '''
 
     if len(images) <= 1:
@@ -297,6 +298,23 @@ class Image():
             os.remove(self.path)
         except OSError:
             raise OSError(f'{self.path} cannot be removed')
+
+    def move_image(self, dst):
+        '''Moves an image to a new location
+
+        :param dst: str, new location, eg. /new/location/
+                         or C:\location,
+        :raise OSError: if the file does not exist,
+                        is a folder, :dst: exists, etc.
+        '''
+
+        file_name = pathlib.Path(self.path).name
+        new_path = str(pathlib.Path(dst) / file_name)
+
+        try:
+            os.rename(self.path, new_path)
+        except OSError:
+            raise OSError(f'{self.path} cannot be moved')
 
     def __str__(self):
         return self.path

@@ -117,6 +117,18 @@ class TestImageClass(TestCase):
         self.image.delete_image()
         self.assertTrue(mock_remove.called)
 
+    @mock.patch(CORE + 'os.rename', side_effect=OSError)
+    def test_move_image_raises_OSError(self, mock_rename):
+        with self.assertRaises(OSError):
+            self.image.move_image('new_dst')
+
+    @mock.patch(CORE + 'os.rename')
+    def test_move_image_called(self, mock_rename):
+        dst = 'new_dst'
+        self.image.move_image(dst)
+        new_path = str(pathlib.Path(dst) / pathlib.Path(self.image.path))
+        mock_rename.assert_called_once_with(self.image.path, new_path)
+
 
 class TestGetImagesPathsFunction(TestCase):
 

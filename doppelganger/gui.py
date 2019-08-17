@@ -197,10 +197,12 @@ class DuplicateCandidateWidget(QWidget):
             self.selected = False
             self.imageLabel.unmark()
             if not window.has_selected_widgets():
+                window.moveBtn.setEnabled(False)
                 window.deleteBtn.setEnabled(False)
         else:
             self.selected = True
             self.imageLabel.mark()
+            window.moveBtn.setEnabled(True)
             window.deleteBtn.setEnabled(True)
 
     def delete(self):
@@ -216,7 +218,28 @@ class DuplicateCandidateWidget(QWidget):
             msgBox = QMessageBox(
                 QMessageBox.Warning,
                 'Removing image',
-                'Error occured while removing image {}'.format(self.image.path)
+                f'Error occured while removing image {self.image.path}'
+            )
+            msgBox.exec()
+        else:
+            self.deleteLater()
+
+    def move(self, dst):
+        '''Move an image to a new location and delete its DuplicateCandidateWidget
+        instance
+
+        :param dst: str, a new location, eg. /new/location
+        '''
+
+        try:
+            self.image.move_image(dst)
+        except OSError as e:
+            gui_logger.error(e)
+
+            msgBox = QMessageBox(
+                QMessageBox.Warning,
+                'Moving image',
+                f'Error occured while moving image {self.image.path}'
             )
             msgBox.exec()
         else:
@@ -376,8 +399,7 @@ class MainForm(QMainWindow):
         label_to_change.setText(' '.join(label_text))
 
     def has_selected_widgets(self):
-        '''Checks if there are selected DuplicateCandidateWidget
-        in the form
+        '''Checks if there are selected DuplicateCandidateWidget in the form
 
         :returns: bool, True if there are any
         '''
@@ -392,15 +414,11 @@ class MainForm(QMainWindow):
                 return True
         return False
 
-    def _image_processing_finished(self):
-        '''Called when image processing is finished'''
+    def _call_on_selected_widgets(self, func, *args, **kwargs):
+        '''Call a function on selected widgets
 
-        self.progressBar.setValue(100)
-        self.startBtn.setEnabled(True)
-        self.stopBtn.setEnabled(False)
-
-    def _delete_selected_widgets(self):
-        '''Delete selected DuplicateCandidateWidget widgets'''
+        :param func: function to call
+        '''
 
         group_widgets = self.scrollAreaWidget.findChildren(
             ImageGroupWidget,
@@ -409,11 +427,30 @@ class MainForm(QMainWindow):
         for group_widget in group_widgets:
             selected_widgets = group_widget.getSelectedWidgets()
             for selected_widget in selected_widgets:
-                selected_widget.delete()
+                func(selected_widget, *args, **kwargs)
             # If we delete all (or except one) the images in a group,
             # delete this group widget from scrollArea
             if len(group_widget) - len(selected_widgets) <= 1:
                 group_widget.deleteLater()
+
+    def _delete_images(self):
+        '''Delete selected images and DuplicateCandidateWidget widgets'''
+
+        self._call_on_selected_widgets(DuplicateCandidateWidget.delete)
+
+    def _move_images(self):
+        '''Move selected images and delete selected DuplicateCandidateWidget widgets'''
+
+        new_dst = self._openFolderNameDialog()
+        if new_dst:
+            self._call_on_selected_widgets(DuplicateCandidateWidget.move, new_dst)
+
+    def _image_processing_finished(self):
+        '''Called when image processing is finished'''
+
+        self.progressBar.setValue(100)
+        self.startBtn.setEnabled(True)
+        self.stopBtn.setEnabled(False)
 
     def _start_processing(self, folders):
         '''Set up image processing and run it'''
@@ -494,6 +531,9 @@ class MainForm(QMainWindow):
     def moveBtn_click(self):
         '''Function called on 'Move' button click event'''
 
+        self._move_images()
+        self.moveBtn.setEnabled(False)
+
     @pyqtSlot()
     def deleteBtn_click(self):
         '''Function called on 'Delete' button click event'''
@@ -506,5 +546,5 @@ class MainForm(QMainWindow):
         )
 
         if confirm == QMessageBox.Yes:
-            self._delete_selected_widgets()
+            self._delete_images()
             self.deleteBtn.setEnabled(False)

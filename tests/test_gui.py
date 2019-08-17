@@ -238,6 +238,7 @@ class TestDuplicateCandidateWidget(TestCase):
         self.assertFalse(self.w.selected)
         self.assertTrue(mock_unmark.called)
         self.assertFalse(mw.deleteBtn.isEnabled())
+        self.assertFalse(mw.moveBtn.isEnabled())
 
     @mock.patch('doppelganger.gui.ThumbnailWidget.mark')
     def test_mouseRelease_on_unselected_widget(self, mock_mark):
@@ -249,6 +250,7 @@ class TestDuplicateCandidateWidget(TestCase):
         self.assertTrue(self.w.selected)
         self.assertTrue(mock_mark.called)
         self.assertTrue(mw.deleteBtn.isEnabled())
+        self.assertTrue(mw.moveBtn.isEnabled())
 
     @mock.patch('PyQt5.QtCore.QObject.deleteLater')
     @mock.patch('doppelganger.core.Image.delete_image')
@@ -270,6 +272,30 @@ class TestDuplicateCandidateWidget(TestCase):
     def test_delete_logs_errors(self, mock_img, mock_box):
         with self.assertLogs('main.gui', 'ERROR'):
             self.w.delete()
+
+    @mock.patch('PyQt5.QtCore.QObject.deleteLater')
+    @mock.patch('doppelganger.core.Image.move_image')
+    def test_move_normal_flow(self, mock_img, mock_later):
+        dst = 'new_dst'
+        self.w.move(dst)
+
+        mock_img.assert_called_once_with(dst)
+        self.assertTrue(mock_later.called)
+
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
+    @mock.patch('doppelganger.core.Image.move_image', side_effect=OSError)
+    def test_move_show_message_box(self, mock_img, mock_box):
+        dst = 'new_dst'
+        self.w.move(dst)
+
+        self.assertTrue(mock_box.called)
+
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
+    @mock.patch('doppelganger.core.Image.move_image', side_effect=OSError)
+    def test_move_logs_errors(self, mock_img, mock_box):
+        dst = 'new_dst'
+        with self.assertLogs('main.gui', 'ERROR'):
+            self.w.move(dst)
 
 
 class TestImageGroupWidget(TestCase):
@@ -429,7 +455,7 @@ class TestMainForm(TestCase):
 
     @mock.patch('PyQt5.QtWidgets.QWidget.deleteLater')
     @mock.patch('doppelganger.gui.DuplicateCandidateWidget.delete')
-    def test_delete_selected_widgets_not_selected_more_than_one(self, mock_del, mock_later):
+    def test_call_on_selected_widgets_not_selected_more_than_one(self, mock_del, mock_later):
         image_group = [core.Image('img1.png'), core.Image('img2.png'), core.Image('img3.png')]
         self.form.scrollAreaLayout.addWidget(gui.ImageGroupWidget(image_group))
         group_widget = self.form.scrollAreaWidget.findChildren(
@@ -441,14 +467,14 @@ class TestMainForm(TestCase):
             options=QtCore.Qt.FindDirectChildrenOnly
         )
         image_widgets[0].selected = True
-        self.form._delete_selected_widgets()
+        self.form._call_on_selected_widgets(gui.DuplicateCandidateWidget.delete)
 
         self.assertEqual(mock_del.call_count, 1)
         self.assertFalse(mock_later.called)
 
     @mock.patch('PyQt5.QtWidgets.QWidget.deleteLater')
     @mock.patch('doppelganger.gui.DuplicateCandidateWidget.delete')
-    def test_delete_selected_widgets_not_selected_less_than_two(self, mock_del, mock_later):
+    def test_call_on_selected_widgets_not_selected_less_than_two(self, mock_del, mock_later):
         image_group = [core.Image('img1.png'), core.Image('img2.png'), core.Image('img3.png')]
         self.form.scrollAreaLayout.addWidget(gui.ImageGroupWidget(image_group))
         group_widget = self.form.scrollAreaWidget.findChildren(
@@ -461,10 +487,30 @@ class TestMainForm(TestCase):
         )
         image_widgets[0].selected = True
         image_widgets[1].selected = True
-        self.form._delete_selected_widgets()
+        self.form._call_on_selected_widgets(gui.DuplicateCandidateWidget.delete)
 
         self.assertEqual(mock_del.call_count, 2)
         self.assertTrue(mock_later.called)
+
+    @mock.patch('doppelganger.gui.MainForm._call_on_selected_widgets')
+    def test_delete_images(self, mock_call):
+        self.form._delete_images()
+
+        mock_call.assert_called_once_with(gui.DuplicateCandidateWidget.delete)
+
+    @mock.patch('doppelganger.gui.MainForm._call_on_selected_widgets')
+    @mock.patch('doppelganger.gui.MainForm._openFolderNameDialog', return_value='new_dst')
+    def test_move_images(self, mock_dialog, mock_call):
+        self.form._move_images()
+
+        mock_call.assert_called_once_with(gui.DuplicateCandidateWidget.move, 'new_dst')
+
+    @mock.patch('doppelganger.gui.MainForm._call_on_selected_widgets')
+    @mock.patch('doppelganger.gui.MainForm._openFolderNameDialog', return_value='')
+    def test_move_images_doesnt_call_if_new_dest_empty(self, mock_dialog, mock_call):
+        self.form._move_images()
+
+        self.assertFalse(mock_call.called)
 
     @mock.patch('doppelganger.processing.ImageProcessing')
     def test_start_processing_calls_ImageProcessing(self, mock_processing):
@@ -553,6 +599,20 @@ class TestMainForm(TestCase):
 
         self.assertFalse(self.form.delFolderBtn.isEnabled())
 
+    @mock.patch('doppelganger.gui.MainForm._move_images')
+    def test_moveBtn_click_calls_move_images(self, mock_move):
+        self.form.moveBtn.setEnabled(True)
+        QtTest.QTest.mouseClick(self.form.moveBtn, QtCore.Qt.LeftButton)
+
+        self.assertTrue(mock_move.called)
+
+    @mock.patch('doppelganger.gui.MainForm._move_images')
+    def test_moveBtn_click_disables_moveBtn(self, mock_move):
+        self.form.moveBtn.setEnabled(True)
+        QtTest.QTest.mouseClick(self.form.moveBtn, QtCore.Qt.LeftButton)
+
+        self.assertFalse(self.form.moveBtn.isEnabled())
+
     @mock.patch('PyQt5.QtWidgets.QMessageBox.question')
     def test_deleteBtn_click_calls_message_box(self, mock_msgbox):
         self.form.deleteBtn.setEnabled(True)
@@ -560,15 +620,15 @@ class TestMainForm(TestCase):
 
         self.assertTrue(mock_msgbox.called)
 
-    @mock.patch('doppelganger.gui.MainForm._delete_selected_widgets')
+    @mock.patch('doppelganger.gui.MainForm._delete_images')
     @mock.patch('PyQt5.QtWidgets.QMessageBox.question', return_value=QtWidgets.QMessageBox.Yes)
-    def test_deleteBtn_click_calls_delete_selected_widgets(self, mock_msgbox, mock_del):
+    def test_deleteBtn_click_calls_delete_images(self, mock_msgbox, mock_del):
         self.form.deleteBtn.setEnabled(True)
         QtTest.QTest.mouseClick(self.form.deleteBtn, QtCore.Qt.LeftButton)
 
         self.assertTrue(mock_del.called)
 
-    @mock.patch('doppelganger.gui.MainForm._delete_selected_widgets')
+    @mock.patch('doppelganger.gui.MainForm._delete_images')
     @mock.patch('PyQt5.QtWidgets.QMessageBox.question', return_value=QtWidgets.QMessageBox.Yes)
     def test_deleteBtn_click_disables_deleteBtn(self, mock_msgbox, mock_del):
         self.form.deleteBtn.setEnabled(True)
