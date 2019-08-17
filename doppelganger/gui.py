@@ -196,31 +196,30 @@ class DuplicateCandidateWidget(QWidget):
         if self.selected:
             self.selected = False
             self.imageLabel.unmark()
-            if not window.has_selected_widgets():
-                window.moveBtn.setEnabled(False)
-                window.deleteBtn.setEnabled(False)
+            window._switch_buttons()
         else:
             self.selected = True
             self.imageLabel.mark()
-            window.moveBtn.setEnabled(True)
-            window.deleteBtn.setEnabled(True)
+            window._switch_buttons()
 
     def delete(self):
         '''Delete an image from disk and its DuplicateCandidateWidget
         instance
+
+        :raise OSError: if something went wrong while removing images
         '''
 
         try:
             self.image.delete_image()
         except OSError as e:
-            gui_logger.error(e)
-
             msgBox = QMessageBox(
                 QMessageBox.Warning,
                 'Removing image',
                 f'Error occured while removing image {self.image.path}'
             )
             msgBox.exec()
+
+            raise OSError(e)
         else:
             self.deleteLater()
 
@@ -228,20 +227,21 @@ class DuplicateCandidateWidget(QWidget):
         '''Move an image to a new location and delete its DuplicateCandidateWidget
         instance
 
-        :param dst: str, a new location, eg. /new/location
+        :param dst: str, a new location, eg. /new/location,
+        :raise OSError: if something went wrong while removing images
         '''
 
         try:
             self.image.move_image(dst)
         except OSError as e:
-            gui_logger.error(e)
-
             msgBox = QMessageBox(
                 QMessageBox.Warning,
                 'Moving image',
                 f'Error occured while moving image {self.image.path}'
             )
             msgBox.exec()
+
+            raise OSError(e)
         else:
             self.deleteLater()
 
@@ -427,16 +427,24 @@ class MainForm(QMainWindow):
         for group_widget in group_widgets:
             selected_widgets = group_widget.getSelectedWidgets()
             for selected_widget in selected_widgets:
-                func(selected_widget, *args, **kwargs)
-            # If we delete all (or except one) the images in a group,
-            # delete this group widget from scrollArea
+                try:
+                    func(selected_widget, *args, **kwargs)
+                except OSError as e:
+                    gui_logger.error(e)
+                else:
+                    selected_widget.selected = False
+            # If we select all (or except one) the images in a group,
             if len(group_widget) - len(selected_widgets) <= 1:
-                group_widget.deleteLater()
+                # and all the selected images were processed correctly (so
+                # there are no selected images anymore), delete the whole group
+                if not group_widget.getSelectedWidgets():
+                    group_widget.deleteLater()
 
     def _delete_images(self):
         '''Delete selected images and DuplicateCandidateWidget widgets'''
 
         self._call_on_selected_widgets(DuplicateCandidateWidget.delete)
+        self._switch_buttons()
 
     def _move_images(self):
         '''Move selected images and delete selected DuplicateCandidateWidget widgets'''
@@ -444,6 +452,7 @@ class MainForm(QMainWindow):
         new_dst = self._openFolderNameDialog()
         if new_dst:
             self._call_on_selected_widgets(DuplicateCandidateWidget.move, new_dst)
+            self._switch_buttons()
 
     def _image_processing_finished(self):
         '''Called when image processing is finished'''
@@ -464,6 +473,14 @@ class MainForm(QMainWindow):
 
         worker = processing.Worker(img_proc.run)
         self.threadpool.start(worker)
+
+    def _switch_buttons(self):
+        if self.has_selected_widgets():
+            self.moveBtn.setEnabled(True)
+            self.deleteBtn.setEnabled(True)
+        else:
+            self.moveBtn.setEnabled(False)
+            self.deleteBtn.setEnabled(False)
 
     @pyqtSlot()
     def highRb_click(self):
@@ -532,7 +549,6 @@ class MainForm(QMainWindow):
         '''Function called on 'Move' button click event'''
 
         self._move_images()
-        self.moveBtn.setEnabled(False)
 
     @pyqtSlot()
     def deleteBtn_click(self):
@@ -547,4 +563,3 @@ class MainForm(QMainWindow):
 
         if confirm == QMessageBox.Yes:
             self._delete_images()
-            self.deleteBtn.setEnabled(False)
