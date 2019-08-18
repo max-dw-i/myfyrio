@@ -509,6 +509,7 @@ class MainForm(QMainWindow):
         folder_path_item.setData(Qt.DisplayRole, folder_path)
         self.pathListWidget.addItem(folder_path_item)
         self.delFolderBtn.setEnabled(True)
+        self.startBtn.setEnabled(True)
 
     @pyqtSlot()
     def delFolderBtn_click(self):
@@ -520,6 +521,7 @@ class MainForm(QMainWindow):
 
         if not self.pathListWidget.count():
             self.delFolderBtn.setEnabled(False)
+            self.startBtn.setEnabled(False)
 
     @pyqtSlot()
     def startBtn_click(self):
