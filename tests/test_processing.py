@@ -214,6 +214,8 @@ class TestImageProcessingClass(TestCase):
 
         self.assertEqual(spy[0][0], 'image_groups')
         self.assertEqual(spy[0][1], str(len(g)))
+        self.assertEqual(spy[1][0], 'duplicates')
+        self.assertEqual(spy[1][1], str(len(g)))
 
     def test_grouping_updates_progress_bar(self):
         self.im_pr.grouping([], 0)

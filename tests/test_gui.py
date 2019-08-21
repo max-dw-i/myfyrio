@@ -348,7 +348,7 @@ class TestMainForm(TestCase):
     def test_clear_form_before_start_labels(self):
         labels = (self.form.thumbnailsLabel, self.form.dupGroupLabel,
                   self.form.remainingPicLabel, self.form.foundInCacheLabel,
-                  self.form.loadedPicLabel)
+                  self.form.loadedPicLabel, self.form.duplicatesLabel)
 
         for label in labels:
             t = label.text().split(' ')
@@ -397,7 +397,8 @@ class TestMainForm(TestCase):
                   'image_groups': self.form.dupGroupLabel,
                   'remaining_images': self.form.remainingPicLabel,
                   'found_in_cache': self.form.foundInCacheLabel,
-                  'loaded_images': self.form.loadedPicLabel}
+                  'loaded_images': self.form.loadedPicLabel,
+                  'duplicates': self.form.duplicatesLabel}
 
         for label in labels:
             prev_text = labels[label].text().split(' ')[:-1]

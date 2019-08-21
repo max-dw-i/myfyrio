@@ -216,6 +216,7 @@ class ImageProcessing:
         image_groups = core.images_grouping(cached, sensitivity)
 
         self.signals.update_info.emit('image_groups', str(len(image_groups)))
+        self.signals.update_info.emit('duplicates', str(sum(len(g) for g in image_groups)))
         self._update_progress_bar(65)
 
         return image_groups

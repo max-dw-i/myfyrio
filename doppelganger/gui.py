@@ -346,7 +346,7 @@ class MainForm(QMainWindow):
             group_widget.deleteLater()
 
         for label in ['thumbnails', 'image_groups', 'remaining_images',
-                      'found_in_cache', 'loaded_images']:
+                      'found_in_cache', 'loaded_images', 'duplicates']:
             self._update_label_info(label, str(0))
 
         self.progressBar.setValue(0)
@@ -383,7 +383,7 @@ class MainForm(QMainWindow):
 
         :param label: str, one of ('thumbnails', 'image_groups',
                                    'remaining_images', 'found_in_cache',
-                                   'loaded_images'),
+                                   'loaded_images', 'duplicates'),
         :param text: str, text to add to a label
         '''
 
@@ -391,7 +391,8 @@ class MainForm(QMainWindow):
                   'image_groups': self.dupGroupLabel,
                   'remaining_images': self.remainingPicLabel,
                   'found_in_cache': self.foundInCacheLabel,
-                  'loaded_images': self.loadedPicLabel}
+                  'loaded_images': self.loadedPicLabel,
+                  'duplicates': self.duplicatesLabel}
 
         label_to_change = labels[label]
         label_text = label_to_change.text().split(' ')
