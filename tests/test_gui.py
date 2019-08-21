@@ -369,10 +369,10 @@ class TestMainForm(TestCase):
 
     def test_get_user_folders(self):
         self.form.pathListWidget.addItem('item')
-        expected = ['item']
+        expected = {'item'}
         result = self.form._get_user_folders()
 
-        self.assertListEqual(result, expected)
+        self.assertSetEqual(result, expected)
 
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
     def test_render_image_groups_empty_image_groups(self, mock_msgbox):

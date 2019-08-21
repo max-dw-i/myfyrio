@@ -354,12 +354,12 @@ class MainForm(QMainWindow):
     def _get_user_folders(self):
         '''Get all the folders a user added to the 'pathListWidget'
 
-        :returns: list of str, the folders the user wants to
+        :returns: set of str, the folders the user wants to
                   process
         '''
 
-        return [self.pathListWidget.item(i).data(Qt.DisplayRole)
-                for i in range(self.pathListWidget.count())]
+        return {self.pathListWidget.item(i).data(Qt.DisplayRole)
+                for i in range(self.pathListWidget.count())}
 
     def _render_image_groups(self, image_groups):
         '''Add ImageGroupWidget to scrollArea

@@ -19,18 +19,18 @@ def get_images_paths(folders):
     the passed 'folders' argument
 
     :param folders: a collection of folders' paths,
-    :returns: list of str, images' full paths
+    :returns: set of str, images' full paths
     '''
 
     IMG_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp'}
-    images_paths = []
+    images_paths = set()
 
     for path in folders:
         p = pathlib.Path(path)
         for ext in IMG_EXTENSIONS:
             for filename in p.glob(f'**/*{ext}'):
                 if filename.is_file():
-                    images_paths.append(str(filename))
+                    images_paths.add(str(filename))
     return images_paths
 
 def hamming_dist(image1, image2):
@@ -125,7 +125,7 @@ def check_cache(paths, cached_hashes):
     in the cache are in the 1st one, the images that are not
     found in the cache are in the 2nd one
 
-    :param paths: list of str, images' full paths,
+    :param paths: collection of str, images' full paths,
     :param cached_hashes: dict, {image_path: str,
                                  image_hash: <class ImageHash> obj},
     :returns: tuple, ([<class Image> obj, ...], [<class Image> obj, ...])
