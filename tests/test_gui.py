@@ -99,6 +99,12 @@ class TestThumbnailWidget(TestCase):
 
         self.assertIsInstance(qp, QtGui.QPixmap)
 
+    def test_QByteArray_to_QPixmap_returns_error_image_with_SIZEs(self):
+        qp = gui.ThumbnailWidget._QByteArray_to_QPixmap(None)
+
+        self.assertEqual(gui.SIZE, qp.height())
+        self.assertEqual(gui.SIZE, qp.width())
+
     @mock.patch('doppelganger.gui.QPixmap')
     @mock.patch('doppelganger.gui.QPixmap.isNull', return_value=True)
     @mock.patch('doppelganger.gui.QPixmap.loadFromData')

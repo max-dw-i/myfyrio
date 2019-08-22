@@ -108,14 +108,14 @@ class ThumbnailWidget(QLabel):
 
         # Pixmap can read BMP, GIF, JPG, JPEG, PNG, PBM, PGM, PPM, XBM, XPM
         if thumbnail is None:
-            return QPixmap(IMAGE_ERROR)
+            return QPixmap(IMAGE_ERROR).scaled(SIZE, SIZE)
 
         pixmap = QPixmap()
         pixmap.loadFromData(thumbnail)
 
         if pixmap.isNull():
             gui_logger.error('Something happened while converting QByteArray into QPixmap')
-            return QPixmap(IMAGE_ERROR)
+            return QPixmap(IMAGE_ERROR).scaled(SIZE, SIZE)
 
         return pixmap
 
