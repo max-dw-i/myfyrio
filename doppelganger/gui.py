@@ -506,11 +506,12 @@ class MainForm(QMainWindow):
         '''Function called on 'Add Path' button click event'''
 
         folder_path = self._openFolderNameDialog()
-        folder_path_item = QListWidgetItem()
-        folder_path_item.setData(Qt.DisplayRole, folder_path)
-        self.pathListWidget.addItem(folder_path_item)
-        self.delFolderBtn.setEnabled(True)
-        self.startBtn.setEnabled(True)
+        if folder_path:
+            folder_path_item = QListWidgetItem()
+            folder_path_item.setData(Qt.DisplayRole, folder_path)
+            self.pathListWidget.addItem(folder_path_item)
+            self.delFolderBtn.setEnabled(True)
+            self.startBtn.setEnabled(True)
 
     @pyqtSlot()
     def delFolderBtn_click(self):
