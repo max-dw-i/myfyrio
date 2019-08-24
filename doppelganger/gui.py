@@ -3,10 +3,10 @@
 import logging
 
 from PyQt5.QtCore import QFileInfo, Qt, QThreadPool, pyqtSlot
-from PyQt5.QtGui import QBrush, QColor, QPainter, QPalette, QPixmap
-from PyQt5.QtWidgets import (QFileDialog, QFrame, QHBoxLayout, QLabel,
-                             QListWidgetItem, QMainWindow, QMessageBox,
-                             QTextEdit, QVBoxLayout, QWidget)
+from PyQt5.QtGui import QBrush, QColor, QFontMetrics, QPainter, QPixmap
+from PyQt5.QtWidgets import (
+    QFileDialog, QHBoxLayout, QLabel, QListWidgetItem, QMainWindow,
+    QMessageBox, QVBoxLayout, QWidget)
 from PyQt5.uic import loadUi
 
 from doppelganger import processing
@@ -24,7 +24,30 @@ class InfoLabelWidget(QLabel):
     def __init__(self, text):
         super().__init__()
         self.setAlignment(Qt.AlignHCenter)
-        self.setText(text)
+        self.setText(self._word_wrap(text))
+
+    def _word_wrap(self, text):
+        '''QLabel wraps words only at word-breaks but we need
+        it to happen at any letter
+
+        :param text: str, any text,
+        :return: str, wrapped text
+        '''
+
+        fontMetrics = QFontMetrics(self.font())
+        wrapped_text = ''
+        line = ''
+
+        for c in text:
+            # We have 4 margins 9px each (I guess) so we take 40
+            if fontMetrics.size(Qt.TextSingleLine, line + c).width() > SIZE - 40:
+                wrapped_text += line + '\n'
+                line = c
+            else:
+                line += c
+        wrapped_text += line
+
+        return wrapped_text
 
 
 class SimilarityLabel(InfoLabelWidget):
@@ -35,23 +58,11 @@ class ImageSizeLabel(InfoLabelWidget):
     '''Label class to show info about the image size'''
 
 
-class ImagePathLabel(QTextEdit):
+class ImagePathLabel(InfoLabelWidget):
     '''TextEdit class to show the path to an image'''
 
-    # QTextEdit is used as a label instead of QLabel
-    # cause the latter have some bug with word wrap
     def __init__(self, text):
-        super().__init__()
-        self.setReadOnly(True)
-        self.setFrameStyle(QFrame.NoFrame)
-        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        pal = QPalette()
-        pal.setColor(QPalette.Base, Qt.transparent)
-        self.setPalette(pal)
-
-        self.setText(QFileInfo(text).canonicalFilePath())
-        self.setAlignment(Qt.AlignCenter)
-
+        super().__init__(QFileInfo(text).canonicalFilePath())
 
 class ImageInfoWidget(QWidget):
     '''Label class to show info about an image (its similarity
@@ -152,6 +163,7 @@ class DuplicateCandidateWidget(QWidget):
 
         self.setFixedWidth(SIZE)
         layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignTop)
         for widget in (self.imageLabel, self.imageInfo):
             layout.addWidget(widget)
         self.setLayout(layout)
@@ -278,6 +290,8 @@ class MainForm(QMainWindow):
     def __init__(self):
         super().__init__()
         loadUi(UI, self)
+        self.scrollAreaLayout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+
         self._setWidgetEvents()
         self.signals = processing.Signals()
         self.threadpool = QThreadPool()

@@ -12,13 +12,18 @@ app = QtWidgets.QApplication(sys.argv)
 
 class TestInfoLabelWidget(TestCase):
 
-    def test_init(self):
-        text = 'test'
-        w = gui.InfoLabelWidget(text)
+    @mock.patch('doppelganger.gui.InfoLabelWidget._word_wrap', return_value='test_wrapped')
+    def test_init(self, mock_wrap):
+        w = gui.InfoLabelWidget('test')
 
-        self.assertEqual(w.text(), text)
+        self.assertEqual(w.text(), 'test_wrapped')
         self.assertEqual(w.alignment(), QtCore.Qt.AlignHCenter)
 
+    def test_word_wrap(self):
+        w = gui.InfoLabelWidget('test')
+        res = w._word_wrap('Yesterday all my troubles seem so far away')
+
+        self.assertEqual(res, 'Yesterday all my troubles seem s\no far away')
 
 class TestSimilarityLabel(TestInfoLabelWidget):
     '''The same test as for TestInfoLabelWidget'''
@@ -30,17 +35,12 @@ class ImageSizeLabel(TestInfoLabelWidget):
 
 class ImagePathLabel(TestCase):
 
-    @mock.patch('doppelganger.gui.QFileInfo.canonicalFilePath', return_value='test')
-    def test_init(self, mock_path):
-        text = 'test'
-        w = gui.ImagePathLabel(text)
+    @mock.patch('doppelganger.gui.QFileInfo.canonicalFilePath', return_value='test_path')
+    @mock.patch('doppelganger.gui.InfoLabelWidget.__init__')
+    def test_init(self, mock_init, mock_path):
+        gui.ImagePathLabel('test')
 
-        self.assertTrue(w.isReadOnly())
-        self.assertEqual(w.frameStyle(), QtWidgets.QFrame.NoFrame)
-        self.assertEqual(w.verticalScrollBarPolicy(), QtCore.Qt.ScrollBarAlwaysOff)
-        self.assertEqual(w.palette().color(QtGui.QPalette.Base), QtCore.Qt.transparent)
-        self.assertEqual(w.toPlainText(), text)
-        self.assertEqual(w.alignment(), QtCore.Qt.AlignCenter)
+        mock_init.assert_called_once_with('test_path')
 
 
 class TestImageInfoWidget(TestCase):
@@ -66,7 +66,7 @@ class TestImageInfoWidget(TestCase):
         self.assertEqual(w.layout().alignment(), QtCore.Qt.AlignBottom)
         self.assertEqual(similarity_label.text(), str(difference))
         self.assertEqual(image_size_label.text(), '1x2, 3 KB')
-        self.assertEqual(image_path_label.toPlainText(), path)
+        self.assertEqual(image_path_label.text(), path)
 
     def test_get_image_size(self):
         result = gui.ImageInfoWidget._get_image_size((1, 2), 3)
@@ -162,6 +162,7 @@ class TestDuplicateCandidateWidget(TestCase):
     def test_init(self):
         self.assertEqual(self.w.width(), 200)
         self.assertIsInstance(self.w.layout(), QtWidgets.QVBoxLayout)
+        self.assertEqual(self.w.layout().alignment(), QtCore.Qt.AlignTop)
         self.assertEqual(self.w.image, self.image)
         self.assertFalse(self.w.selected)
 
@@ -331,6 +332,8 @@ class TestMainForm(TestCase):
         self.form = gui.MainForm()
 
     def test_init(self):
+        scroll_area_align = self.form.scrollAreaLayout.layout().alignment()
+        self.assertEqual(scroll_area_align, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
         self.assertIsInstance(self.form.threadpool, QtCore.QThreadPool)
         self.assertIsInstance(self.form.signals, processing.Signals)
         self.assertEqual(self.form.sensitivity, 5)
