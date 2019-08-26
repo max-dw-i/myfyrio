@@ -1,6 +1,4 @@
 import logging
-import sys
-import traceback
 from multiprocessing import Pool
 
 from PyQt5 import QtCore, QtGui

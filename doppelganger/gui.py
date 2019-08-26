@@ -1,6 +1,7 @@
 '''Graphical user interface'''
 
 import logging
+import pathlib
 
 from PyQt5.QtCore import QFileInfo, Qt, QThreadPool, pyqtSlot
 from PyQt5.QtGui import QBrush, QColor, QFontMetrics, QPainter, QPixmap
@@ -11,8 +12,8 @@ from PyQt5.uic import loadUi
 
 from doppelganger import processing
 
-UI = r'doppelganger\gui.ui'
-IMAGE_ERROR = r'doppelganger\resources\image_error.png'
+UI = str(pathlib.Path('doppelganger') / 'gui.ui')
+IMAGE_ERROR = str(pathlib.Path('doppelganger') / 'resources' / 'image_error.png')
 SIZE = 200
 SELECTED_BACKGROUND_COLOR = '#d3d3d3'
 
@@ -92,10 +93,10 @@ class ImageInfoWidget(QWidget):
         :returns: str, string with format '{width}x{height}, {file_size} {units}'
         '''
 
+        width, height = dimensions[0], dimensions[1]
         units = 'KB'
-        image_params = {'width': dimensions[0], 'height': dimensions[1],
-                        'filesize': filesize, 'units': units}
-        return '{width}x{height}, {filesize} {units}'.format(**image_params)
+
+        return f'{width}x{height}, {filesize} {units}'
 
 
 class ThumbnailWidget(QLabel):

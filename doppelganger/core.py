@@ -326,18 +326,14 @@ if __name__ == '__main__':
     print('It might take some time, Be patient')
     print('------------------------')
 
-    folders = input('{} {}\n'.format(
-        "Type the folder's path you want",
-        'to find duplicate images in',
-    ))
-    sensitivity = input('{} {}\n'.format(
-        'Type the searching sensitivity',
-        '(a value between 0 and 100 is recommended)'
-    ))
+    msg = "Type the folder's path you want to find duplicate images in\n"
+    folders = input(msg)
+    msg = 'Type the searching sensitivity (a value between 0 and 50 is recommended)\n'
+    sensitivity = input(msg)
     print('------------------------')
 
     paths = get_images_paths([folders])
-    print('There are {} images in the folder'.format(len(paths)))
+    print(f'There are {len(paths)} images in the folder')
 
     try:
         cached_hashes = load_cached_hashes()
@@ -347,9 +343,7 @@ if __name__ == '__main__':
               'cache file and run the script again')
 
     cached, not_cached = check_cache(paths, cached_hashes)
-    print('{} images have been found in the cache'.format(
-        len(paths)-len(not_cached)
-    ))
+    print(f'{len(paths)-len(not_cached)} images have been found in the cache')
 
     print('Starting to calculate hashes...')
     if not_cached:
@@ -361,11 +355,11 @@ if __name__ == '__main__':
 
     print('Starting to compare images...')
     image_groups = images_grouping(cached, int(sensitivity))
-    print('{} duplicate image groups have been found'.format(len(image_groups)))
+    print(f'{len(image_groups)} duplicate image groups have been found')
     print('------------------------')
 
     for i, group in enumerate(image_groups):
-        print('Group {}:'.format(i+1))
+        print(f'Group {i+1}:')
         print('------------------------')
         for image in group:
             print(image)
