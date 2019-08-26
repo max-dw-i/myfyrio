@@ -19,11 +19,19 @@ class TestInfoLabelWidget(TestCase):
         self.assertEqual(w.text(), 'test_wrapped')
         self.assertEqual(w.alignment(), QtCore.Qt.AlignHCenter)
 
-    def test_word_wrap(self):
+    @mock.patch('PyQt5.QtCore.QSize.width', return_value=gui.SIZE)
+    def test_word_wrap_more_than_one_line(self, mock_width):
         w = gui.InfoLabelWidget('test')
-        res = w._word_wrap('Yesterday all my troubles seem so far away')
+        res = w._word_wrap('test')
 
-        self.assertEqual(res, 'Yesterday all my troubles seem s\no far away')
+        self.assertEqual(res, '\nt\ne\ns\nt')
+
+    @mock.patch('PyQt5.QtCore.QSize.width', return_value=gui.SIZE - 40 - 1)
+    def test_word_wrap_one_line(self, mock_width):
+        w = gui.InfoLabelWidget('test')
+        res = w._word_wrap('test')
+
+        self.assertEqual(res, 'test')
 
 class TestSimilarityLabel(TestInfoLabelWidget):
     '''The same test as for TestInfoLabelWidget'''
