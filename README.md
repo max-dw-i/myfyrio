@@ -1,10 +1,12 @@
-![GUI screenshot](https://raw.githubusercontent.com/oratosquilla-oratoria/doppelganger/master/docs/resources/gui.png)
-
 ## Doppelgänger
 
 Doppelgänger is a program that searches for similar images. To find them, perceptual hashes are used, in particular, so-called [Difference hash](https://www.hackerfactor.com/blog/index.php?/archives/529-Kind-of-Like-That.html). Two images are the same if they have equal hashes and, therefore, are marked as duplicates.
 
 It works great when you want to find exact (or almost, for example, slightly altered lighting, cropping) duplicates. Although sometimes we can get **false positives** (the hashes are the same but the images are different) and sometimes - **false negatives** (the images are quite similar, but the hashes are very different). Nevertheless these are rather rare.
+
+<p align="center">
+  <img height="600" src="https://raw.githubusercontent.com/oratosquilla-oratoria/doppelganger/master/docs/resources/gui.png">
+</p>
 
 ## Main features
 
@@ -49,7 +51,9 @@ python3 main.py
 
 ## Usage
 
-![GUI gif](https://raw.githubusercontent.com/oratosquilla-oratoria/doppelganger/master/docs/resources/gui.gif)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/oratosquilla-oratoria/doppelganger/master/docs/resources/gui.gif">
+</p>
 
 First of all, you have to add the folders you want to search for similar images in. To do that, press button **Add Folder** and add as many folders as you need. If you have added some folder by mistake, choose it and press button **Remove Folder**. Then choose a sensitivity level and press button **Start**. Wait for some time and get the result. If you need to stop the process, press button **Stop**.
 
