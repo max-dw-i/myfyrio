@@ -61,7 +61,7 @@ class ImageSizeLabel(TestInfoLabelWidget):
 
 class ImagePathLabel(TestCase):
 
-    @mock.patch('doppelganger.gui.QFileInfo.canonicalFilePath', return_value='test_path')
+    @mock.patch('doppelganger.gui.QtCore.QFileInfo.canonicalFilePath', return_value='test_path')
     @mock.patch('doppelganger.gui.InfoLabelWidget.__init__')
     def test_init(self, mock_init, mock_path):
         gui.ImagePathLabel('test')
@@ -71,7 +71,7 @@ class ImagePathLabel(TestCase):
 
 class TestImageInfoWidget(TestCase):
 
-    @mock.patch('doppelganger.gui.QFileInfo.canonicalFilePath', return_value='path')
+    @mock.patch('doppelganger.gui.QtCore.QFileInfo.canonicalFilePath', return_value='path')
     def test_init(self, mock_path):
         path, difference, dimensions, filesize = 'path', 0, (1, 2), 3
         w = gui.ImageInfoWidget(path, difference, dimensions, filesize)
@@ -114,7 +114,7 @@ class TestThumbnailWidget(TestCase):
         mock_set.assert_called_once_with('pixmap')
         self.assertTrue(mock_set.called)
 
-    @mock.patch('doppelganger.gui.QPixmap')
+    @mock.patch('doppelganger.gui.QtGui.QPixmap')
     def test_QByteArray_to_QPixmap_returns_error_image_if_thumbnail_is_None(self, mock_qp):
         gui.ThumbnailWidget._QByteArray_to_QPixmap(None)
 
@@ -131,9 +131,9 @@ class TestThumbnailWidget(TestCase):
         self.assertEqual(gui.SIZE, qp.height())
         self.assertEqual(gui.SIZE, qp.width())
 
-    @mock.patch('doppelganger.gui.QPixmap')
-    @mock.patch('doppelganger.gui.QPixmap.isNull', return_value=True)
-    @mock.patch('doppelganger.gui.QPixmap.loadFromData')
+    @mock.patch('doppelganger.gui.QtGui.QPixmap')
+    @mock.patch('doppelganger.gui.QtGui.QPixmap.isNull', return_value=True)
+    @mock.patch('doppelganger.gui.QtGui.QPixmap.loadFromData')
     def test_QByteArray_to_QPixmap_returns_error_image_if_isNull(
             self, mock_load, mock_null, mock_qp
         ):
@@ -141,21 +141,21 @@ class TestThumbnailWidget(TestCase):
 
         mock_qp.assert_called_with(gui.IMAGE_ERROR)
 
-    @mock.patch('doppelganger.gui.QPixmap.isNull', return_value=True)
-    @mock.patch('doppelganger.gui.QPixmap.loadFromData')
+    @mock.patch('doppelganger.gui.QtGui.QPixmap.isNull', return_value=True)
+    @mock.patch('doppelganger.gui.QtGui.QPixmap.loadFromData')
     def test_QByteArray_to_QPixmap_returns_QPixmap_obj_if_isNull(self, mock_load, mock_null):
         qp = gui.ThumbnailWidget._QByteArray_to_QPixmap('thumbnail')
 
         self.assertIsInstance(qp, QtGui.QPixmap)
 
-    @mock.patch('doppelganger.gui.QPixmap.isNull', return_value=True)
-    @mock.patch('doppelganger.gui.QPixmap.loadFromData')
+    @mock.patch('doppelganger.gui.QtGui.QPixmap.isNull', return_value=True)
+    @mock.patch('doppelganger.gui.QtGui.QPixmap.loadFromData')
     def test_QByteArray_to_QPixmap_logs_errors_if_isNull(self, mock_load, mock_null):
         with self.assertLogs('main.gui', 'ERROR'):
             gui.ThumbnailWidget._QByteArray_to_QPixmap('thumbnail')
 
-    @mock.patch('doppelganger.gui.QPixmap.isNull', return_value=False)
-    @mock.patch('doppelganger.gui.QPixmap.loadFromData')
+    @mock.patch('doppelganger.gui.QtGui.QPixmap.isNull', return_value=False)
+    @mock.patch('doppelganger.gui.QtGui.QPixmap.loadFromData')
     def test_QByteArray_to_QPixmap_returns_QPixmap_obj(self, mock_load, mock_null):
         qp = gui.ThumbnailWidget._QByteArray_to_QPixmap('thumbnail')
 
@@ -354,8 +354,8 @@ class TestImageGroupWidget(TestCase):
 
 class TestAboutForm(TestCase):
 
-    @mock.patch('doppelganger.gui.loadUi')
-    @mock.patch('doppelganger.gui.QMainWindow.__init__')
+    @mock.patch('doppelganger.gui.uic.loadUi')
+    @mock.patch('doppelganger.gui.QtWidgets.QMainWindow.__init__')
     def test_init(self, mock_mainWindow, mock_ui):
         form = gui.AboutForm()
 
@@ -428,7 +428,7 @@ class TestMainForm(TestCase):
 
         self.assertTrue(mock_show.called)
 
-    @mock.patch('doppelganger.gui.QMainWindow.activateWindow')
+    @mock.patch('doppelganger.gui.QtWidgets.QMainWindow.activateWindow')
     @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[QtWidgets.QMainWindow()])
     def test_openAboutForm_opened(self, mock_form, mock_activate):
         self.form.openAboutForm()
