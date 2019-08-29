@@ -352,6 +352,26 @@ class TestImageGroupWidget(TestCase):
         self.assertEqual(len(self.w), 1)
 
 
+class TestAboutForm(TestCase):
+
+    @mock.patch('doppelganger.gui.loadUi')
+    @mock.patch('doppelganger.gui.QMainWindow.__init__')
+    def test_init(self, mock_mainWindow, mock_ui):
+        form = gui.AboutForm()
+
+        mock_mainWindow.assert_called_once_with(None)
+        mock_ui.assert_called_once_with(gui.ABOUT_UI, form)
+
+    @mock.patch('doppelganger.gui.AboutForm.deleteLater')
+    @mock.patch('PyQt5.QtCore.QEvent.accept')
+    def test_closeEvent(self, mock_accept, mock_delete):
+        form = gui.AboutForm()
+        form.close()
+
+        self.assertTrue(mock_accept.called)
+        self.assertTrue(mock_delete.called)
+
+
 class TestMainForm(TestCase):
 
     def setUp(self):
@@ -363,6 +383,57 @@ class TestMainForm(TestCase):
         self.assertIsInstance(self.form.threadpool, QtCore.QThreadPool)
         self.assertIsInstance(self.form.signals, processing.Signals)
         self.assertEqual(self.form.sensitivity, 5)
+
+    def test_init_menubar(self):
+        titles = {'File', 'Edit', 'View', 'Options', 'Help'}
+        menus = self.form.menubar.findChildren(
+            QtWidgets.QMenu,
+            options=QtCore.Qt.FindDirectChildrenOnly
+        )
+        for menu in menus:
+            self.assertIn(menu.title(), titles)
+
+    def test_init_menubar_disabled_enabled_menus(self):
+        disabled = {'File', 'Edit', 'View', 'Options'}
+        enabled = {'Help'}
+        menus = self.form.menubar.findChildren(
+            QtWidgets.QMenu,
+            options=QtCore.Qt.FindDirectChildrenOnly
+        )
+        for menu in menus:
+            if menu.title() in disabled:
+                self.assertFalse(menu.isEnabled())
+            elif menu.title() in enabled:
+                self.assertTrue(menu.isEnabled())
+
+    @mock.patch('doppelganger.gui.AboutForm')
+    @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[])
+    def test_help_menu_calls_openAboutForm(self, mock_form, mock_init):
+        aboutAction = self.form.findChild(QtWidgets.QAction, 'aboutAction')
+        aboutAction.trigger()
+
+        self.assertTrue(mock_init.called)
+
+    @mock.patch('doppelganger.gui.AboutForm')
+    @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[])
+    def test_openAboutForm_init_AboutForm(self, mock_form, mock_init):
+        self.form.openAboutForm()
+
+        self.assertTrue(mock_init.called)
+
+    @mock.patch('doppelganger.gui.AboutForm.show')
+    @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[])
+    def test_openAboutForm_show_AboutForm(self, mock_form, mock_show):
+        self.form.openAboutForm()
+
+        self.assertTrue(mock_show.called)
+
+    @mock.patch('doppelganger.gui.QMainWindow.activateWindow')
+    @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[QtWidgets.QMainWindow()])
+    def test_openAboutForm_opened(self, mock_form, mock_activate):
+        self.form.openAboutForm()
+
+        self.assertTrue(mock_activate.called)
 
     @mock.patch('PyQt5.QtWidgets.QFileDialog.getExistingDirectory')
     def test_openFolderNameDialog(self, mock_dialog):

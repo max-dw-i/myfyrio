@@ -24,14 +24,15 @@ import pathlib
 
 from PyQt5.QtCore import QFileInfo, Qt, QThreadPool, pyqtSlot
 from PyQt5.QtGui import QBrush, QColor, QFontMetrics, QPainter, QPixmap
-from PyQt5.QtWidgets import (
-    QFileDialog, QHBoxLayout, QLabel, QListWidgetItem, QMainWindow,
-    QMessageBox, QVBoxLayout, QWidget)
+from PyQt5.QtWidgets import (QAction, QFileDialog, QHBoxLayout, QLabel,
+                             QListWidgetItem, QMainWindow, QMessageBox,
+                             QVBoxLayout, QWidget)
 from PyQt5.uic import loadUi
 
 from doppelganger import processing
 
 UI = str(pathlib.Path('doppelganger') / 'gui.ui')
+ABOUT_UI = str(pathlib.Path('doppelganger') / 'about.ui')
 IMAGE_ERROR = str(pathlib.Path('doppelganger') / 'resources' / 'image_error.png')
 SIZE = 200
 SELECTED_BACKGROUND_COLOR = '#d3d3d3'
@@ -304,6 +305,18 @@ class ImageGroupWidget(QWidget):
                                      options=Qt.FindDirectChildrenOnly))
 
 
+class AboutForm(QMainWindow):
+    ''' 'Help' -> 'About' form '''
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        loadUi(ABOUT_UI, self)
+
+    def closeEvent(self, event):
+        event.accept()
+        self.deleteLater()
+
+
 class MainForm(QMainWindow):
     '''Main GUI class'''
 
@@ -337,24 +350,43 @@ class MainForm(QMainWindow):
 
     def _show_menubar(self):
         fileMenu = self.menubar.addMenu('File')
+        fileMenu.setEnabled(False)
         #fileMenu.addAction(self.addFolderAct)
         #fileMenu.addSeparator(self.exitAct)
 
         editMenu = self.menubar.addMenu('Edit')
+        editMenu.setEnabled(False)
 
         viewMenu = self.menubar.addMenu('View')
+        viewMenu.setEnabled(False)
         #viewMenu.addAction(self.showDifference)
 
         optionsMenu = self.menubar.addMenu('Options')
+        optionsMenu.setEnabled(False)
         #optionsMenu.addAction(self.showHiddenFolders)
         #optionsMenu.addAction(self.includeSubfolders)
         #optionsMenu.addAction(self.betweenFoldersOnly)
         #optionsMenu.addAction(self.confirmToClose)
 
         helpMenu = self.menubar.addMenu('Help')
+        helpMenu.setObjectName('helpMenu')
         #helpMenu.addAction(self.help)
         #helpMenu.addAction(self.homePage)
-        #helpMenu.addAction(self.About)
+
+        about = QAction('About', self)
+        about.setObjectName('aboutAction')
+        about.triggered.connect(self.openAboutForm)
+        helpMenu.addAction(about)
+
+    def openAboutForm(self):
+        '''Open 'Help' -> 'About' form'''
+
+        about = self.findChildren(AboutForm, options=Qt.FindDirectChildrenOnly)
+        if about:
+            about[0].activateWindow()
+        else:
+            about = AboutForm(self)
+            about.show()
 
     def _openFolderNameDialog(self):
         '''Open file dialog and return the folder full path'''
