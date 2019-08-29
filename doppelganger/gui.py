@@ -42,8 +42,8 @@ gui_logger = logging.getLogger('main.gui')
 class InfoLabelWidget(QLabel):
     '''Abstract Label class'''
 
-    def __init__(self, text):
-        super().__init__()
+    def __init__(self, text, parent=None):
+        super().__init__(parent)
         self.setAlignment(Qt.AlignHCenter)
         self.setText(self._word_wrap(text))
 
@@ -82,22 +82,22 @@ class ImageSizeLabel(InfoLabelWidget):
 class ImagePathLabel(InfoLabelWidget):
     '''TextEdit class to show the path to an image'''
 
-    def __init__(self, text):
-        super().__init__(QFileInfo(text).canonicalFilePath())
+    def __init__(self, text, parent=None):
+        super().__init__(QFileInfo(text).canonicalFilePath(), parent)
 
 class ImageInfoWidget(QWidget):
     '''Label class to show info about an image (its similarity
     rate, size and path)'''
 
-    def __init__(self, path, difference, dimensions, filesize):
-        super().__init__()
+    def __init__(self, path, difference, dimensions, filesize, parent=None):
+        super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignBottom)
 
         widgets = (
-            SimilarityLabel(str(difference)),
-            ImageSizeLabel(self._get_image_size(dimensions, filesize)),
-            ImagePathLabel(path)
+            SimilarityLabel(str(difference), self),
+            ImageSizeLabel(self._get_image_size(dimensions, filesize), self),
+            ImagePathLabel(path, self)
         )
         for widget in widgets:
             layout.addWidget(widget)
@@ -122,8 +122,8 @@ class ImageInfoWidget(QWidget):
 class ThumbnailWidget(QLabel):
     '''Label class to render image thumbnail'''
 
-    def __init__(self, thumbnail):
-        super().__init__()
+    def __init__(self, thumbnail, parent=None):
+        super().__init__(parent)
         self.setAlignment(Qt.AlignHCenter)
         self.pixmap = self._QByteArray_to_QPixmap(thumbnail)
         self.setPixmap(self.pixmap)
@@ -175,8 +175,8 @@ class DuplicateCandidateWidget(QWidget):
     all the info about it (its similarity rate, size and path)
     '''
 
-    def __init__(self, image):
-        super().__init__()
+    def __init__(self, image, parent=None):
+        super().__init__(parent)
         self.image = image
         self.selected = False
         self.imageLabel, self.imageInfo = self._widgets()
@@ -197,7 +197,7 @@ class DuplicateCandidateWidget(QWidget):
                           <class ImageInfoWidget> obj)
         '''
 
-        imageLabel = ThumbnailWidget(self.image.thumbnail)
+        imageLabel = ThumbnailWidget(self.image.thumbnail, self)
 
         try:
             dimensions = self.image.get_dimensions()
@@ -212,7 +212,7 @@ class DuplicateCandidateWidget(QWidget):
             filesize = 0
 
         imageInfo = ImageInfoWidget(self.image.path, self.image.difference,
-                                    dimensions, filesize)
+                                    dimensions, filesize, self)
 
         return imageLabel, imageInfo
 
@@ -282,12 +282,12 @@ class DuplicateCandidateWidget(QWidget):
 class ImageGroupWidget(QWidget):
     '''Widget class to keep similar images together'''
 
-    def __init__(self, image_group):
-        super().__init__()
+    def __init__(self, image_group, parent=None):
+        super().__init__(parent)
         layout = QHBoxLayout(self)
         layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         for image in image_group:
-            thumbnail = DuplicateCandidateWidget(image)
+            thumbnail = DuplicateCandidateWidget(image, self)
             layout.addWidget(thumbnail)
         self.setLayout(layout)
 
@@ -434,7 +434,7 @@ class MainForm(QMainWindow):
         '''
 
         for group in image_groups:
-            self.scrollAreaLayout.addWidget(ImageGroupWidget(group))
+            self.scrollAreaLayout.addWidget(ImageGroupWidget(group, self.scrollArea))
 
         if not image_groups:
             msg_box = QMessageBox(

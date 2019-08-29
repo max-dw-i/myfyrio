@@ -66,7 +66,7 @@ class ImagePathLabel(TestCase):
     def test_init(self, mock_init, mock_path):
         gui.ImagePathLabel('test')
 
-        mock_init.assert_called_once_with('test_path')
+        mock_init.assert_called_once_with('test_path', None)
 
 
 class TestImageInfoWidget(TestCase):
@@ -217,7 +217,7 @@ class TestDuplicateCandidateWidget(TestCase):
     def test_widgets_if_get_dimensions_raises_OSError(self, mock_info, mock_dim, mock_size):
         self.w._widgets()
 
-        mock_info.assert_called_once_with(self.path, self.difference, (0, 0), 3)
+        mock_info.assert_called_once_with(self.path, self.difference, (0, 0), 3, self.w)
 
     @mock.patch('doppelganger.core.Image.get_filesize', return_value=3)
     @mock.patch('doppelganger.core.Image.get_dimensions', side_effect=OSError)
@@ -232,7 +232,7 @@ class TestDuplicateCandidateWidget(TestCase):
     def test_widgets_if_get_filesize_raises_OSError(self, mock_info, mock_dim, mock_size):
         self.w._widgets()
 
-        mock_info.assert_called_once_with(self.path, self.difference, 2, 0)
+        mock_info.assert_called_once_with(self.path, self.difference, 2, 0, self.w)
 
     @mock.patch('doppelganger.core.Image.get_filesize', side_effect=OSError)
     @mock.patch('doppelganger.core.Image.get_dimensions', return_value=2)
@@ -247,7 +247,7 @@ class TestDuplicateCandidateWidget(TestCase):
     def test_widgets_ImageInfoWidget_called_with_what_args(self, mock_info, mock_dim, mock_size):
         self.w._widgets()
 
-        mock_info.assert_called_once_with(self.path, self.difference, 2, 3)
+        mock_info.assert_called_once_with(self.path, self.difference, 2, 3, self.w)
 
     @mock.patch('doppelganger.gui.ThumbnailWidget')
     def test_widgets_calls_ThumbnailWidget(self, mock_th):
