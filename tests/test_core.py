@@ -92,40 +92,6 @@ class TestImageClass(TestCase):
         self.assertEqual(size[0], 13)
         self.assertEqual(size[1], 666)
 
-    def test_get_scaling_dimensions_raises_ValueError_if_pass_not_positive(self):
-        for size in (-1, 0):
-            with self.assertRaises(ValueError):
-                self.image.scaling_dimensions(size)
-
-    @mock.patch(CORE + 'Image.dimensions', side_effect=OSError)
-    def test_get_scaling_dimensions_raises_OSError(self, mock_dim):
-        with self.assertRaises(OSError):
-            self.image.scaling_dimensions(1)
-
-    @mock.patch(CORE + 'Image.dimensions')
-    def test_get_scaling_dimensions_return_if_pass_square_image(self, mock_dim):
-        w, h = 5, 5
-        mock_dim.return_value = (w, h)
-        new_size = self.image.scaling_dimensions(w*2)
-        self.assertEqual(new_size[0], w*2)
-        self.assertEqual(new_size[1], h*2)
-
-    @mock.patch(CORE + 'Image.dimensions')
-    def test_get_scaling_dimensions_return_if_pass_portrait_image(self, mock_dim):
-        w, h = 1, 5
-        mock_dim.return_value = (w, h)
-        new_size = self.image.scaling_dimensions(h*2)
-        self.assertEqual(new_size[0], w*2)
-        self.assertEqual(new_size[1], h*2)
-
-    @mock.patch(CORE + 'Image.dimensions')
-    def test_get_scaling_dimensions_return_if_pass_landscape_image(self, mock_dim):
-        w, h = 5, 1
-        mock_dim.return_value = (w, h)
-        new_size = self.image.scaling_dimensions(w*2)
-        self.assertEqual(new_size[0], w*2)
-        self.assertEqual(new_size[1], h*2)
-
     @mock.patch(CORE + 'os.path.getsize', side_effect=OSError)
     def test_get_filesize_raises_OSError(self, mock_size):
         with self.assertRaises(OSError):

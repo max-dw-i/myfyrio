@@ -32,28 +32,62 @@ class TestThumbnailFunction(TestCase):
     def setUp(self):
         self.image = core.Image('image.png', suffix='.png')
 
-    @mock.patch('doppelganger.core.Image.scaling_dimensions', side_effect=OSError)
+    @mock.patch('doppelganger.processing._scaling_dimensions', side_effect=OSError)
     def test_thumbnail_returns_None_if_OSError(self, mock_dim):
         th = processing.thumbnail(self.image)
         self.assertIsNone(th)
 
-    @mock.patch('doppelganger.core.Image.scaling_dimensions', side_effect=OSError)
+    @mock.patch('doppelganger.processing._scaling_dimensions', side_effect=OSError)
     def test_thumbnail_logs_errors(self, mock_dim):
         with self.assertLogs('main.processing', 'ERROR'):
             processing.thumbnail(self.image)
 
     @mock.patch('doppelganger.processing._scaled_image', return_value=None)
-    @mock.patch('doppelganger.core.Image.scaling_dimensions', return_value=(1, 1))
+    @mock.patch('doppelganger.processing._scaling_dimensions', return_value=(1, 1))
     def test_thumbnail_returns_None_if_scaled_image_is_None(self, mock_dim, mock_scaled):
         th = processing.thumbnail(self.image)
         self.assertIsNone(th)
 
     @mock.patch('doppelganger.processing._QImage_to_QByteArray', return_value='return')
     @mock.patch('doppelganger.processing._scaled_image', return_value='image')
-    @mock.patch('doppelganger.core.Image.scaling_dimensions', return_value=(1, 1))
+    @mock.patch('doppelganger.processing._scaling_dimensions', return_value=(1, 1))
     def test_thumbnail_returns_QImage_to_QByteArray_result(self, mock_dim, mock_scaled, mock_QBA):
         th = processing.thumbnail(self.image)
         self.assertEqual(th, 'return')
+
+    def test_scaling_dimensions_raises_ValueError_if_pass_not_positive(self):
+        for size in (-1, 0):
+            with self.assertRaises(ValueError):
+                processing._scaling_dimensions(self.image, size)
+
+    @mock.patch('doppelganger.core.Image.dimensions', side_effect=OSError)
+    def test_scaling_dimensions_raises_OSError(self, mock_dim):
+        with self.assertRaises(OSError):
+            processing._scaling_dimensions(self.image, 1)
+
+    @mock.patch('doppelganger.core.Image.dimensions')
+    def test_scaling_dimensions_return_if_pass_square_image(self, mock_dim):
+        w, h = 5, 5
+        mock_dim.return_value = (w, h)
+        new_size = processing._scaling_dimensions(self.image, w*2)
+        self.assertEqual(new_size[0], w*2)
+        self.assertEqual(new_size[1], h*2)
+
+    @mock.patch('doppelganger.core.Image.dimensions')
+    def test_scaling_dimensions_return_if_pass_portrait_image(self, mock_dim):
+        w, h = 1, 5
+        mock_dim.return_value = (w, h)
+        new_size = processing._scaling_dimensions(self.image, h*2)
+        self.assertEqual(new_size[0], w*2)
+        self.assertEqual(new_size[1], h*2)
+
+    @mock.patch('doppelganger.core.Image.dimensions')
+    def test_scaling_dimensions_return_if_pass_landscape_image(self, mock_dim):
+        w, h = 5, 1
+        mock_dim.return_value = (w, h)
+        new_size = processing._scaling_dimensions(self.image, w*2)
+        self.assertEqual(new_size[0], w*2)
+        self.assertEqual(new_size[1], h*2)
 
     @mock.patch('PyQt5.QtGui.QImageReader.canRead', return_value=False)
     def test_scaled_image_returns_None_if_canRead_returns_False(self, mock_read):

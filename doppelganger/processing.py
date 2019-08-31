@@ -18,6 +18,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 from multiprocessing import Pool
+from typing import Tuple
 
 from PyQt5 import QtCore, QtGui
 
@@ -37,7 +38,7 @@ def thumbnail(image):
     '''
 
     try:
-        width, height = image.scaling_dimensions(SIZE)
+        width, height = _scaling_dimensions(image, SIZE)
     except OSError as e:
         processing_logger.error(e)
         return None
@@ -47,6 +48,34 @@ def thumbnail(image):
     if img is None:
         return None
     return _QImage_to_QByteArray(img, image.suffix[1:])
+
+def _scaling_dimensions(image: core.Image, biggest_dim: int) -> Tuple[int, int]:
+    '''Find the new dimensions of the image (with aspect ratio kept)
+    after being scaled
+
+    :param image: image to scale,
+    :param biggest_dim: the biggest dimension of the image after
+                            being scaled,
+    :return: tuple with the image's width and height,
+    :raise OSError: any problem while getting the image's dimensions,
+    :raise ValuError: new :biggest_dim: is not positive
+    '''
+
+    if biggest_dim <= 0:
+        raise ValueError('The new size values must be positive')
+
+    try:
+        width, height = image.dimensions()
+    except OSError:
+        raise OSError(f'Cannot get the scaling dimensions of {image.path}')
+
+    if width >= height:
+        width, height = (width * biggest_dim // width,
+                         height * biggest_dim // width)
+    else:
+        width, height = (width * biggest_dim // height,
+                         height * biggest_dim // height)
+    return width, height
 
 def _scaled_image(path, width, height):
     '''Returns a scaled image
