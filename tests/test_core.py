@@ -60,29 +60,36 @@ class TestImageClass(TestCase):
     def setUp(self):
         self.image = core.Image('image.png', dhash='not_None_hash')
 
+    # Image.dhash
+
     @mock.patch(CORE + 'PILImage.open', side_effect=OSError)
-    def test_calc_dhash_assign_None_to_hash_attr_if_OSError(self, mock_open):
+    def test_dhash_assign_None_to_hash_attr_if_OSError(self, mock_open):
         self.image.dhash()
+
         self.assertIsNone(self.image.hash)
 
     @mock.patch(CORE + 'dhash.dhash_int', return_value='hash')
     @mock.patch(CORE + 'PILImage.open')
-    def test_undecorated_calc_dhash_returns_dhash(self, mock_open, mock_dhash):
+    def test_undecorated_dhash_return_dhash(self, mock_open, mock_dhash):
         result = self.image.dhash.__wrapped__(self.image)
+
         self.assertEqual(self.image.hash, 'hash')
         self.assertEqual(result, self.image.hash)
 
-    def test_decorated_calc_dhash_returns_Image_object(self):
+    def test_decorated_dhash_return_Image_object(self):
         result = self.image.dhash()
+
         self.assertIsInstance(result, core.Image)
 
+    # Image.dimensions
+
     @mock.patch(CORE + 'PILImage.open', side_effect=OSError)
-    def test_get_dimensions_raises_OSError(self, mock_open):
+    def test_dimensions_raise_OSError(self, mock_open):
         with self.assertRaises(OSError):
             self.image.dimensions()
 
     @mock.patch(CORE + 'PILImage.open')
-    def test_get_dimensions_returns_correct_values(self, mock_open):
+    def test_dimensions_return_correct_values(self, mock_open):
         img = core.PILImage.Image()
         img._size = (13, 666)
         mock_open.return_value = img
@@ -92,51 +99,62 @@ class TestImageClass(TestCase):
         self.assertEqual(size[0], 13)
         self.assertEqual(size[1], 666)
 
+    # Image.filesize
+
     @mock.patch(CORE + 'os.path.getsize', side_effect=OSError)
-    def test_get_filesize_raises_OSError(self, mock_size):
+    def test_filesize_raise_OSError(self, mock_size):
         with self.assertRaises(OSError):
             self.image.filesize()
 
     @mock.patch(CORE + 'os.path.getsize')
-    def test_get_filesize_raises_ValueError_if_pass_wrong_format(self, mock_size):
+    def test_filesize_raise_ValueError_if_pass_wrong_format(self, mock_size):
         with self.assertRaises(ValueError):
             self.image.filesize(size_format='Kg')
 
     @mock.patch(CORE + 'os.path.getsize', return_value=1024)
-    def test_get_filesize_return_if_Bytes_format(self, mock_size):
+    def test_filesize_return_if_Bytes_format(self, mock_size):
         filesize = self.image.filesize(size_format='B')
+
         self.assertEqual(filesize, 1024)
 
     @mock.patch(CORE + 'os.path.getsize', return_value=1024)
-    def test_get_filesize_return_if_KiloBytes_format(self, mock_size):
+    def test_filesize_return_if_KiloBytes_format(self, mock_size):
         filesize = self.image.filesize(size_format='KB')
+
         self.assertAlmostEqual(filesize, 1)
 
     @mock.patch(CORE + 'os.path.getsize', return_value=1048576)
-    def test_get_filesize_return_if_MegaBytes_format(self, mock_size):
+    def test_filesize_return_if_MegaBytes_format(self, mock_size):
         filesize = self.image.filesize(size_format='MB')
+
         self.assertAlmostEqual(filesize, 1)
 
+    # Image.delete
+
     @mock.patch(CORE + 'os.remove', side_effect=OSError)
-    def test_delete_image_raises_OSError(self, mock_remove):
+    def test_delete_raise_OSError(self, mock_remove):
         with self.assertRaises(OSError):
             self.image.delete()
 
     @mock.patch(CORE + 'os.remove')
-    def test_delete_image_called(self, mock_remove):
+    def test_delete_called(self, mock_remove):
         self.image.delete()
+
         self.assertTrue(mock_remove.called)
 
+    # Image.move
+
     @mock.patch(CORE + 'os.rename', side_effect=OSError)
-    def test_move_image_raises_OSError(self, mock_rename):
+    def test_move_raise_OSError(self, mock_rename):
         with self.assertRaises(OSError):
             self.image.move('new_dst')
 
     @mock.patch(CORE + 'os.rename')
-    def test_move_image_called(self, mock_rename):
+    def test_move_called(self, mock_rename):
         dst = 'new_dst'
         self.image.move(dst)
         new_path = str(pathlib.Path(dst) / pathlib.Path(self.image.path))
+
         mock_rename.assert_called_once_with(self.image.path, new_path)
 
 
@@ -167,11 +185,12 @@ class TestFindImagesFunction(TestCase):
     def tearDownClass(cls):
         shutil.rmtree(cls.test_dir)
 
-    def test_get_images_paths_returns_empty_list_if_pass_empty_folders(self):
+    def test_find_images_return_empty_list_if_pass_empty_folders(self):
         images = core.find_images([])
+
         self.assertSequenceEqual(images, [])
 
-    def test_get_images_paths_return(self):
+    def test_find_images_return(self):
         paths = set(core.find_images([self.test_dir]))
         for path in paths:
             self.assertIn(path, self.supported)
@@ -197,40 +216,44 @@ class TestCacheFunctions(TestCase):
         cls.cache = {filename: 666 for filename in cls.cached}
 
     @mock.patch(CORE + 'open', side_effect=FileNotFoundError)
-    def test_load_cached_hashes_returns_empty_dict_if_FileNotFoundError(self, mock_cache):
+    def test_load_cache_return_empty_dict_if_FileNotFoundError(self, mock_cache):
         loaded = core.load_cache()
+
         self.assertDictEqual(loaded, {})
 
     @mock.patch(CORE + 'pickle.load', side_effect=EOFError)
-    def test_load_cached_hashes_raises_EOFError_if_EOFError(self, mock_cache):
+    def test_load_cache_raise_EOFError_if_EOFError(self, mock_cache):
         with self.assertRaises(EOFError):
             core.load_cache()
 
     @mock.patch(CORE + 'pickle.load')
-    def test_load_cached_hashes_return(self, mock_cache):
+    def test_load_cache_return(self, mock_cache):
         mock_cache.return_value = self.cache
         loaded = core.load_cache()
+
         self.assertDictEqual(loaded, self.cache)
 
-    def test_check_cache_returns_empty_lists_if_pass_empty_paths(self):
+    def test_check_cache_return_empty_lists_if_pass_empty_paths(self):
         paths, cache = [], {}
         cached, not_cached = core.check_cache(paths, cache)
+
         self.assertListEqual(cached, [])
         self.assertListEqual(not_cached, [])
 
-    def test_check_cache_returns_empty_cached_list_if_pass_empty_cache(self):
+    def test_check_cache_return_empty_cached_list_if_pass_empty_cache(self):
         cache = {}
         cached, _ = core.check_cache(self.not_cached, cache)
+
         self.assertListEqual(cached, [])
 
-    def test_check_cache_returns_correct_cached_list(self):
+    def test_check_cache_return_correct_cached_list(self):
         cached, _ = core.check_cache(self.cached, self.cache)
 
         for image in cached:
             self.assertIn(image.path, self.cache)
             self.assertEqual(image.hash, self.cache[image.path])
 
-    def test_check_cache_returns_correct_not_cached_list(self):
+    def test_check_cache_return_correct_not_cached_list(self):
         expected_images = [core.Image(path, suffix=pathlib.Path(path).suffix)
                            for path in self.not_cached]
         _, not_cached = core.check_cache(self.not_cached, self.cache)
@@ -241,9 +264,9 @@ class TestCacheFunctions(TestCase):
 
     @mock.patch(CORE + 'pickle.dump')
     @mock.patch(CORE + 'open')
-    def test_caching_images(self, mock_open, mock_cache):
+    def test_caching(self, mock_open, mock_cache):
         '''!!! BE AWARE WHEN CHANGE THIS TEST. IF THERE'S
-        AN ALREADY POPULATED CACHE FILE AND YOU DON'T PATCH
+        ALREADY POPULATED CACHE FILE AND YOU DON'T PATCH
         OPEN(), YOU'LL REWRITE THE FILE
         '''
 
@@ -253,7 +276,7 @@ class TestCacheFunctions(TestCase):
         self.assertTrue(mock_cache.called)
 
 
-class TestImagesGroupingFunction(TestCase):
+class TestImageGroupingFunction(TestCase):
 
     @classmethod
     def image_factory(cls, num, filename, dhash):
@@ -278,16 +301,18 @@ class TestImagesGroupingFunction(TestCase):
         # Create 'corrupted' images (cannot be open without errors)
         cls.corrupted = cls.image_factory(3, 'corrupted.png', None)
 
-    def test_images_grouping_returns_empty_list_if_pass_zero_or_one_len_list(self):
+    def test_image_grouping_return_empty_list_if_pass_zero_or_one_len_list(self):
         images = []
         image_groups = core.image_grouping(images, 0)
+
         self.assertListEqual(image_groups, [])
 
         images = [core.Image(path='any.png')]
         image_groups = core.image_grouping(images, 0)
+
         self.assertListEqual(image_groups, [])
 
-    def test_images_grouping_returns_duplicate_images(self):
+    def test_image_grouping_return_duplicate_images(self):
         images = self.red + self.yellow + self.green
         image_groups = core.image_grouping(images, 0)
 
@@ -300,7 +325,7 @@ class TestImagesGroupingFunction(TestCase):
         self.assertSetEqual(red, set(self.red))
         self.assertSetEqual(yellow, set(self.yellow))
 
-    def test_images_grouping_raises_TypeError(self):
+    def test_image_grouping_raise_TypeError(self):
         images = self.corrupted
         with self.assertRaises(TypeError):
             core.image_grouping(images, 0)
