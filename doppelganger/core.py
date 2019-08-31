@@ -67,7 +67,8 @@ def find_images(folders: Sequence[str]) -> Set[str]:
     '''Find all the images in :folders:
 
     :param folders: paths of the folders,
-    :return: full paths of the images
+    :return: full paths of the images,
+    :raise ValueError: any of the folders does not exist
     '''
 
     IMG_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp'}
@@ -75,6 +76,8 @@ def find_images(folders: Sequence[str]) -> Set[str]:
 
     for path in folders:
         p = pathlib.Path(path)
+        if not p.exists():
+            raise ValueError(f'{path} does not exist')
         for ext in IMG_EXTENSIONS:
             for filename in p.glob(f'**/*{ext}'):
                 if filename.is_file():
@@ -369,7 +372,10 @@ if __name__ == '__main__':
     sensitivity = input(msg)
     print('------------------------')
 
-    paths = find_images([folders])
+    try:
+        paths = find_images([folders])
+    except ValueError as e:
+        print(e)
     print(f'There are {len(paths)} images in the folder')
 
     try:

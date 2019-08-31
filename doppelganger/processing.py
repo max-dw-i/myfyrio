@@ -182,7 +182,10 @@ class ImageProcessing:
             self.signals.finished.emit()
 
     def paths(self, folders):
-        paths = core.find_images(folders)
+        try:
+            paths = core.find_images(folders)
+        except ValueError as e:
+            raise ValueError(e)
 
         self.signals.update_info.emit('loaded_images', str(len(paths)))
         self._update_progress_bar(5)

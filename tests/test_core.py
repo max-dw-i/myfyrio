@@ -174,7 +174,7 @@ class TestImageClass(TestCase):
         mock_rename.assert_called_once_with(self.image.path, new_path)
 
 
-class TestGetImagesPathsFunction(TestCase):
+class TestFindImagesFunction(TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -210,6 +210,11 @@ class TestGetImagesPathsFunction(TestCase):
         for path in paths:
             self.assertIn(path, self.supported)
             self.assertNotIn(path, self.unsupported)
+
+    @mock.patch(CORE + 'pathlib.Path.exists', return_value=False)
+    def test_find_images_raise_ValueError(self, mock_exists):
+        with self.assertRaises(ValueError):
+            core.find_images([self.test_dir])
 
 
 class TestCacheFunctions(TestCase):

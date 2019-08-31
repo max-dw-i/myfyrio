@@ -132,6 +132,11 @@ class TestImageProcessingClass(TestCase):
 
         self.assertEqual(p, 'paths')
 
+    @mock.patch('doppelganger.processing.core.find_images', side_effect=ValueError)
+    def test_paths_raise_ValueError(self, mock_exists):
+        with self.assertRaises(ValueError):
+            self.im_pr.paths([])
+
     def test_paths_emits_update_info_signal(self):
         spy = QtTest.QSignalSpy(self.im_pr.signals.update_info)
 
