@@ -37,7 +37,7 @@ def thumbnail(image):
     '''
 
     try:
-        width, height = image.get_scaling_dimensions(SIZE)
+        width, height = image.scaling_dimensions(SIZE)
     except OSError as e:
         processing_logger.error(e)
         return None
@@ -182,7 +182,7 @@ class ImageProcessing:
             self.signals.finished.emit()
 
     def paths(self, folders):
-        paths = core.get_images_paths(folders)
+        paths = core.find_images(folders)
 
         self.signals.update_info.emit('loaded_images', str(len(paths)))
         self._update_progress_bar(5)
@@ -191,7 +191,7 @@ class ImageProcessing:
 
     def load_cache(self):
         try:
-            cached_hashes = core.load_cached_hashes()
+            cached_hashes = core.load_cache()
         except EOFError as e:
             print(e)
             cached_hashes = {}
@@ -212,7 +212,7 @@ class ImageProcessing:
         return cached, not_cached
 
     def calculating(self, not_cached):
-        calculated = self._imap(core.Image.calc_dhash, not_cached, 'remaining_images')
+        calculated = self._imap(core.Image.dhash, not_cached, 'remaining_images')
 
         good = []
         for image in calculated:
@@ -224,12 +224,12 @@ class ImageProcessing:
         return good
 
     def caching(self, calculated, cache):
-        core.caching_images(calculated, cache)
+        core.caching(calculated, cache)
 
         self._update_progress_bar(55)
 
     def grouping(self, cached, sensitivity):
-        image_groups = core.images_grouping(cached, sensitivity)
+        image_groups = core.image_grouping(cached, sensitivity)
 
         self.signals.update_info.emit('image_groups', str(len(image_groups)))
         self.signals.update_info.emit('duplicates', str(sum(len(g) for g in image_groups)))

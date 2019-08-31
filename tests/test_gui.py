@@ -211,38 +211,38 @@ class TestDuplicateCandidateWidget(TestCase):
         self.assertEqual(len(th_widgets), 1)
         self.assertEqual(len(info_widgets), 1)
 
-    @mock.patch('doppelganger.core.Image.get_filesize', return_value=3)
-    @mock.patch('doppelganger.core.Image.get_dimensions', side_effect=OSError)
+    @mock.patch('doppelganger.core.Image.filesize', return_value=3)
+    @mock.patch('doppelganger.core.Image.dimensions', side_effect=OSError)
     @mock.patch('doppelganger.gui.ImageInfoWidget')
     def test_widgets_if_get_dimensions_raises_OSError(self, mock_info, mock_dim, mock_size):
         self.w._widgets()
 
         mock_info.assert_called_once_with(self.path, self.difference, (0, 0), 3, self.w)
 
-    @mock.patch('doppelganger.core.Image.get_filesize', return_value=3)
-    @mock.patch('doppelganger.core.Image.get_dimensions', side_effect=OSError)
+    @mock.patch('doppelganger.core.Image.filesize', return_value=3)
+    @mock.patch('doppelganger.core.Image.dimensions', side_effect=OSError)
     @mock.patch('doppelganger.gui.ImageInfoWidget')
     def test_widgets_logs_if_get_dimensions_raises_OSError(self, mock_info, mock_dim, mock_size):
         with self.assertLogs('main.gui', 'ERROR'):
             self.w._widgets()
 
-    @mock.patch('doppelganger.core.Image.get_filesize', side_effect=OSError)
-    @mock.patch('doppelganger.core.Image.get_dimensions', return_value=2)
+    @mock.patch('doppelganger.core.Image.filesize', side_effect=OSError)
+    @mock.patch('doppelganger.core.Image.dimensions', return_value=2)
     @mock.patch('doppelganger.gui.ImageInfoWidget')
     def test_widgets_if_get_filesize_raises_OSError(self, mock_info, mock_dim, mock_size):
         self.w._widgets()
 
         mock_info.assert_called_once_with(self.path, self.difference, 2, 0, self.w)
 
-    @mock.patch('doppelganger.core.Image.get_filesize', side_effect=OSError)
-    @mock.patch('doppelganger.core.Image.get_dimensions', return_value=2)
+    @mock.patch('doppelganger.core.Image.filesize', side_effect=OSError)
+    @mock.patch('doppelganger.core.Image.dimensions', return_value=2)
     @mock.patch('doppelganger.gui.ImageInfoWidget')
     def test_widgets_logs_if_get_filesize_raises_OSError(self, mock_info, mock_dim, mock_size):
         with self.assertLogs('main.gui', 'ERROR'):
             self.w._widgets()
 
-    @mock.patch('doppelganger.core.Image.get_filesize', return_value=3)
-    @mock.patch('doppelganger.core.Image.get_dimensions', return_value=2)
+    @mock.patch('doppelganger.core.Image.filesize', return_value=3)
+    @mock.patch('doppelganger.core.Image.dimensions', return_value=2)
     @mock.patch('doppelganger.gui.ImageInfoWidget')
     def test_widgets_ImageInfoWidget_called_with_what_args(self, mock_info, mock_dim, mock_size):
         self.w._widgets()
@@ -285,7 +285,7 @@ class TestDuplicateCandidateWidget(TestCase):
         self.assertTrue(mock_switch.called)
 
     @mock.patch('PyQt5.QtCore.QObject.deleteLater')
-    @mock.patch('doppelganger.core.Image.delete_image')
+    @mock.patch('doppelganger.core.Image.delete')
     def test_delete_normal_flow(self, mock_img, mock_later):
         self.w.delete()
 
@@ -293,7 +293,7 @@ class TestDuplicateCandidateWidget(TestCase):
         self.assertTrue(mock_later.called)
 
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
-    @mock.patch('doppelganger.core.Image.delete_image', side_effect=OSError)
+    @mock.patch('doppelganger.core.Image.delete', side_effect=OSError)
     def test_delete_raises_OSError(self, mock_img, mock_box):
         with self.assertRaises(OSError):
             self.w.delete()
@@ -301,7 +301,7 @@ class TestDuplicateCandidateWidget(TestCase):
         self.assertTrue(mock_box.called)
 
     @mock.patch('PyQt5.QtCore.QObject.deleteLater')
-    @mock.patch('doppelganger.core.Image.move_image')
+    @mock.patch('doppelganger.core.Image.move')
     def test_move_normal_flow(self, mock_img, mock_later):
         dst = 'new_dst'
         self.w.move(dst)
@@ -310,7 +310,7 @@ class TestDuplicateCandidateWidget(TestCase):
         self.assertTrue(mock_later.called)
 
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
-    @mock.patch('doppelganger.core.Image.move_image', side_effect=OSError)
+    @mock.patch('doppelganger.core.Image.move', side_effect=OSError)
     def test_move_raises_OSError(self, mock_img, mock_box):
         dst = 'new_dst'
         with self.assertRaises(OSError):

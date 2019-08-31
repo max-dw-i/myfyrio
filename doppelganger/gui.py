@@ -195,13 +195,13 @@ class DuplicateCandidateWidget(QtWidgets.QWidget):
         imageLabel = ThumbnailWidget(self.image.thumbnail, self)
 
         try:
-            dimensions = self.image.get_dimensions()
+            dimensions = self.image.dimensions()
         except OSError as e:
             gui_logger.error(e)
             dimensions = (0, 0)
 
         try:
-            filesize = self.image.get_filesize()
+            filesize = self.image.filesize()
         except OSError as e:
             gui_logger.error(e)
             filesize = 0
@@ -238,7 +238,7 @@ class DuplicateCandidateWidget(QtWidgets.QWidget):
         '''
 
         try:
-            self.image.delete_image()
+            self.image.delete()
         except OSError as e:
             msgBox = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning,
@@ -260,7 +260,7 @@ class DuplicateCandidateWidget(QtWidgets.QWidget):
         '''
 
         try:
-            self.image.move_image(dst)
+            self.image.move(dst)
         except OSError as e:
             msgBox = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning,

@@ -32,25 +32,25 @@ class TestThumbnailFunction(TestCase):
     def setUp(self):
         self.image = core.Image('image.png', suffix='.png')
 
-    @mock.patch('doppelganger.core.Image.get_scaling_dimensions', side_effect=OSError)
+    @mock.patch('doppelganger.core.Image.scaling_dimensions', side_effect=OSError)
     def test_thumbnail_returns_None_if_OSError(self, mock_dim):
         th = processing.thumbnail(self.image)
         self.assertIsNone(th)
 
-    @mock.patch('doppelganger.core.Image.get_scaling_dimensions', side_effect=OSError)
+    @mock.patch('doppelganger.core.Image.scaling_dimensions', side_effect=OSError)
     def test_thumbnail_logs_errors(self, mock_dim):
         with self.assertLogs('main.processing', 'ERROR'):
             processing.thumbnail(self.image)
 
     @mock.patch('doppelganger.processing._scaled_image', return_value=None)
-    @mock.patch('doppelganger.core.Image.get_scaling_dimensions', return_value=(1, 1))
+    @mock.patch('doppelganger.core.Image.scaling_dimensions', return_value=(1, 1))
     def test_thumbnail_returns_None_if_scaled_image_is_None(self, mock_dim, mock_scaled):
         th = processing.thumbnail(self.image)
         self.assertIsNone(th)
 
     @mock.patch('doppelganger.processing._QImage_to_QByteArray', return_value='return')
     @mock.patch('doppelganger.processing._scaled_image', return_value='image')
-    @mock.patch('doppelganger.core.Image.get_scaling_dimensions', return_value=(1, 1))
+    @mock.patch('doppelganger.core.Image.scaling_dimensions', return_value=(1, 1))
     def test_thumbnail_returns_QImage_to_QByteArray_result(self, mock_dim, mock_scaled, mock_QBA):
         th = processing.thumbnail(self.image)
         self.assertEqual(th, 'return')
@@ -126,7 +126,7 @@ class TestImageProcessingClass(TestCase):
         self.assertFalse(self.im_pr.interrupt)
         self.assertEqual(self.im_pr.sensitivity, 0)
 
-    @mock.patch('doppelganger.processing.core.get_images_paths', return_value='paths')
+    @mock.patch('doppelganger.processing.core.find_images', return_value='paths')
     def test_paths_return(self, mock_paths):
         p = self.im_pr.paths([])
 
@@ -145,13 +145,13 @@ class TestImageProcessingClass(TestCase):
 
         self.assertEqual(self.im_pr.progress_bar_value, 5)
 
-    @mock.patch('doppelganger.processing.core.load_cached_hashes', return_value='cache')
+    @mock.patch('doppelganger.processing.core.load_cache', return_value='cache')
     def test_load_cache_return(self, mock_cache):
         c = self.im_pr.load_cache()
 
         self.assertEqual(c, 'cache')
 
-    @mock.patch('doppelganger.processing.core.load_cached_hashes', side_effect=EOFError)
+    @mock.patch('doppelganger.processing.core.load_cache', side_effect=EOFError)
     def test_load_cache_return_empty_dict_if_EOFError(self, mock_cache):
         c = self.im_pr.load_cache()
 
@@ -203,13 +203,13 @@ class TestImageProcessingClass(TestCase):
         with self.assertLogs('main.processing', 'ERROR'):
             self.im_pr.calculating([])
 
-    @mock.patch('doppelganger.processing.core.caching_images')
+    @mock.patch('doppelganger.processing.core.caching')
     def test_caching_core_func_called(self, mock_caching):
         self.im_pr.caching([], {})
 
         self.assertTrue(mock_caching.called)
 
-    @mock.patch('doppelganger.processing.core.caching_images')
+    @mock.patch('doppelganger.processing.core.caching')
     def test_caching_updates_progress_bar(self, mock_caching):
         '''Use patch here so 'core.caching_images' isn't
         called and doesn't mess up our real cache (if exists)
@@ -219,7 +219,7 @@ class TestImageProcessingClass(TestCase):
 
         self.assertEqual(self.im_pr.progress_bar_value, 55)
 
-    @mock.patch('doppelganger.processing.core.images_grouping', return_value='groups')
+    @mock.patch('doppelganger.processing.core.image_grouping', return_value='groups')
     def test_grouping_return(self, mock_group):
         g = self.im_pr.grouping([], 0)
 

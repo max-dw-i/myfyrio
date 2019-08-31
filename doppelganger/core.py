@@ -46,61 +46,61 @@ permission notice:
 This module provides core functions for processing images and find duplicates.
 '''
 
+from __future__ import annotations
+
 import os
 import pathlib
 import pickle
 from functools import wraps
 from multiprocessing import Pool
+from typing import Any, Callable, Dict, List, Sequence, Set, Tuple, Union
 
 import dhash
 import pybktree
-from PIL import Image as PILImage, ImageFile
+from PIL import Image as PILImage
+from PIL import ImageFile
 
 # Crazy hack not to get error 'IOError: image file is truncated...'
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
+def find_images(folders: Sequence[str]) -> Set[str]:
+    '''Find all the images in :folders:
 
-def get_images_paths(folders):
-    '''Returns all the images' full paths from
-    the passed 'folders' argument
-
-    :param folders: a collection of folders' paths,
-    :returns: set of str, images' full paths
+    :param folders: paths of the folders,
+    :return: full paths of the images
     '''
 
     IMG_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp'}
-    images_paths = set()
+    paths = set()
 
     for path in folders:
         p = pathlib.Path(path)
         for ext in IMG_EXTENSIONS:
             for filename in p.glob(f'**/*{ext}'):
                 if filename.is_file():
-                    images_paths.add(str(filename))
-    return images_paths
+                    paths.add(str(filename))
+    return paths
 
-def hamming_dist(image1, image2):
-    '''Calculates the Hamming distance between two images
+def hamming(image1: Image, image2: Image) -> int:
+    '''Calculate the Hamming distance between two images
 
-    :param image1: <class Image> object,
-    :param image2: <class Image> object,
-    :returns: int, Hamming distance
+    :param image1: the first image,
+    :param image2: the second image,
+    :return: Hamming distance
     '''
 
     return dhash.get_num_bits_different(image1.hash, image2.hash)
 
-def images_grouping(images, sensitivity):
-    '''Returns groups of similar images
+def image_grouping(images: Sequence[Image], sensitivity: int) -> List[List[Image]]:
+    '''Find similar images and group them
 
-    :param images: collection of <class Image> objects,
-    :param sensitivity: int, min difference between images' hashes
-                        when the images are considered similar,
-    :returns: list, [[<class Image> obj 1.1, <class Image> obj 1.2, ...],
-                     [<class Image> obj 2.1, <class Image> obj 2.2, ...], ...],
-              each sublist of which is sorted by image difference in
-              ascending order. If there are no duplicate images, an empty list
-              is returned,
-    :raise TypeError: if any of the hashes are not integers
+    :param images: images to process,
+    :param sensitivity: minimal difference between hashes of 2 images
+                        when they are considered similar,
+    :return: groups of similar images. Each sublist is sorted by image
+             difference in ascending order. If there are no duplicate
+             images, an empty list is returned,
+    :raise TypeError: any of the hashes is not integer
     '''
 
     if len(images) <= 1:
@@ -109,7 +109,7 @@ def images_grouping(images, sensitivity):
     image_groups = []
     checked = {} # {<class Image> obj: index of the image group}
     try:
-        bkt = pybktree.BKTree(hamming_dist, images)
+        bkt = pybktree.BKTree(hamming, images)
     except TypeError:
         raise TypeError('While grouping, image hashes must be integers')
 
@@ -131,13 +131,13 @@ def images_grouping(images, sensitivity):
         if image in checked and closest not in checked:
             group_num = checked[image]
             image_groups[group_num].append(closest)
-            closest.difference = hamming_dist(image_groups[group_num][0], closest)
+            closest.difference = hamming(image_groups[group_num][0], closest)
             checked[closest] = group_num
         # and vice versa
         elif image not in checked and closest in checked:
             group_num = checked[closest]
             image_groups[group_num].append(image)
-            image.difference = hamming_dist(image_groups[group_num][0], image)
+            image.difference = hamming(image_groups[group_num][0], image)
             checked[image] = group_num
         # If neither of these is in groups, add a new group
         elif image not in checked and closest not in checked:
@@ -148,13 +148,11 @@ def images_grouping(images, sensitivity):
 
     return [sorted(g, key=lambda x: x.difference) for g in image_groups]
 
-def load_cached_hashes():
-    '''Returns cached images' hashes
+def load_cache() -> Dict[str, int]:
+    '''Load the cache with earlier calculated hashes
 
-    :returns: dict, {image_path: str,
-                     image_hash: <class ImageHash> obj, ...},
-    :raises EOFError: if the cache file cannot be read,
-                      for some reason
+    :return: dictionary with pairs 'image path: hash',
+    :raise EOFError: the cache file cannot be read
     '''
 
     try:
@@ -166,15 +164,15 @@ def load_cached_hashes():
         raise EOFError('The cache file might be corrupted (or empty)')
     return cached_hashes
 
-def check_cache(paths, cached_hashes):
-    '''Returns a tuple with 2 lists. The images that are found
-    in the cache are in the 1st one, the images that are not
-    found in the cache are in the 2nd one
+def check_cache(paths: Sequence[str],
+                cached_hashes: Dict[str, int]) -> Tuple[List[Image], List[Image]]:
+    '''Check which images are cached and which ones are not
 
-    :param paths: collection of str, images' full paths,
-    :param cached_hashes: dict, {image_path: str,
-                                 image_hash: <class ImageHash> obj},
-    :returns: tuple, ([<class Image> obj, ...], [<class Image> obj, ...])
+    :param paths: full paths of images,
+    :param cached_hashes: dictionary with pairs 'image path: hash',
+    :return: return a tuple with 2 lists. The images that are found
+             in the cache are in the 1st one, the images that are not
+             found in the cache are in the 2nd one
     '''
 
     cached, not_cached = [], []
@@ -186,25 +184,22 @@ def check_cache(paths, cached_hashes):
             not_cached.append(Image(path, suffix=suffix))
     return cached, not_cached
 
-def hashes_calculating(images):
-    '''Returns a list with the images whose hashes
-    are calculated now
+def hashes_calculating(images: Sequence[Image]) -> List[Image]:
+    '''Calculate the hashes of :images:
 
-    :param images: list of <class Image> objects,
-                   images without calculated hashes,
-    :returns: list of <class Image> objects
+    :param images: images which hashes are not calculated yet,
+    :return: images with calculated hashes
     '''
 
     with Pool() as p:
-        calculated_images = p.map(Image.calc_dhash, images)
+        calculated_images = p.map(Image.dhash, images)
     return calculated_images
 
-def caching_images(images, cached_hashes):
-    '''Adds new images to the cache, save them on the disk
+def caching(images: Sequence[Image], cached_hashes: Dict[str, int]) -> None:
+    '''Add new hashes to the cache and save them on the disk
 
-    :param images: list of <class Image> objects,
-    :param cached_hashes: dict, {image_path: str,
-                                 image_hash: <class ImageHash> obj}
+    :param images: images to process,
+    :param cached_hashes: dictionary with pairs 'image path: hash'
     '''
 
     for image in images:
@@ -213,12 +208,16 @@ def caching_images(images, cached_hashes):
     with open('image_hashes.p', 'wb') as f:
         pickle.dump(cached_hashes, f)
 
-def return_obj(func):
+def return_obj(func: Callable[[object], Any]) -> object:
     '''Decorator needed for parallel hashes calculating.
     Multiprocessing lib does not allow to change an object
     in place (because it's a different process). So it's
     passed to the process, changed in there and then
     must be returned
+
+    :param func: function to use in 'multiprocessing.Pool.map',
+                 eg. 'Image.dhash',
+    :return: object on which :func: is called, eg. 'Image' object
     '''
 
     @wraps(func)
@@ -231,8 +230,8 @@ def return_obj(func):
 class Image():
     '''Class that represents images'''
 
-    def __init__(self, path, difference=0, dhash=None,
-                 thumbnail=None, suffix=None):
+    def __init__(self, path: str, difference: int = 0, dhash: int = None,
+                 thumbnail: Any = None, suffix: str = None) -> None:
         self.path = path
         # Difference between the image's hash and the 1st
         # image's hash in the group
@@ -242,12 +241,11 @@ class Image():
         self.suffix = suffix # '.jpg', '.png', etc.
 
     @return_obj
-    def calc_dhash(self):
-        '''Calculates an image's difference hash using
-        'dhash' function from 'imagehash' lib
+    def dhash(self) -> int:
+        '''Calculate the perceptual hash of the image
+        using 'dhash' library
 
-        :returns: <class ImageHash> instance or None
-                  if there's any problem
+        :return: the hash of the image
         '''
 
         try:
@@ -264,14 +262,11 @@ class Image():
             self.hash = dhash.dhash_int(image)
         return self.hash
 
-    def get_dimensions(self):
-        '''Returns an image dimensions
+    def dimensions(self) -> Tuple[int, int]:
+        '''Return the dimensions of the image
 
-        :param path: str, full path to an image,
-        :returns: tuple, (width: int, height: int)
-                  or (0, 0) if there's any problem,
-        :raise OSError: if there's any problem while
-                        opening the image
+        :return: tuple with the image's width and height,
+        :raise OSError: any problem while opening the image
         '''
 
         try:
@@ -280,23 +275,22 @@ class Image():
             raise OSError(f'Cannot get the dimensions of {self.path}')
         return image.size
 
-    def get_scaling_dimensions(self, biggest_dim):
-        '''Returns the dimensions an image should
-        have after having scaled
+    def scaling_dimensions(self, biggest_dim: int) -> Tuple[int, int]:
+        '''Find the new dimensions of the image (with aspect ratio kept)
+        after being scaled
 
-        :param biggest_dim: int, the biggest dimension of the image after
-                            having scaled,
-        :returns: tuple, (width: int, height: int) with kept aspect ratio,
-        :raise OSError: if there's any problem while getting
-                        the image's dimensions,
-        :raise ValuError: if the new :biggest_dim: is not positive
+        :param biggest_dim: the biggest dimension of the image after
+                            being scaled,
+        :return: tuple with the image's width and height,
+        :raise OSError: any problem while getting the image's dimensions,
+        :raise ValuError: new :biggest_dim: is not positive
         '''
 
         if biggest_dim <= 0:
             raise ValueError('The new size values must be positive')
 
         try:
-            width, height = self.get_dimensions()
+            width, height = self.dimensions()
         except OSError:
             raise OSError(f'Cannot get the scaling dimensions of {self.path}')
 
@@ -308,15 +302,14 @@ class Image():
                              height * biggest_dim // height)
         return width, height
 
-    def get_filesize(self, size_format='KB'):
-        '''Returns an image file size
+    def filesize(self, size_format: str = 'KB') -> Union[int, float]:
+        '''Return the file size of the image
 
-        :param size_format: str, ('B', 'KB', 'MB'),
-        :returns: float, file size in bytes, kilobytes or megabytes,
-                  rounded to the first decimal place or 0 if there's
-                  any problem,
-        :raise OSError: if there's any problem while opening the image,
-        :raise ValueError: if :size_format: not amongst the allowed values
+        :param size_format: bytes - 'B', KiloBytes - 'KB', MegaBytes - 'MB',
+        :return: file size in bytes, kilobytes or megabytes, rounded
+                 to the first decimal place,
+        :raise OSError: any problem while opening the image,
+        :raise ValueError: :size_format: is not amongst the allowed values
         '''
 
         try:
@@ -333,11 +326,10 @@ class Image():
 
         raise ValueError('Wrong size format')
 
-    def delete_image(self):
-        '''Deletes an image from the disk
+    def delete(self) -> None:
+        '''Delete the image from the disk
 
-        :raise OSError: if the file does not exist,
-                        is a folder, is in use, etc.
+        :raise OSError: the file does not exist, is a folder, is in use, etc.
         '''
 
         try:
@@ -345,13 +337,12 @@ class Image():
         except OSError:
             raise OSError(f'{self.path} cannot be removed')
 
-    def move_image(self, dst):
-        '''Moves an image to a new location
+    def move(self, dst: str) -> None:
+        r'''Move the image to a new directory
 
-        :param dst: str, new location, eg. /new/location/
-                         or C:\location,
-        :raise OSError: if the file does not exist,
-                        is a folder, :dst: exists, etc.
+        :param dst: new location, eg. '/new/location/' or 'C:\location',
+        :raise OSError: the file does not exist, is a folder,
+                        :dst: exists, etc.
         '''
 
         file_name = pathlib.Path(self.path).name
@@ -362,7 +353,7 @@ class Image():
         except OSError:
             raise OSError(f'{self.path} cannot be moved')
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.path
 
 
@@ -378,11 +369,11 @@ if __name__ == '__main__':
     sensitivity = input(msg)
     print('------------------------')
 
-    paths = get_images_paths([folders])
+    paths = find_images([folders])
     print(f'There are {len(paths)} images in the folder')
 
     try:
-        cached_hashes = load_cached_hashes()
+        cached_hashes = load_cache()
     except EOFError as e:
         print(e)
         print('Delete (back up if needed) the corrupted (or empty) ',
@@ -395,12 +386,15 @@ if __name__ == '__main__':
     if not_cached:
         calculated = hashes_calculating(not_cached)
         calculated = [image for image in calculated if image.hash is not None]
-        caching_images(calculated, cached_hashes)
+        caching(calculated, cached_hashes)
         cached.extend(calculated)
     print('All the hashes have been calculated')
 
     print('Starting to compare images...')
-    image_groups = images_grouping(cached, int(sensitivity))
+    try:
+        image_groups = image_grouping(cached, int(sensitivity))
+    except TypeError as e:
+        print(e)
     print(f'{len(image_groups)} duplicate image groups have been found')
     print('------------------------')
 
