@@ -42,7 +42,6 @@ permission notice:
     SOFTWARE.
 '''
 
-import logging
 import os
 import pathlib
 import shutil
@@ -51,7 +50,6 @@ from unittest import TestCase, mock
 
 from doppelganger import core
 
-logging.lastResort = None
 CORE = 'doppelganger.core.'
 
 
@@ -71,7 +69,7 @@ class TestImageClass(TestCase):
     @mock.patch(CORE + 'dhash.dhash_int', return_value='hash')
     @mock.patch(CORE + 'PILImage.open')
     def test_undecorated_dhash_return_dhash(self, mock_open, mock_dhash):
-        result = self.image.dhash.__wrapped__(self.image)
+        result = self.image.dhash.__wrapped__(self.image) # pylint: disable=no-member
 
         self.assertEqual(self.image.hash, 'hash')
         self.assertEqual(result, self.image.hash)
@@ -254,8 +252,7 @@ class TestCacheFunctions(TestCase):
             self.assertEqual(image.hash, self.cache[image.path])
 
     def test_check_cache_return_correct_not_cached_list(self):
-        expected_images = [core.Image(path, suffix=pathlib.Path(path).suffix)
-                           for path in self.not_cached]
+        expected_images = [core.Image(path) for path in self.not_cached]
         _, not_cached = core.check_cache(self.not_cached, self.cache)
 
         for i, _ in enumerate(not_cached):

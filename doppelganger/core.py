@@ -53,7 +53,8 @@ import pathlib
 import pickle
 from functools import wraps
 from multiprocessing import Pool
-from typing import Any, Callable, Dict, List, Sequence, Set, Tuple, Union
+from typing import (Any, Callable, Collection, Dict, Iterable, List, Optional,
+                    Set, Tuple, TypeVar, Union)
 
 import dhash
 import pybktree
@@ -63,7 +64,7 @@ from PIL import ImageFile
 # Crazy hack not to get error 'IOError: image file is truncated...'
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-def find_images(folders: Sequence[str]) -> Set[str]:
+def find_images(folders: Iterable[FolderPath]) -> Set[ImagePath]:
     '''Find all the images in :folders:
 
     :param folders: paths of the folders,
@@ -84,7 +85,7 @@ def find_images(folders: Sequence[str]) -> Set[str]:
                     paths.add(str(filename))
     return paths
 
-def hamming(image1: Image, image2: Image) -> int:
+def hamming(image1: HashedImage, image2: HashedImage) -> Distance:
     '''Calculate the Hamming distance between two images
 
     :param image1: the first image,
@@ -94,11 +95,11 @@ def hamming(image1: Image, image2: Image) -> int:
 
     return dhash.get_num_bits_different(image1.hash, image2.hash)
 
-def image_grouping(images: Sequence[Image], sensitivity: int) -> List[List[Image]]:
+def image_grouping(images: Collection[HashedImage], sensitivity: Sensitivity) -> List[Group]:
     '''Find similar images and group them
 
     :param images: images to process,
-    :param sensitivity: minimal difference between hashes of 2 images
+    :param sensitivity: maximal difference between hashes of 2 images
                         when they are considered similar,
     :return: groups of similar images. Each sublist is sorted by image
              difference in ascending order. If there are no duplicate
@@ -109,8 +110,8 @@ def image_grouping(images: Sequence[Image], sensitivity: int) -> List[List[Image
     if len(images) <= 1:
         return []
 
-    image_groups = []
-    checked = {} # {<class Image> obj: index of the image group}
+    image_groups: List[Group] = []
+    checked: Dict[HashedImage, int] = {} # {<class Image> obj: index of the image group}
     try:
         bkt = pybktree.BKTree(hamming, images)
     except TypeError:
@@ -151,7 +152,7 @@ def image_grouping(images: Sequence[Image], sensitivity: int) -> List[List[Image
 
     return [sorted(g, key=lambda x: x.difference) for g in image_groups]
 
-def load_cache() -> Dict[str, int]:
+def load_cache() -> Dict[ImagePath, Hash]:
     '''Load the cache with earlier calculated hashes
 
     :return: dictionary with pairs 'image path: hash',
@@ -167,8 +168,8 @@ def load_cache() -> Dict[str, int]:
         raise EOFError('The cache file might be corrupted (or empty)')
     return cached_hashes
 
-def check_cache(paths: Sequence[str],
-                cached_hashes: Dict[str, int]) -> Tuple[List[Image], List[Image]]:
+def check_cache(paths: Iterable[ImagePath],
+                cached_hashes: Dict[ImagePath, Hash]) -> Tuple[List[HashedImage], List[NoneImage]]:
     '''Check which images are cached and which ones are not
 
     :param paths: full paths of images,
@@ -180,14 +181,13 @@ def check_cache(paths: Sequence[str],
 
     cached, not_cached = [], []
     for path in paths:
-        suffix = pathlib.Path(path).suffix
         if path in cached_hashes:
-            cached.append(Image(path, dhash=cached_hashes[path], suffix=suffix))
+            cached.append(Image(path, dhash=cached_hashes[path]))
         else:
-            not_cached.append(Image(path, suffix=suffix))
+            not_cached.append(Image(path, dhash=None))
     return cached, not_cached
 
-def hashes_calculating(images: Sequence[Image]) -> List[Image]:
+def hashes_calculating(images: Iterable[NoneImage]) -> List[HashedImage]:
     '''Calculate the hashes of :images:
 
     :param images: images which hashes are not calculated yet,
@@ -198,7 +198,7 @@ def hashes_calculating(images: Sequence[Image]) -> List[Image]:
         calculated_images = p.map(Image.dhash, images)
     return calculated_images
 
-def caching(images: Sequence[Image], cached_hashes: Dict[str, int]) -> None:
+def caching(images: Iterable[HashedImage], cached_hashes: Dict[ImagePath, Hash]) -> None:
     '''Add new hashes to the cache and save them on the disk
 
     :param images: images to process,
@@ -211,7 +211,7 @@ def caching(images: Sequence[Image], cached_hashes: Dict[str, int]) -> None:
     with open('image_hashes.p', 'wb') as f:
         pickle.dump(cached_hashes, f)
 
-def return_obj(func: Callable[[object], Any]) -> object:
+def return_obj(func: Callable[[T], Any]) -> Callable[[T], T]:
     '''Decorator needed for parallel hashes calculating.
     Multiprocessing lib does not allow to change an object
     in place (because it's a different process). So it's
@@ -233,22 +233,21 @@ def return_obj(func: Callable[[object], Any]) -> object:
 class Image():
     '''Class that represents images'''
 
-    def __init__(self, path: str, difference: int = 0, dhash: int = None,
-                 thumbnail: Any = None, suffix: str = None) -> None:
+    def __init__(self, path: ImagePath, dhash: Optional[Hash] = None,
+                 difference: Distance = 0, thumbnail: Any = None) -> None:
         self.path = path
         # Difference between the image's hash and the 1st
         # image's hash in the group
         self.difference = difference
         self.hash = dhash
         self.thumbnail = thumbnail
-        self.suffix = suffix # '.jpg', '.png', etc.
+        self.suffix = pathlib.Path(path).suffix # '.jpg', '.png', etc.
 
     @return_obj
-    def dhash(self) -> int:
-        '''Calculate the perceptual hash of the image
-        using 'dhash' library
+    def dhash(self) -> Optional[Hash]:
+        '''Calculate the perceptual hash of the image using 'dhash' library
 
-        :return: the hash of the image
+        :return: the hash of the image or None if there's any problem
         '''
 
         try:
@@ -265,7 +264,7 @@ class Image():
             self.hash = dhash.dhash_int(image)
         return self.hash
 
-    def dimensions(self) -> Tuple[int, int]:
+    def dimensions(self) -> Tuple[Width, Height]:
         '''Return the dimensions of the image
 
         :return: tuple with the image's width and height,
@@ -278,7 +277,7 @@ class Image():
             raise OSError(f'Cannot get the dimensions of {self.path}')
         return image.size
 
-    def filesize(self, size_format: str = 'KB') -> Union[int, float]:
+    def filesize(self, size_format: SizeFormat = 'KB') -> FileSize:
         '''Return the file size of the image
 
         :param size_format: bytes - 'B', KiloBytes - 'KB', MegaBytes - 'MB',
@@ -313,7 +312,7 @@ class Image():
         except OSError:
             raise OSError(f'{self.path} cannot be removed')
 
-    def move(self, dst: str) -> None:
+    def move(self, dst: FolderPath) -> None:
         r'''Move the image to a new directory
 
         :param dst: new location, eg. '/new/location/' or 'C:\location',
@@ -331,6 +330,27 @@ class Image():
 
     def __str__(self) -> str:
         return self.path
+
+
+########################## Types ##################################
+
+FolderPath = str # Path to a folder
+ImagePath = str # Path to an image
+Hash = int # Perceptual hash of an image
+Distance = int # Distance between 2 hashes
+Sensitivity = int # Max 'Distance' when images are considered similar
+Suffix = str # '.jpg', '.png', etc. (with a dot)
+Width = int # Width of a image
+Height = int # Height of a image
+FileSize = Union[int, float] # Size of a file
+SizeFormat = str # Units of file size (one of {'B', 'KB', 'MB'})
+NoneImage = Image # Image whose hash is None
+HashedImage = Image # Image whose hash is not None
+Group = List[HashedImage] # Group of similar images
+
+T = TypeVar('T')
+
+###################################################################
 
 
 if __name__ == '__main__':
