@@ -17,318 +17,61 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
-Graphical user interface'''
+Module implementing graphical user interface
+'''
 
 import logging
 import pathlib
+from typing import Iterable, Optional, Set
 
-from PyQt5 import QtCore, QtGui, QtWidgets, uic
+from PyQt5 import QtCore, QtWidgets, uic
 
-from doppelganger import processing
+from doppelganger import core, processing, widgets
 
 UI = str(pathlib.Path('doppelganger') / 'gui.ui')
 ABOUT_UI = str(pathlib.Path('doppelganger') / 'about.ui')
-IMAGE_ERROR = str(pathlib.Path('doppelganger') / 'resources' / 'image_error.png')
-SIZE = 200
-SELECTED_BACKGROUND_COLOR = '#d3d3d3'
 
 gui_logger = logging.getLogger('main.gui')
 
-class InfoLabelWidget(QtWidgets.QLabel):
-    '''Abstract Label class'''
-
-    def __init__(self, text, parent=None):
-        super().__init__(parent)
-        self.setAlignment(QtCore.Qt.AlignHCenter)
-        self.setText(self._word_wrap(text))
-
-    def _word_wrap(self, text):
-        '''QLabel wraps words only at word-breaks but we need
-        it to happen at any letter
-
-        :param text: str, any text,
-        :return: str, wrapped text
-        '''
-
-        fontMetrics = QtGui.QFontMetrics(self.font())
-        wrapped_text = ''
-        line = ''
-
-        for c in text:
-            # We have 4 margins 9px each (I guess) so we take 40
-            if fontMetrics.size(QtCore.Qt.TextSingleLine, line + c).width() > SIZE - 40:
-                wrapped_text += line + '\n'
-                line = c
-            else:
-                line += c
-        wrapped_text += line
-
-        return wrapped_text
-
-
-class SimilarityLabel(InfoLabelWidget):
-    '''Label class to show info about images similarity'''
-
-
-class ImageSizeLabel(InfoLabelWidget):
-    '''Label class to show info about the image size'''
-
-
-class ImagePathLabel(InfoLabelWidget):
-    '''TextEdit class to show the path to an image'''
-
-    def __init__(self, text, parent=None):
-        super().__init__(QtCore.QFileInfo(text).canonicalFilePath(), parent)
-
-class ImageInfoWidget(QtWidgets.QWidget):
-    '''Label class to show info about an image (its similarity
-    rate, size and path)'''
-
-    def __init__(self, path, difference, dimensions, filesize, parent=None):
-        super().__init__(parent)
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.setAlignment(QtCore.Qt.AlignBottom)
-
-        widgets = (
-            SimilarityLabel(str(difference), self),
-            ImageSizeLabel(self._get_image_size(dimensions, filesize), self),
-            ImagePathLabel(path, self)
-        )
-        for widget in widgets:
-            layout.addWidget(widget)
-        self.setLayout(layout)
-
-    @staticmethod
-    def _get_image_size(dimensions, filesize):
-        '''Return info about image dimensions and file size
-
-        :param dimensions: tuple, (width: int, height: int),
-        :param filesize: float, file size in bytes, kilobytes or megabytes,
-                                rounded to the first decimal place,
-        :returns: str, string with format '{width}x{height}, {file_size} {units}'
-        '''
-
-        width, height = dimensions[0], dimensions[1]
-        units = 'KB'
-
-        return f'{width}x{height}, {filesize} {units}'
-
-
-class ThumbnailWidget(QtWidgets.QLabel):
-    '''Label class to render image thumbnail'''
-
-    def __init__(self, thumbnail, parent=None):
-        super().__init__(parent)
-        self.setAlignment(QtCore.Qt.AlignHCenter)
-        self.pixmap = self._QByteArray_to_QPixmap(thumbnail)
-        self.setPixmap(self.pixmap)
-
-    @staticmethod
-    def _QByteArray_to_QPixmap(thumbnail):
-        '''Converts a QByteArray image to QPixmap
-
-        :param thumbnails: <class QByteArray>, an image,
-        :returns: corresponding <class QPixmap> object or,
-                  if something's wrong - <class QPixmap>
-                  object with 'error image'
-        '''
-
-        # Pixmap can read BMP, GIF, JPG, JPEG, PNG, PBM, PGM, PPM, XBM, XPM
-        if thumbnail is None:
-            return QtGui.QPixmap(IMAGE_ERROR).scaled(SIZE, SIZE)
-
-        pixmap = QtGui.QPixmap()
-        pixmap.loadFromData(thumbnail)
-
-        if pixmap.isNull():
-            gui_logger.error('Something happened while converting QByteArray into QPixmap')
-            return QtGui.QPixmap(IMAGE_ERROR).scaled(SIZE, SIZE)
-
-        return pixmap
-
-    def mark(self):
-        '''Mark a thumbnail as selected'''
-
-        marked = self.pixmap.copy()
-        width, height = marked.width(), marked.height()
-
-        painter = QtGui.QPainter(marked)
-        brush = QtGui.QBrush(QtGui.QColor(0, 0, 0, 128))
-        painter.setBrush(brush)
-        painter.drawRect(0, 0, width, height)
-        painter.end()
-        self.setPixmap(marked)
-
-    def unmark(self):
-        '''Mark a thumbnail as not selected'''
-
-        self.setPixmap(self.pixmap)
-
-
-class DuplicateCandidateWidget(QtWidgets.QWidget):
-    '''Widget class to render a duplicate candidate image and
-    all the info about it (its similarity rate, size and path)
-    '''
-
-    def __init__(self, image, parent=None):
-        super().__init__(parent)
-        self.image = image
-        self.selected = False
-        self.imageLabel, self.imageInfo = self._widgets()
-        self._setWidgetEvents()
-
-        self.setFixedWidth(SIZE)
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.setAlignment(QtCore.Qt.AlignTop)
-        for widget in (self.imageLabel, self.imageInfo):
-            layout.addWidget(widget)
-        self.setLayout(layout)
-
-    def _widgets(self):
-        '''Returns ThumbnailWidget and ImageInfoWidget objects
-        which are parts of a DuplicateCandidateWidget object
-
-        :returns: tuple, (<class ThumbnailWidget> obj,
-                          <class ImageInfoWidget> obj)
-        '''
-
-        imageLabel = ThumbnailWidget(self.image.thumbnail, self)
-
-        try:
-            dimensions = self.image.dimensions()
-        except OSError as e:
-            gui_logger.error(e)
-            dimensions = (0, 0)
-
-        try:
-            filesize = self.image.filesize()
-        except OSError as e:
-            gui_logger.error(e)
-            filesize = 0
-
-        imageInfo = ImageInfoWidget(self.image.path, self.image.difference,
-                                    dimensions, filesize, self)
-
-        return imageLabel, imageInfo
-
-    def _setWidgetEvents(self):
-        '''Link events and functions called on the events'''
-
-        self.mouseReleaseEvent = self._mouseRelease
-
-    def _mouseRelease(self, event):
-        '''Function called on mouse release event'''
-
-        window = self.window()
-
-        if self.selected:
-            self.selected = False
-            self.imageLabel.unmark()
-            window._switch_buttons()
-        else:
-            self.selected = True
-            self.imageLabel.mark()
-            window._switch_buttons()
-
-    def delete(self):
-        '''Delete an image from disk and its DuplicateCandidateWidget
-        instance
-
-        :raise OSError: if something went wrong while removing images
-        '''
-
-        try:
-            self.image.delete()
-        except OSError as e:
-            msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning,
-                'Removing image',
-                f'Error occured while removing image {self.image.path}'
-            )
-            msgBox.exec()
-
-            raise OSError(e)
-        else:
-            self.deleteLater()
-
-    def move(self, dst):
-        '''Move an image to a new location and delete its DuplicateCandidateWidget
-        instance
-
-        :param dst: str, a new location, eg. /new/location,
-        :raise OSError: if something went wrong while removing images
-        '''
-
-        try:
-            self.image.move(dst)
-        except OSError as e:
-            msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning,
-                'Moving image',
-                f'Error occured while moving image {self.image.path}'
-            )
-            msgBox.exec()
-
-            raise OSError(e)
-        else:
-            self.deleteLater()
-
-
-class ImageGroupWidget(QtWidgets.QWidget):
-    '''Widget class to keep similar images together'''
-
-    def __init__(self, image_group, parent=None):
-        super().__init__(parent)
-        layout = QtWidgets.QHBoxLayout(self)
-        layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
-        for image in image_group:
-            thumbnail = DuplicateCandidateWidget(image, self)
-            layout.addWidget(thumbnail)
-        self.setLayout(layout)
-
-    def getSelectedWidgets(self):
-        '''Return list of the selected DuplicateCandidateWidget instances'''
-
-        widgets = self.findChildren(
-            DuplicateCandidateWidget,
-            options=QtCore.Qt.FindDirectChildrenOnly
-        )
-        return [widget for widget in widgets if widget.selected]
-
-    def __len__(self):
-        return len(self.findChildren(DuplicateCandidateWidget,
-                                     options=QtCore.Qt.FindDirectChildrenOnly))
-
 
 class AboutForm(QtWidgets.QMainWindow):
-    ''' 'Help' -> 'About' form '''
+    """'Help' -> 'About' form"""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None) -> None:
         super().__init__(parent)
         uic.loadUi(ABOUT_UI, self)
 
-    def closeEvent(self, event):
-        event.accept()
+    def closeEvent(self, event) -> None:
+        '''Function called on close event'''
+
+        super().closeEvent(event)
         self.deleteLater()
 
 
-class MainForm(QtWidgets.QMainWindow):
-    '''Main GUI class'''
+class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
+    '''Main GUI class
 
-    def __init__(self):
+    Supported signals:
+    ------------------
+    :signal interrupted: image processing must be stopped
+    '''
+
+    interrupted = QtCore.pyqtSignal()
+
+    def __init__(self) -> None:
         super().__init__()
         uic.loadUi(UI, self)
         self.scrollAreaLayout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
-        self._setWidgetEvents()
-        self.signals = processing.Signals()
         self.threadpool = QtCore.QThreadPool()
+        self._setWidgetEvents()
 
-        self.sensitivity = 5
+        self.sensitivity = 0
+        self.highRb.click()
 
-        self._show_menubar()
+        self._setMenubar()
 
-    def _setWidgetEvents(self):
+    def _setWidgetEvents(self) -> None:
         '''Link events and functions called on the events'''
 
         self.addFolderBtn.clicked.connect(self.addFolderBtn_click)
@@ -343,7 +86,9 @@ class MainForm(QtWidgets.QMainWindow):
         self.mediumRb.clicked.connect(self.mediumRb_click)
         self.lowRb.clicked.connect(self.lowRb_click)
 
-    def _show_menubar(self):
+    def _setMenubar(self) -> None:
+        """Initialise the menus of 'menubar'"""
+
         fileMenu = self.menubar.addMenu('File')
         fileMenu.setEnabled(False)
         #fileMenu.addAction(self.addFolderAct)
@@ -373,8 +118,31 @@ class MainForm(QtWidgets.QMainWindow):
         about.triggered.connect(self.openAboutForm)
         helpMenu.addAction(about)
 
-    def openAboutForm(self):
-        '''Open 'Help' -> 'About' form'''
+    def _call_on_selected_widgets(self, dst: Optional[core.FolderPath] = None) -> None:
+        '''Call 'move' or 'delete' on selected widgets
+
+        :param dst: if None, 'delete' is called, otherwise - 'move'
+        '''
+
+        for group_widget in self.scrollAreaWidget.findChildren(widgets.ImageGroupWidget):
+            selected_widgets = group_widget.getSelectedWidgets()
+            for selected_widget in selected_widgets:
+                try:
+                    if dst:
+                        selected_widget.move(dst)
+                    else:
+                        selected_widget.delete()
+                except OSError as e:
+                    gui_logger.error(e)
+            # If we select all (or except one) the images in a group,
+            if len(group_widget) - len(selected_widgets) <= 1:
+                # and all the selected images were processed correctly (so
+                # there are no selected images anymore), delete the whole group
+                if not group_widget.getSelectedWidgets():
+                    group_widget.deleteLater()
+
+    def openAboutForm(self) -> None:
+        """Open 'Help' -> 'About' form"""
 
         about = self.findChildren(AboutForm, options=QtCore.Qt.FindDirectChildrenOnly)
         if about:
@@ -383,8 +151,8 @@ class MainForm(QtWidgets.QMainWindow):
             about = AboutForm(self)
             about.show()
 
-    def _openFolderNameDialog(self):
-        '''Open file dialog and return the folder full path'''
+    def openFolderNameDialog(self) -> core.FolderPath:
+        '''Open file dialog and return the full path of a folder'''
 
         folder_path = QtWidgets.QFileDialog.getExistingDirectory(
             self,
@@ -394,42 +162,32 @@ class MainForm(QtWidgets.QMainWindow):
         )
         return folder_path
 
-    def _clear_form_before_start(self):
-        '''Clear the form from the previous duplicate images
-        found and labels before doing another search
-        '''
+    def clearMainForm(self) -> None:
+        '''Clear the form from the previous duplicate images and labels'''
 
-        group_widgets = self.scrollAreaWidget.findChildren(
-            ImageGroupWidget,
-            options=QtCore.Qt.FindDirectChildrenOnly
-        )
-        for group_widget in group_widgets:
+        for group_widget in self.findChildren(widgets.ImageGroupWidget):
             group_widget.deleteLater()
 
         for label in ['thumbnails', 'image_groups', 'remaining_images',
                       'found_in_cache', 'loaded_images', 'duplicates']:
-            self._update_label_info(label, str(0))
+            self.updateLabel(label, str(0))
 
         self.progressBar.setValue(0)
 
-    def _get_user_folders(self):
-        '''Get all the folders a user added to the 'pathListWidget'
+    def getFolders(self) -> Set[core.FolderPath]:
+        '''Get all the folders the user added to 'pathListWidget'
 
-        :returns: set of str, the folders the user wants to
-                  process
+        :returns: folders the user wants to process
         '''
 
         return {self.pathListWidget.item(i).data(QtCore.Qt.DisplayRole)
                 for i in range(self.pathListWidget.count())}
 
-    def _render_image_groups(self, image_groups):
-        '''Add ImageGroupWidget to scrollArea
+    def render(self, image_groups: Iterable[core.Group]) -> None:
+        '''Add 'ImageGroupWidget' to 'scrollArea'
 
-        :param image_groups: list, [<class Image> obj, ...]
+        :param image_groups: groups of similar images
         '''
-
-        for group in image_groups:
-            self.scrollAreaLayout.addWidget(ImageGroupWidget(group, self.scrollArea))
 
         if not image_groups:
             msg_box = QtWidgets.QMessageBox(
@@ -438,14 +196,20 @@ class MainForm(QtWidgets.QMainWindow):
                 'No duplicate images have been found in the selected folders'
             )
             msg_box.exec()
+        else:
+            for group in image_groups:
+                self.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(group, self.scrollArea))
 
-    def _update_label_info(self, label, text):
-        '''Update a label's info
+            for widget in self.findChildren(widgets.DuplicateWidget):
+                widget.clicked.connect(self.switchButtons)
 
-        :param label: str, one of ('thumbnails', 'image_groups',
-                                   'remaining_images', 'found_in_cache',
-                                   'loaded_images', 'duplicates'),
-        :param text: str, text to add to a label
+    def updateLabel(self, label: str, text: str) -> None:
+        '''Update text of :label:
+
+        :param label: one of ('thumbnails', 'image_groups',
+                              'remaining_images', 'found_in_cache',
+                              'loaded_images', 'duplicates'),
+        :param text: new text of :label:
         '''
 
         labels = {'thumbnails': self.thumbnailsLabel,
@@ -460,113 +224,86 @@ class MainForm(QtWidgets.QMainWindow):
         label_text[-1] = text
         label_to_change.setText(' '.join(label_text))
 
-    def has_selected_widgets(self):
-        '''Checks if there are selected DuplicateCandidateWidget in the form
+    def hasSelectedWidgets(self) -> bool:
+        '''Check if there are selected 'DuplicateWidget' on the form
 
-        :returns: bool, True if there are any
+        :return: True if there are any selected ones
         '''
 
-        group_widgets = self.scrollAreaWidget.findChildren(
-            ImageGroupWidget,
-            options=QtCore.Qt.FindDirectChildrenOnly
-        )
-        for group_widget in group_widgets:
+        for group_widget in self.findChildren(widgets.ImageGroupWidget):
             selected_widgets = group_widget.getSelectedWidgets()
             if selected_widgets:
                 return True
         return False
 
-    def _call_on_selected_widgets(self, func, *args, **kwargs):
-        '''Call a function on selected widgets
-
-        :param func: function to call
-        '''
-
-        group_widgets = self.scrollAreaWidget.findChildren(
-            ImageGroupWidget,
-            options=QtCore.Qt.FindDirectChildrenOnly
-        )
-        for group_widget in group_widgets:
-            selected_widgets = group_widget.getSelectedWidgets()
-            for selected_widget in selected_widgets:
-                try:
-                    func(selected_widget, *args, **kwargs)
-                except OSError as e:
-                    gui_logger.error(e)
-                else:
-                    selected_widget.selected = False
-            # If we select all (or except one) the images in a group,
-            if len(group_widget) - len(selected_widgets) <= 1:
-                # and all the selected images were processed correctly (so
-                # there are no selected images anymore), delete the whole group
-                if not group_widget.getSelectedWidgets():
-                    group_widget.deleteLater()
-
-    def _delete_images(self):
-        '''Delete selected images and DuplicateCandidateWidget widgets'''
-
-        self._call_on_selected_widgets(DuplicateCandidateWidget.delete)
-        self._switch_buttons()
-
-    def _move_images(self):
-        '''Move selected images and delete selected DuplicateCandidateWidget widgets'''
-
-        new_dst = self._openFolderNameDialog()
-        if new_dst:
-            self._call_on_selected_widgets(DuplicateCandidateWidget.move, new_dst)
-            self._switch_buttons()
-
-    def _image_processing_finished(self):
-        '''Called when image processing is finished'''
-
-        self.progressBar.setValue(100)
-        self.startBtn.setEnabled(True)
-        self.stopBtn.setEnabled(False)
-
-    def _start_processing(self, folders):
-        '''Set up image processing and run it'''
-
-        img_proc = processing.ImageProcessing(self, folders, self.sensitivity)
-
-        img_proc.signals.update_info.connect(self._update_label_info)
-        img_proc.signals.update_progressbar.connect(self.progressBar.setValue)
-        img_proc.signals.result.connect(self._render_image_groups)
-        img_proc.signals.finished.connect(self._image_processing_finished)
-
-        worker = processing.Worker(img_proc.run)
-        self.threadpool.start(worker)
-
-    def _switch_buttons(self):
-        if self.has_selected_widgets():
+    def switchButtons(self):
+        if self.hasSelectedWidgets():
             self.moveBtn.setEnabled(True)
             self.deleteBtn.setEnabled(True)
         else:
             self.moveBtn.setEnabled(False)
             self.deleteBtn.setEnabled(False)
 
+    def delete_images(self) -> None:
+        """Delete selected images and corresponding 'DuplicateWidget's"""
+
+        self._call_on_selected_widgets()
+        self.switchButtons()
+
+    def move_images(self) -> None:
+        """Move selected images and delete corresponding 'DuplicateWidget's"""
+
+        new_dst = self.openFolderNameDialog()
+        if new_dst:
+            self._call_on_selected_widgets(new_dst)
+            self.switchButtons()
+
+    def processing_finished(self) -> None:
+        '''Called when image processing is finished'''
+
+        self.progressBar.setValue(100)
+        self.startBtn.setEnabled(True)
+        self.stopBtn.setEnabled(False)
+
+    def start_processing(self, folders: Iterable[core.FolderPath]) -> None:
+        '''Set up image processing and run it
+
+        :param folders: folders to process
+        '''
+
+        proc = processing.ImageProcessing(self, folders, self.sensitivity)
+
+        proc.update_info.connect(self.updateLabel)
+        proc.update_progressbar.connect(self.progressBar.setValue)
+        proc.result.connect(self.render)
+        proc.finished.connect(self.processing_finished)
+
+        worker = processing.Worker(proc.run)
+        self.threadpool.start(worker)
+
     @QtCore.pyqtSlot()
-    def highRb_click(self):
-        '''Function called on 'High' radio button click event'''
+    def highRb_click(self) -> None:
+        """Function called on 'High' radio button click event"""
 
         self.sensitivity = 5
 
     @QtCore.pyqtSlot()
-    def mediumRb_click(self):
-        '''Function called on 'Medium' radio button click event'''
+    def mediumRb_click(self) -> None:
+        """Function called on 'Medium' radio button click event"""
 
         self.sensitivity = 10
 
     @QtCore.pyqtSlot()
-    def lowRb_click(self):
-        '''Function called on 'Low' radio button click event'''
+    def lowRb_click(self) -> None:
+        """Function called on 'Low' radio button click event"""
 
         self.sensitivity = 20
 
     @QtCore.pyqtSlot()
-    def addFolderBtn_click(self):
-        '''Function called on 'Add Path' button click event'''
+    def addFolderBtn_click(self) -> None:
+        """Function called on 'Add Path' button click event"""
 
-        folder_path = self._openFolderNameDialog()
+        folder_path = self.openFolderNameDialog()
         if folder_path:
             folder_path_item = QtWidgets.QListWidgetItem()
             folder_path_item.setData(QtCore.Qt.DisplayRole, folder_path)
@@ -575,8 +312,8 @@ class MainForm(QtWidgets.QMainWindow):
             self.startBtn.setEnabled(True)
 
     @QtCore.pyqtSlot()
-    def delFolderBtn_click(self):
-        '''Function called on 'Delete Path' button click event'''
+    def delFolderBtn_click(self) -> None:
+        """Function called on 'Delete Path' button click event"""
 
         item_list = self.pathListWidget.selectedItems()
         for item in item_list:
@@ -587,21 +324,21 @@ class MainForm(QtWidgets.QMainWindow):
             self.startBtn.setEnabled(False)
 
     @QtCore.pyqtSlot()
-    def startBtn_click(self):
-        '''Function called on 'Start' button click event'''
+    def startBtn_click(self) -> None:
+        """Function called on 'Start' button click event"""
 
-        self._clear_form_before_start()
+        self.clearMainForm()
         self.stopBtn.setEnabled(True)
         self.startBtn.setEnabled(False)
 
-        folders = self._get_user_folders()
-        self._start_processing(folders)
+        folders = self.getFolders()
+        self.start_processing(folders)
 
     @QtCore.pyqtSlot()
-    def stopBtn_click(self):
-        '''Function called on 'Stop' button click event'''
+    def stopBtn_click(self) -> None:
+        """Function called on 'Stop' button click event"""
 
-        self.signals.interrupt.emit()
+        self.interrupted.emit()
 
         msgBox = QtWidgets.QMessageBox(
             QtWidgets.QMessageBox.Information,
@@ -613,14 +350,14 @@ class MainForm(QtWidgets.QMainWindow):
         self.stopBtn.setEnabled(False)
 
     @QtCore.pyqtSlot()
-    def moveBtn_click(self):
-        '''Function called on 'Move' button click event'''
+    def moveBtn_click(self) -> None:
+        """Function called on 'Move' button click event"""
 
-        self._move_images()
+        self.move_images()
 
     @QtCore.pyqtSlot()
-    def deleteBtn_click(self):
-        '''Function called on 'Delete' button click event'''
+    def deleteBtn_click(self) -> None:
+        """Function called on 'Delete' button click event"""
 
         confirm = QtWidgets.QMessageBox.question(
             self,
@@ -630,4 +367,4 @@ class MainForm(QtWidgets.QMainWindow):
         )
 
         if confirm == QtWidgets.QMessageBox.Yes:
-            self._delete_images()
+            self.delete_images()
