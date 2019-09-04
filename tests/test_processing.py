@@ -17,24 +17,34 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 import logging
-import sys
 from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtGui, QtTest, QtWidgets
 
-from doppelganger import core, exception, processing
+from doppelganger import core, exception, gui, processing
 
-logging.lastResort = None
+# Configure a logger for testing purposes
+logger = logging.getLogger('main')
+logger.setLevel(logging.WARNING)
+if not logger.handlers:
+    nh = logging.NullHandler()
+    logger.addHandler(nh)
+
+# Check if there's QApplication instance already
+app = QtWidgets.QApplication.instance()
+if app is None:
+    app = QtWidgets.QApplication([])
 
 
 class TestThumbnailFunction(TestCase):
 
     def setUp(self):
-        self.image = core.Image('image.png', suffix='.png')
+        self.image = core.Image('image.png')
 
     @mock.patch('doppelganger.processing._scaling_dimensions', side_effect=OSError)
     def test_thumbnail_returns_None_if_OSError(self, mock_dim):
         th = processing.thumbnail(self.image)
+
         self.assertIsNone(th)
 
     @mock.patch('doppelganger.processing._scaling_dimensions', side_effect=OSError)
@@ -46,6 +56,7 @@ class TestThumbnailFunction(TestCase):
     @mock.patch('doppelganger.processing._scaling_dimensions', return_value=(1, 1))
     def test_thumbnail_returns_None_if_scaled_image_is_None(self, mock_dim, mock_scaled):
         th = processing.thumbnail(self.image)
+
         self.assertIsNone(th)
 
     @mock.patch('doppelganger.processing._QImage_to_QByteArray', return_value='return')
@@ -53,6 +64,7 @@ class TestThumbnailFunction(TestCase):
     @mock.patch('doppelganger.processing._scaling_dimensions', return_value=(1, 1))
     def test_thumbnail_returns_QImage_to_QByteArray_result(self, mock_dim, mock_scaled, mock_QBA):
         th = processing.thumbnail(self.image)
+
         self.assertEqual(th, 'return')
 
     def test_scaling_dimensions_raises_ValueError_if_pass_not_positive(self):
@@ -70,6 +82,7 @@ class TestThumbnailFunction(TestCase):
         w, h = 5, 5
         mock_dim.return_value = (w, h)
         new_size = processing._scaling_dimensions(self.image, w*2)
+
         self.assertEqual(new_size[0], w*2)
         self.assertEqual(new_size[1], h*2)
 
@@ -78,6 +91,7 @@ class TestThumbnailFunction(TestCase):
         w, h = 1, 5
         mock_dim.return_value = (w, h)
         new_size = processing._scaling_dimensions(self.image, h*2)
+
         self.assertEqual(new_size[0], w*2)
         self.assertEqual(new_size[1], h*2)
 
@@ -86,6 +100,7 @@ class TestThumbnailFunction(TestCase):
         w, h = 5, 1
         mock_dim.return_value = (w, h)
         new_size = processing._scaling_dimensions(self.image, w*2)
+
         self.assertEqual(new_size[0], w*2)
         self.assertEqual(new_size[1], h*2)
 
@@ -103,6 +118,7 @@ class TestThumbnailFunction(TestCase):
     @mock.patch('PyQt5.QtGui.QImageReader.canRead', return_value=True)
     def test_scaled_image_returns_None_if_isNull_returns_False(self, mock_canRead, mock_isNull):
         th = processing._scaled_image(self.image.path, 10, 10)
+
         self.assertIsNone(th)
 
     @mock.patch('PyQt5.QtGui.QImage.isNull', return_value=True)
@@ -115,11 +131,13 @@ class TestThumbnailFunction(TestCase):
     @mock.patch('PyQt5.QtGui.QImageReader.canRead', return_value=True)
     def test_scaled_image_returns_QImage_object(self, mock_canRead, mock_isNull):
         th = processing._scaled_image(self.image.path, 10, 10)
+
         self.assertIsInstance(th, QtGui.QImage)
 
     @mock.patch('PyQt5.QtCore.QBuffer.open', return_value=False)
     def test_QImage_to_QByteArray_returns_None_if_open_returns_False(self, mock_open):
         ba = processing._QImage_to_QByteArray(QtGui.QImage(), 'png')
+
         self.assertIsNone(ba)
 
     @mock.patch('PyQt5.QtCore.QBuffer.open', return_value=False)
@@ -130,6 +148,7 @@ class TestThumbnailFunction(TestCase):
     @mock.patch('PyQt5.QtGui.QImage.save', return_value=False)
     def test_QImage_to_QByteArray_returns_None_if_save_returns_False(self, mock_save):
         ba = processing._QImage_to_QByteArray(QtGui.QImage(), 'png')
+
         self.assertIsNone(ba)
 
     @mock.patch('PyQt5.QtGui.QImage.save', return_value=False)
@@ -141,6 +160,7 @@ class TestThumbnailFunction(TestCase):
     @mock.patch('PyQt5.QtCore.QBuffer.open', return_value=True)
     def test_QImage_to_QByteArray_returns_QByteArray(self, mock_open, mock_save):
         ba = processing._QImage_to_QByteArray(QtGui.QImage(), 'png')
+
         self.assertIsInstance(ba, QtCore.QByteArray)
 
 
@@ -148,39 +168,38 @@ class TestImageProcessingClass(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        app = QtWidgets.QApplication(sys.argv)
-        cls.mw = QtWidgets.QMainWindow()
-        cls.mw.signals = processing.Signals()
+        cls.mw = gui.MainForm()
 
     def setUp(self):
         self.im_pr = processing.ImageProcessing(self.mw, [], 0)
 
     def test_attributes_initial_values(self):
-        self.assertEqual(self.im_pr.progress_bar_value, 0)
-        self.assertFalse(self.im_pr.interrupt)
+        self.assertListEqual(self.im_pr.folders, [])
         self.assertEqual(self.im_pr.sensitivity, 0)
+        self.assertFalse(self.im_pr.interrupt)
+        self.assertEqual(self.im_pr.progress_bar_value, 0.0)
 
     @mock.patch('doppelganger.processing.core.find_images', return_value='paths')
-    def test_paths_return(self, mock_paths):
-        p = self.im_pr.paths([])
+    def test_find_images_return(self, mock_paths):
+        p = self.im_pr.find_images([])
 
         self.assertEqual(p, 'paths')
 
     @mock.patch('doppelganger.processing.core.find_images', side_effect=ValueError)
-    def test_paths_raise_ValueError(self, mock_exists):
+    def test_find_images_raise_ValueError(self, mock_exists):
         with self.assertRaises(ValueError):
-            self.im_pr.paths([])
+            self.im_pr.find_images([])
 
-    def test_paths_emits_update_info_signal(self):
-        spy = QtTest.QSignalSpy(self.im_pr.signals.update_info)
+    def test_find_images_emits_update_info_signal(self):
+        spy = QtTest.QSignalSpy(self.im_pr.update_info)
 
-        p = self.im_pr.paths([])
+        p = self.im_pr.find_images([])
 
         self.assertEqual(spy[0][0], 'loaded_images')
         self.assertEqual(spy[0][1], str(len(p)))
 
-    def test_paths_updates_progress_bar_value(self):
-        self.im_pr.paths([])
+    def test_find_images_updates_progress_bar_value(self):
+        self.im_pr.find_images([])
 
         self.assertEqual(self.im_pr.progress_bar_value, 5)
 
@@ -209,7 +228,7 @@ class TestImageProcessingClass(TestCase):
         self.assertEqual(n, 'not_cached')
 
     def test_check_cache_emits_update_info_signal(self):
-        spy = QtTest.QSignalSpy(self.im_pr.signals.update_info)
+        spy = QtTest.QSignalSpy(self.im_pr.update_info)
 
         c, _ = self.im_pr.check_cache([], {})
 
@@ -228,19 +247,19 @@ class TestImageProcessingClass(TestCase):
         self.assertEqual(self.im_pr.progress_bar_value, 55)
 
     @mock.patch('doppelganger.processing.ImageProcessing._imap', return_value='calculated')
-    def test_calculating_return(self, mock_calc):
+    def test_hashes_calculating_return(self, mock_calc):
         calc_res = [core.Image('a', dhash=0), core.Image('a', dhash=None)]
         mock_calc.return_value = calc_res
-        c = self.im_pr.calculating([])
+        c = self.im_pr.hashes_calculating([])
 
         self.assertListEqual(c, calc_res[:1])
 
     @mock.patch('doppelganger.processing.ImageProcessing._imap', return_value='calculated')
-    def test_calculating_logs_if_hash_is_None(self, mock_calc):
+    def test_hashes_calculating_logs_if_hash_is_None(self, mock_calc):
         calc_res = [core.Image('a', dhash=None)]
         mock_calc.return_value = calc_res
         with self.assertLogs('main.processing', 'ERROR'):
-            self.im_pr.calculating([])
+            self.im_pr.hashes_calculating([])
 
     @mock.patch('doppelganger.processing.core.caching')
     def test_caching_core_func_called(self, mock_caching):
@@ -265,7 +284,7 @@ class TestImageProcessingClass(TestCase):
         self.assertEqual(g, 'groups')
 
     def test_grouping_emits_update_info_signal(self):
-        spy = QtTest.QSignalSpy(self.im_pr.signals.update_info)
+        spy = QtTest.QSignalSpy(self.im_pr.update_info)
 
         g = self.im_pr.grouping([], 0)
 
@@ -279,19 +298,19 @@ class TestImageProcessingClass(TestCase):
 
         self.assertEqual(self.im_pr.progress_bar_value, 65)
 
-    def test_thumbnails_processing_if_pass_empty_image_groups(self):
-        g = self.im_pr.thumbnails_generating([])
+    def test_make_thumbnails_if_pass_empty_image_groups(self):
+        g = self.im_pr.make_thumbnails([])
 
         self.assertListEqual(g, [])
 
     @mock.patch('doppelganger.processing.ImageProcessing._imap')
-    def test_thumbnails_processing_emit_result(self, mock_thumbs):
+    def test_make_thumbnails_emit_result(self, mock_thumbs):
         image_groups = [[core.Image(path=f'{i}{j}') for j in range(2)]
                         for i in range(2)]
         thumbnails = [i for i in range(4)]
         mock_thumbs.return_value = thumbnails
 
-        result = self.im_pr.thumbnails_generating(image_groups)
+        result = self.im_pr.make_thumbnails(image_groups)
 
         k = 0
         for i, group in enumerate(result):
@@ -300,9 +319,14 @@ class TestImageProcessingClass(TestCase):
                 self.assertEqual(image.thumbnail, thumbnails[k])
                 k += 1
 
+    def test_is_interrupted_called_when_signal_emitted(self):
+        self.mw.interrupted.emit()
+
+        self.assertTrue(self.im_pr.interrupt)
+
     def test_update_progress_bar(self):
         value = 5
-        spy = QtTest.QSignalSpy(self.im_pr.signals.update_progressbar)
+        spy = QtTest.QSignalSpy(self.im_pr.update_progressbar)
         self.im_pr._update_progress_bar(value)
 
         self.assertEqual(self.im_pr.progress_bar_value, value)
@@ -314,7 +338,7 @@ class TestImageProcessingClass(TestCase):
         self.assertListEqual(result, [])
 
     def test_imap_emits_update_info_signal(self):
-        spy = QtTest.QSignalSpy(self.im_pr.signals.update_info)
+        spy = QtTest.QSignalSpy(self.im_pr.update_info)
 
         label = 'label'
         collection = ['a']
@@ -349,39 +373,39 @@ class TestImageProcessingClass(TestCase):
         expected = [1, 2, 3]
         self.assertListEqual(result, expected)
 
-    @mock.patch('doppelganger.processing.ImageProcessing.paths')
+    @mock.patch('doppelganger.processing.ImageProcessing.find_images')
     def test_run_if_raise_InterruptProcessing(self, mock):
         mock.side_effect = exception.InterruptProcessing
-        spy = QtTest.QSignalSpy(self.im_pr.signals.finished)
+        spy = QtTest.QSignalSpy(self.im_pr.finished)
 
         self.im_pr.run()
 
         self.assertEqual(len(spy), 1)
 
-    @mock.patch('doppelganger.processing.ImageProcessing.paths')
+    @mock.patch('doppelganger.processing.ImageProcessing.find_images')
     def test_run_logs_info(self, mock):
         mock.side_effect = exception.InterruptProcessing
         with self.assertLogs('main.processing', 'INFO'):
             self.im_pr.run()
 
-    @mock.patch('doppelganger.processing.ImageProcessing.paths')
+    @mock.patch('doppelganger.processing.ImageProcessing.find_images')
     def test_run_if_raise_Exception(self, mock):
         mock.side_effect = Exception('General exception')
-        spy_finished = QtTest.QSignalSpy(self.im_pr.signals.finished)
+        spy_finished = QtTest.QSignalSpy(self.im_pr.finished)
 
         self.im_pr.run()
 
         self.assertEqual(len(spy_finished), 1)
 
-    @mock.patch('doppelganger.processing.ImageProcessing.paths')
+    @mock.patch('doppelganger.processing.ImageProcessing.find_images')
     def test_run_logs_errors(self, mock):
         mock.side_effect = Exception('General exception')
         with self.assertLogs('main.processing', 'ERROR'):
             self.im_pr.run()
 
     def test_run_emits_result_signal(self):
-        spy_finished = QtTest.QSignalSpy(self.im_pr.signals.finished)
-        spy_result = QtTest.QSignalSpy(self.im_pr.signals.result)
+        spy_finished = QtTest.QSignalSpy(self.im_pr.finished)
+        spy_result = QtTest.QSignalSpy(self.im_pr.result)
 
         self.im_pr.run()
 

@@ -18,9 +18,10 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 from multiprocessing import Pool
-from typing import Tuple
+from typing import (Any, Callable, Collection, Dict, Iterable, List, Optional,
+                    Set, Tuple)
 
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from doppelganger import core
 from doppelganger.exception import InterruptProcessing
@@ -29,12 +30,11 @@ SIZE = 200
 
 processing_logger = logging.getLogger('main.processing')
 
-def thumbnail(image):
-    '''Returns an image's thumbnail
+def thumbnail(image: core.Image) -> Optional[QtCore.QByteArray]:
+    '''Make thumbnail of :image:
 
-    :param image: <class Image> object,
-    :returns: <class QByteArray> object or None
-              if there's any problem
+    :param image: image which thumbnail is returned,
+    :return: 'QByteArray' object or None if there's any problem
     '''
 
     try:
@@ -49,7 +49,7 @@ def thumbnail(image):
         return None
     return _QImage_to_QByteArray(img, image.suffix[1:])
 
-def _scaling_dimensions(image: core.Image, biggest_dim: int) -> Tuple[int, int]:
+def _scaling_dimensions(image: core.Image, biggest_dim: int) -> Tuple[core.Width, core.Height]:
     '''Find the new dimensions of the image (with aspect ratio kept)
     after being scaled
 
@@ -77,14 +77,15 @@ def _scaling_dimensions(image: core.Image, biggest_dim: int) -> Tuple[int, int]:
                          height * biggest_dim // height)
     return width, height
 
-def _scaled_image(path, width, height):
-    '''Returns a scaled image
+def _scaled_image(path: core.ImagePath, width: core.Width,
+                  height: core.Height) -> Optional[QtGui.QImage]:
+    '''Return the scaled image
 
-    :param path: str, full path of an image,
-    :param width: int, its new width,
-    :param height: int, its new height,
-    :returns: <class QImage> object or None if
-              something went wrong
+    :param path: full path of the image,
+    :param width: new width,
+    :param height: new height,
+    :return: scaled image as 'QImage' object
+             or None if something went wrong
     '''
 
     reader = QtGui.QImageReader(path)
@@ -103,14 +104,12 @@ def _scaled_image(path, width, height):
         return None
     return img
 
-def _QImage_to_QByteArray(image, suffix):
-    '''Converts a <class QImage> object to
-    a <class QByteArray> object
+def _QImage_to_QByteArray(image: QtGui.QImage, suffix: str) -> Optional[QtCore.QByteArray]:
+    '''Convert 'QImage' object to 'QByteArray' object
 
-    :param image: <class QImage> object,
-    :param suffix: str, suffix of the image (without a dot),
-    :returns: <class QByteArray> object or None
-              if there's any problem
+    :param image: 'QImage' object,
+    :param suffix: suffix of the image (without a dot),
+    :return: 'QByteArray' object or None if there's any problem
     '''
 
     ba = QtCore.QByteArray()
@@ -129,113 +128,111 @@ def _QImage_to_QByteArray(image, suffix):
     return ba
 
 
-class Signals(QtCore.QObject):
-    '''Supported signals:
-
-    :interrupt: the processing should be stopped and
-               the thread - killed,
-    :update_info: label to update: str, text to set: str,
-    :update_progressbar: int, new progress bar's value,
-    :error: tuple, (exctype, value, traceback.format_exc()),
-    :result: list, group of duplicate images,
-    :finished: the processing is done
-    '''
-
-    interrupt = QtCore.pyqtSignal()
-    update_info = QtCore.pyqtSignal(str, str)
-    update_progressbar = QtCore.pyqtSignal(int)
-    error = QtCore.pyqtSignal(tuple)
-    result = QtCore.pyqtSignal(list)
-    finished = QtCore.pyqtSignal()
-
-
 class Worker(QtCore.QRunnable):
-    '''QRunnable class reimplementation to handle a separate thread
-    '''
+    '''QRunnable class reimplementation to handle a separate thread'''
 
-    def __init__(self, func, *args, **kwargs):
+    def __init__(self, func: Callable[..., None], *args: Any, **kwargs: Any) -> None:
         super().__init__()
         self.func = func
         self.args = args
         self.kwargs = kwargs
 
     @QtCore.pyqtSlot()
-    def run(self):
+    def run(self) -> None:
         self.func(*self.args, **self.kwargs)
 
 
-class ImageProcessing:
-    '''All the machinery happenning in a separate thread while
-    processing images including reporting about the progress
+class ImageProcessing(QtCore.QObject):
+    '''The whole machinery happenning in a separate thread while
+    processing images
 
-    :param main_window: <class QMainWindow> instance
-                        from the main (GUI) thread,
-    :param folders: list of str, folders to process
+    :param main_window: 'QMainWindow' object from the main (GUI) thread,
+    :param folders: folders to process,
+    :param sensitivity: maximal difference between hashes of 2 images
+                        when they are considered similar;
+
+    Supported signals:
+    ------------------
+    :signal update_info: label to update: str, text to set: str,
+    :signal update_progressbar: new progress bar's value: float,
+    :signal error: error traceback: Tuple,
+    :signal result: groups of duplicate images: List[core.Group],
+    :signal finished: processing is done
     '''
 
-    def __init__(self, main_window, folders, sensitivity):
+    update_info = QtCore.pyqtSignal(str, str)
+    update_progressbar = QtCore.pyqtSignal(float)
+    error = QtCore.pyqtSignal(tuple)
+    result = QtCore.pyqtSignal(list)
+    finished = QtCore.pyqtSignal()
+
+    def __init__(self, main_window: QtWidgets.QMainWindow, folders: Iterable[core.FolderPath],
+                 sensitivity: core.Sensitivity) -> None:
         super().__init__()
         self.folders = folders
         self.sensitivity = sensitivity
 
-        self.signals = Signals()
         # If a user's clicked button 'Stop' in the main (GUI) thread,
         # 'interrupt' flag is changed to True
-        main_window.signals.interrupt.connect(self._is_interrupted)
+        main_window.interrupted.connect(self._is_interrupted)
         self.interrupt = False
 
-        self.progress_bar_value = 0
+        self.progress_bar_value: float = 0.0
 
-    def run(self):
+    def run(self) -> None:
         '''Main processing function'''
 
         try:
-            paths = self.paths(self.folders)
+            paths = self.find_images(self.folders)
             cache = self.load_cache()
             cached, not_cached = self.check_cache(paths, cache)
 
             if not_cached:
-                calculated = self.calculating(not_cached)
+                calculated = self.hashes_calculating(not_cached)
                 self.caching(calculated, cache)
                 cached.extend(calculated)
 
             image_groups = self.grouping(cached, self.sensitivity)
-            image_groups = self.thumbnails_generating(image_groups)
+            image_groups = self.make_thumbnails(image_groups)
 
-            self.signals.result.emit(image_groups)
+            self.result.emit(image_groups)
         except InterruptProcessing:
             processing_logger.info('Image processing has been interrupted by the user')
         except Exception:
             processing_logger.error('Unknown error: ', exc_info=True)
         finally:
-            self.signals.finished.emit()
+            self.finished.emit()
 
-    def paths(self, folders):
+    def find_images(self, folders: Iterable[core.FolderPath]) -> Set[core.ImagePath]:
         try:
             paths = core.find_images(folders)
         except ValueError as e:
             raise ValueError(e)
 
-        self.signals.update_info.emit('loaded_images', str(len(paths)))
+        self.update_info.emit('loaded_images', str(len(paths)))
         self._update_progress_bar(5)
 
         return paths
 
-    def load_cache(self):
+    def load_cache(self) -> Dict[core.ImagePath, core.Hash]:
         try:
             cached_hashes = core.load_cache()
         except EOFError as e:
-            print(e)
+            processing_logger.error(e)
             cached_hashes = {}
 
         self._update_progress_bar(10)
 
         return cached_hashes
 
-    def check_cache(self, paths, cache):
+    def check_cache(
+            self,
+            paths: Iterable[core.ImagePath],
+            cache: Dict[core.ImagePath, core.Hash]
+        ) -> Tuple[List[core.HashedImage], List[core.NoneImage]]:
         cached, not_cached = core.check_cache(paths, cache)
 
-        self.signals.update_info.emit('found_in_cache', str(len(cached)))
+        self.update_info.emit('found_in_cache', str(len(cached)))
         if not_cached:
             self._update_progress_bar(15)
         else:
@@ -243,7 +240,7 @@ class ImageProcessing:
 
         return cached, not_cached
 
-    def calculating(self, not_cached):
+    def hashes_calculating(self, not_cached: Collection[core.NoneImage]) -> List[core.HashedImage]:
         calculated = self._imap(core.Image.dhash, not_cached, 'remaining_images')
 
         good = []
@@ -255,27 +252,27 @@ class ImageProcessing:
 
         return good
 
-    def caching(self, calculated, cache):
+    def caching(self, calculated: Iterable[core.HashedImage],
+                cache: Dict[core.ImagePath, core.Hash]) -> None:
         core.caching(calculated, cache)
 
         self._update_progress_bar(55)
 
-    def grouping(self, cached, sensitivity):
-        image_groups = core.image_grouping(cached, sensitivity)
+    def grouping(self, images: Collection[core.HashedImage],
+                 sensitivity: core.Sensitivity) -> List[core.Group]:
+        image_groups = core.image_grouping(images, sensitivity)
 
-        self.signals.update_info.emit('image_groups', str(len(image_groups)))
-        self.signals.update_info.emit('duplicates', str(sum(len(g) for g in image_groups)))
+        self.update_info.emit('image_groups', str(len(image_groups)))
+        self.update_info.emit('duplicates', str(sum(len(g) for g in image_groups)))
         self._update_progress_bar(65)
 
         return image_groups
 
-    def thumbnails_generating(self, image_groups):
-        '''Makes thumbnails for the duplicate images
+    def make_thumbnails(self, image_groups: List[core.Group]) -> List[core.Group]:
+        '''Make thumbnails of the images
 
-        :param image_groups: list, [[<class Image> obj 1.1,
-                                     <class Image> obj 1.2, ...],
-                                    [<class Image> obj 2.1,
-                                     <class Image> obj 2.2, ...], ...]
+        :param image_groups: groups of duplicate images,
+        :return: groups of duplicate images with created thumbnails
         '''
 
         # 'Flat' list is processed better in parallel
@@ -293,31 +290,31 @@ class ImageProcessing:
 
         return image_groups
 
-    def _is_interrupted(self):
+    def _is_interrupted(self) -> None:
         self.interrupt = True
 
-    def _update_progress_bar(self, value):
+    def _update_progress_bar(self, value: float) -> None:
         '''Emit a new progress bar value
 
-        :param value: int, new 'progress_bar_value'
+        :param value: new 'progress_bar_value'
         '''
 
         self.progress_bar_value = value
-        self.signals.update_progressbar.emit(self.progress_bar_value)
+        self.update_progressbar.emit(self.progress_bar_value)
 
-    def _imap(self, func, collection, label):
+    def _imap(self, func: Callable[[Any], core.T], collection: Collection[Any],
+              label: str) -> List[core.T]:
         '''Reimplementation of 'imap' from multiprocessing lib
 
-        :param func: function to apply to :collection:,
-        :param collection: collection for processing,
-        :param label: label to update, one of
-                      ('remaining_images', 'thumbnails')
-        :returns: list of processed elements
+        :param func: function to apply to the elements of :collection:,
+        :param collection: collection to process in parallel,
+        :param label: label to update, one of ('remaining_images', 'thumbnails')
+        :return: list of processed elements
         '''
 
-        processed = []
+        processed: List[core.T] = []
         num = len(collection)
-        self.signals.update_info.emit(label, str(len(collection)))
+        self.update_info.emit(label, str(len(collection)))
 
         try:
             step = 35 / num
@@ -328,7 +325,7 @@ class ImageProcessing:
             for i, elem in enumerate(p.imap(func, collection)):
                 processed.append(elem)
 
-                self.signals.update_info.emit(label, str(num-i-1))
+                self.update_info.emit(label, str(num-i-1))
                 self._update_progress_bar(self.progress_bar_value + step)
 
                 if self.interrupt:
