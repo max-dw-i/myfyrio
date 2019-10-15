@@ -17,6 +17,8 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 import logging
+import subprocess
+import sys
 from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtGui, QtTest, QtWidgets
@@ -247,6 +249,30 @@ class TestDuplicateWidget(TestCase):
         self.w._widgets()
 
         self.assertTrue(mock_th.called)
+
+    @mock.patch('doppelganger.widgets.subprocess.run')
+    def test_mouseDoubleClickEvent(self, mock_run):
+        mw = QtWidgets.QMainWindow()
+        mw.setCentralWidget(self.w)
+        open_image_command = {'linux': 'xdg-open',
+                              'win32': 'explorer',
+                              'darwin': 'open'}[sys.platform]
+        QtTest.QTest.mouseDClick(self.w, QtCore.Qt.LeftButton)
+
+        mock_run.assert_called_once_with(
+            [open_image_command, self.w.image.path],
+            check=True
+        )
+
+    def test_mouseDoubleClickEvent_raise_CalledProcessError(self):
+        mw = QtWidgets.QMainWindow()
+        mw.setCentralWidget(self.w)
+
+        with mock.patch('doppelganger.widgets.subprocess.run') as mock_run:
+            mock_run.side_effect = subprocess.CalledProcessError(1, 'cmd')
+
+            with self.assertLogs('main.widgets', 'ERROR'):
+                QtTest.QTest.mouseDClick(self.w, QtCore.Qt.LeftButton)
 
     @mock.patch('doppelganger.widgets.ThumbnailWidget.unmark')
     def test_mouseReleaseEvent_on_selected_widget(self, mock_unmark):
