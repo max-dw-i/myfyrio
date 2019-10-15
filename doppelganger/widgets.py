@@ -22,6 +22,8 @@ Module with custom widgets
 
 import logging
 import pathlib
+import subprocess
+import sys
 from typing import Iterable, List, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -213,6 +215,24 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
                                     dimensions, filesize, self)
 
         return imageLabel, imageInfo
+
+    def mouseDoubleClickEvent(self, event) -> None:
+        '''Function called on mouse double click event.
+        Opens the image in the OS default image viewer
+        '''
+
+        super().mouseDoubleClickEvent(event)
+
+        open_image_command = {'linux': 'xdg-open',
+                              'win32': 'explorer',
+                              'darwin': 'open'}[sys.platform]
+
+        try:
+            subprocess.run([open_image_command, self.image.path], check=True)
+        except subprocess.CalledProcessError:
+            msg = 'Something wrong happened while opening the image viewer'
+            widgets_logger.error(msg, exc_info=True)
+
 
     def mouseReleaseEvent(self, event) -> None:
         '''Function called on mouse release event'''
