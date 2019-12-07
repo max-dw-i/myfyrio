@@ -216,12 +216,8 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
 
         return imageLabel, imageInfo
 
-    def mouseDoubleClickEvent(self, event) -> None:
-        '''Function called on mouse double click event.
-        Opens the image in the OS default image viewer
-        '''
-
-        super().mouseDoubleClickEvent(event)
+    def _open_image(self) -> None:
+        '''Open the image in the OS default image viewer'''
 
         open_image_command = {'linux': 'xdg-open',
                               'win32': 'explorer',
@@ -233,6 +229,12 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
             msg = 'Something wrong happened while opening the image viewer'
             widgets_logger.error(msg, exc_info=True)
 
+    def contextMenuEvent(self, event) -> None:
+        menu = QtWidgets.QMenu(self)
+        openAction = menu.addAction("Open")
+        action = menu.exec_(self.mapToGlobal(event.pos()))
+        if action == openAction:
+            self._open_image()
 
     def mouseReleaseEvent(self, event) -> None:
         '''Function called on mouse release event'''

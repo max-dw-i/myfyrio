@@ -251,20 +251,20 @@ class TestDuplicateWidget(TestCase):
         self.assertTrue(mock_th.called)
 
     @mock.patch('doppelganger.widgets.subprocess.run')
-    def test_mouseDoubleClickEvent(self, mock_run):
+    def test_open_image(self, mock_run):
         mw = QtWidgets.QMainWindow()
         mw.setCentralWidget(self.w)
         open_image_command = {'linux': 'xdg-open',
                               'win32': 'explorer',
                               'darwin': 'open'}[sys.platform]
-        QtTest.QTest.mouseDClick(self.w, QtCore.Qt.LeftButton)
+        self.w._open_image()
 
         mock_run.assert_called_once_with(
             [open_image_command, self.w.image.path],
             check=True
         )
 
-    def test_mouseDoubleClickEvent_raise_CalledProcessError(self):
+    def test_open_image_raise_CalledProcessError(self):
         mw = QtWidgets.QMainWindow()
         mw.setCentralWidget(self.w)
 
@@ -272,7 +272,10 @@ class TestDuplicateWidget(TestCase):
             mock_run.side_effect = subprocess.CalledProcessError(1, 'cmd')
 
             with self.assertLogs('main.widgets', 'ERROR'):
-                QtTest.QTest.mouseDClick(self.w, QtCore.Qt.LeftButton)
+                        self.w._open_image()
+
+    def test_contextMenuEvent(self):
+        pass
 
     @mock.patch('doppelganger.widgets.ThumbnailWidget.unmark')
     def test_mouseReleaseEvent_on_selected_widget(self, mock_unmark):
