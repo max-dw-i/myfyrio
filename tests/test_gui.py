@@ -227,12 +227,12 @@ class TestMainForm(TestCase):
         self.assertTrue(w.selected)
 
     @mock.patch('doppelganger.gui.MainForm.hasSelectedWidgets', return_value=True)
-    def test_switchButtons_called_when_signal_emited(self, mock_has):
+    def test_switchButtons_called_when_signal_emitted(self, mock_has):
         self.form.moveBtn.setEnabled(False)
         self.form.deleteBtn.setEnabled(False)
         self.form.render([[core.Image('image.png', 0)]])
         dw = self.form.findChild(widgets.DuplicateWidget)
-        dw.clicked.emit()
+        dw.signals.clicked.emit()
 
         self.assertTrue(self.form.moveBtn.isEnabled())
         self.assertTrue(self.form.deleteBtn.isEnabled())
@@ -381,7 +381,7 @@ class TestMainForm(TestCase):
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
     def test_stopBtn_click_emits_interrupt_signal(self, mock_msgbox):
         self.form.stopBtn.setEnabled(True)
-        spy = QtTest.QSignalSpy(self.form.interrupted)
+        spy = QtTest.QSignalSpy(self.form.signals.interrupted)
         QtTest.QTest.mouseClick(self.form.stopBtn, QtCore.Qt.LeftButton)
 
         self.assertEqual(len(spy), 1)

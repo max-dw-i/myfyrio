@@ -23,7 +23,7 @@ from typing import (Any, Callable, Collection, Dict, Iterable, List, Optional,
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from doppelganger import core
+from doppelganger import core, signals
 from doppelganger.exception import InterruptProcessing
 
 SIZE = 200
@@ -142,39 +142,26 @@ class Worker(QtCore.QRunnable):
         self.func(*self.args, **self.kwargs)
 
 
-class ImageProcessing(QtCore.QObject):
+class ImageProcessing:
     '''The whole machinery happenning in a separate thread while
     processing images
 
-    :param main_window: 'QMainWindow' object from the main (GUI) thread,
-    :param folders: folders to process,
-    :param sensitivity: maximal difference between hashes of 2 images
+    :mw_signals: signals object from the main (GUI) thread,
+    :folders: folders to process,
+    :sensitivity: maximal difference between hashes of 2 images
                         when they are considered similar;
-
-    Supported signals:
-    ------------------
-    :signal update_info: label to update: str, text to set: str,
-    :signal update_progressbar: new progress bar's value: float,
-    :signal error: error traceback: Tuple,
-    :signal result: groups of duplicate images: List[core.Group],
-    :signal finished: processing is done
     '''
 
-    update_info = QtCore.pyqtSignal(str, str)
-    update_progressbar = QtCore.pyqtSignal(float)
-    error = QtCore.pyqtSignal(tuple)
-    result = QtCore.pyqtSignal(list)
-    finished = QtCore.pyqtSignal()
-
-    def __init__(self, main_window: QtWidgets.QMainWindow, folders: Iterable[core.FolderPath],
+    def __init__(self, mw_signals: signals.Signals, folders: Iterable[core.FolderPath],
                  sensitivity: core.Sensitivity) -> None:
         super().__init__()
+        self.signals = signals.Signals()
         self.folders = folders
         self.sensitivity = sensitivity
 
         # If a user's clicked button 'Stop' in the main (GUI) thread,
         # 'interrupt' flag is changed to True
-        main_window.interrupted.connect(self._is_interrupted)
+        mw_signals.interrupted.connect(self._is_interrupted)
         self.interrupt = False
 
         self.progress_bar_value: float = 0.0
@@ -195,13 +182,13 @@ class ImageProcessing(QtCore.QObject):
             image_groups = self.grouping(cached, self.sensitivity)
             image_groups = self.make_thumbnails(image_groups)
 
-            self.result.emit(image_groups)
+            self.signals.result.emit(image_groups)
         except InterruptProcessing:
             processing_logger.info('Image processing has been interrupted by the user')
         except Exception:
             processing_logger.error('Unknown error: ', exc_info=True)
         finally:
-            self.finished.emit()
+            self.signals.finished.emit()
 
     def find_images(self, folders: Iterable[core.FolderPath]) -> Set[core.ImagePath]:
         try:
@@ -209,7 +196,7 @@ class ImageProcessing(QtCore.QObject):
         except ValueError as e:
             raise ValueError(e)
 
-        self.update_info.emit('loaded_images', str(len(paths)))
+        self.signals.update_info.emit('loaded_images', str(len(paths)))
         self._update_progress_bar(5)
 
         return paths
@@ -232,7 +219,7 @@ class ImageProcessing(QtCore.QObject):
         ) -> Tuple[List[core.HashedImage], List[core.NoneImage]]:
         cached, not_cached = core.check_cache(paths, cache)
 
-        self.update_info.emit('found_in_cache', str(len(cached)))
+        self.signals.update_info.emit('found_in_cache', str(len(cached)))
         if not_cached:
             self._update_progress_bar(15)
         else:
@@ -262,8 +249,8 @@ class ImageProcessing(QtCore.QObject):
                  sensitivity: core.Sensitivity) -> List[core.Group]:
         image_groups = core.image_grouping(images, sensitivity)
 
-        self.update_info.emit('image_groups', str(len(image_groups)))
-        self.update_info.emit('duplicates', str(sum(len(g) for g in image_groups)))
+        self.signals.update_info.emit('image_groups', str(len(image_groups)))
+        self.signals.update_info.emit('duplicates', str(sum(len(g) for g in image_groups)))
         self._update_progress_bar(65)
 
         return image_groups
@@ -300,7 +287,7 @@ class ImageProcessing(QtCore.QObject):
         '''
 
         self.progress_bar_value = value
-        self.update_progressbar.emit(self.progress_bar_value)
+        self.signals.update_progressbar.emit(self.progress_bar_value)
 
     def _imap(self, func: Callable[[Any], core.T], collection: Collection[Any],
               label: str) -> List[core.T]:
@@ -314,7 +301,7 @@ class ImageProcessing(QtCore.QObject):
 
         processed: List[core.T] = []
         num = len(collection)
-        self.update_info.emit(label, str(len(collection)))
+        self.signals.update_info.emit(label, str(len(collection)))
 
         try:
             step = 35 / num
@@ -325,7 +312,7 @@ class ImageProcessing(QtCore.QObject):
             for i, elem in enumerate(p.imap(func, collection)):
                 processed.append(elem)
 
-                self.update_info.emit(label, str(num-i-1))
+                self.signals.update_info.emit(label, str(num-i-1))
                 self._update_progress_bar(self.progress_bar_value + step)
 
                 if self.interrupt:

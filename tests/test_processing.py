@@ -171,7 +171,7 @@ class TestImageProcessingClass(TestCase):
         cls.mw = gui.MainForm()
 
     def setUp(self):
-        self.im_pr = processing.ImageProcessing(self.mw, [], 0)
+        self.im_pr = processing.ImageProcessing(self.mw.signals, [], 0)
 
     def test_attributes_initial_values(self):
         self.assertListEqual(self.im_pr.folders, [])
@@ -191,7 +191,7 @@ class TestImageProcessingClass(TestCase):
             self.im_pr.find_images([])
 
     def test_find_images_emits_update_info_signal(self):
-        spy = QtTest.QSignalSpy(self.im_pr.update_info)
+        spy = QtTest.QSignalSpy(self.im_pr.signals.update_info)
 
         p = self.im_pr.find_images([])
 
@@ -228,7 +228,7 @@ class TestImageProcessingClass(TestCase):
         self.assertEqual(n, 'not_cached')
 
     def test_check_cache_emits_update_info_signal(self):
-        spy = QtTest.QSignalSpy(self.im_pr.update_info)
+        spy = QtTest.QSignalSpy(self.im_pr.signals.update_info)
 
         c, _ = self.im_pr.check_cache([], {})
 
@@ -284,7 +284,7 @@ class TestImageProcessingClass(TestCase):
         self.assertEqual(g, 'groups')
 
     def test_grouping_emits_update_info_signal(self):
-        spy = QtTest.QSignalSpy(self.im_pr.update_info)
+        spy = QtTest.QSignalSpy(self.im_pr.signals.update_info)
 
         g = self.im_pr.grouping([], 0)
 
@@ -320,13 +320,13 @@ class TestImageProcessingClass(TestCase):
                 k += 1
 
     def test_is_interrupted_called_when_signal_emitted(self):
-        self.mw.interrupted.emit()
+        self.mw.signals.interrupted.emit()
 
         self.assertTrue(self.im_pr.interrupt)
 
     def test_update_progress_bar(self):
         value = 5
-        spy = QtTest.QSignalSpy(self.im_pr.update_progressbar)
+        spy = QtTest.QSignalSpy(self.im_pr.signals.update_progressbar)
         self.im_pr._update_progress_bar(value)
 
         self.assertEqual(self.im_pr.progress_bar_value, value)
@@ -338,7 +338,7 @@ class TestImageProcessingClass(TestCase):
         self.assertListEqual(result, [])
 
     def test_imap_emits_update_info_signal(self):
-        spy = QtTest.QSignalSpy(self.im_pr.update_info)
+        spy = QtTest.QSignalSpy(self.im_pr.signals.update_info)
 
         label = 'label'
         collection = ['a']
@@ -376,7 +376,7 @@ class TestImageProcessingClass(TestCase):
     @mock.patch('doppelganger.processing.ImageProcessing.find_images')
     def test_run_if_raise_InterruptProcessing(self, mock):
         mock.side_effect = exception.InterruptProcessing
-        spy = QtTest.QSignalSpy(self.im_pr.finished)
+        spy = QtTest.QSignalSpy(self.im_pr.signals.finished)
 
         self.im_pr.run()
 
@@ -391,7 +391,7 @@ class TestImageProcessingClass(TestCase):
     @mock.patch('doppelganger.processing.ImageProcessing.find_images')
     def test_run_if_raise_Exception(self, mock):
         mock.side_effect = Exception('General exception')
-        spy_finished = QtTest.QSignalSpy(self.im_pr.finished)
+        spy_finished = QtTest.QSignalSpy(self.im_pr.signals.finished)
 
         self.im_pr.run()
 
@@ -404,8 +404,8 @@ class TestImageProcessingClass(TestCase):
             self.im_pr.run()
 
     def test_run_emits_result_signal(self):
-        spy_finished = QtTest.QSignalSpy(self.im_pr.finished)
-        spy_result = QtTest.QSignalSpy(self.im_pr.result)
+        spy_finished = QtTest.QSignalSpy(self.im_pr.signals.finished)
+        spy_result = QtTest.QSignalSpy(self.im_pr.signals.result)
 
         self.im_pr.run()
 

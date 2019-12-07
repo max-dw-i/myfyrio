@@ -26,7 +26,7 @@ from typing import Iterable, Optional, Set
 
 from PyQt5 import QtCore, QtWidgets, uic
 
-from doppelganger import core, processing, widgets
+from doppelganger import core, processing, signals, widgets
 
 UI = str(pathlib.Path('doppelganger') / 'gui.ui')
 ABOUT_UI = str(pathlib.Path('doppelganger') / 'about.ui')
@@ -49,19 +49,14 @@ class AboutForm(QtWidgets.QMainWindow):
 
 
 class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
-    '''Main GUI class
-
-    Supported signals:
-    ------------------
-    :signal interrupted: image processing must be stopped
-    '''
-
-    interrupted = QtCore.pyqtSignal()
+    '''Main GUI class'''
 
     def __init__(self) -> None:
         super().__init__()
         uic.loadUi(UI, self)
         self.scrollAreaLayout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+
+        self.signals = signals.Signals()
 
         self.threadpool = QtCore.QThreadPool()
         self._setWidgetEvents()
@@ -201,7 +196,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
                 self.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(group, self.scrollArea))
 
             for widget in self.findChildren(widgets.DuplicateWidget):
-                widget.clicked.connect(self.switchButtons)
+                widget.signals.clicked.connect(self.switchButtons)
 
     def updateLabel(self, label: str, text: str) -> None:
         '''Update text of :label:
@@ -271,12 +266,12 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         :param folders: folders to process
         '''
 
-        proc = processing.ImageProcessing(self, folders, self.sensitivity)
+        proc = processing.ImageProcessing(self.signals, folders, self.sensitivity)
 
-        proc.update_info.connect(self.updateLabel)
-        proc.update_progressbar.connect(self.progressBar.setValue)
-        proc.result.connect(self.render)
-        proc.finished.connect(self.processing_finished)
+        proc.signals.update_info.connect(self.updateLabel)
+        proc.signals.update_progressbar.connect(self.progressBar.setValue)
+        proc.signals.result.connect(self.render)
+        proc.signals.finished.connect(self.processing_finished)
 
         worker = processing.Worker(proc.run)
         self.threadpool.start(worker)
@@ -338,7 +333,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
     def stopBtn_click(self) -> None:
         """Function called on 'Stop' button click event"""
 
-        self.interrupted.emit()
+        self.signals.interrupted.emit()
 
         msgBox = QtWidgets.QMessageBox(
             QtWidgets.QMessageBox.Information,

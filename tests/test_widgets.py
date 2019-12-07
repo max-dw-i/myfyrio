@@ -282,7 +282,7 @@ class TestDuplicateWidget(TestCase):
         mw = QtWidgets.QMainWindow()
         mw.setCentralWidget(self.w)
         self.w.selected = True
-        spy = QtTest.QSignalSpy(self.w.clicked)
+        spy = QtTest.QSignalSpy(self.w.signals.clicked)
         QtTest.QTest.mouseClick(self.w, QtCore.Qt.LeftButton)
 
         self.assertFalse(self.w.selected)
@@ -294,7 +294,7 @@ class TestDuplicateWidget(TestCase):
         mw = QtWidgets.QMainWindow()
         mw.setCentralWidget(self.w)
         self.w.selected = False
-        spy = QtTest.QSignalSpy(self.w.clicked)
+        spy = QtTest.QSignalSpy(self.w.signals.clicked)
         QtTest.QTest.mouseClick(self.w, QtCore.Qt.LeftButton)
 
         self.assertTrue(self.w.selected)

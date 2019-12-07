@@ -28,7 +28,7 @@ from typing import Iterable, List, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from doppelganger import core
+from doppelganger import core, signals
 
 IMAGE_ERROR = str(pathlib.Path('doppelganger') / 'resources' / 'image_error.png')
 SIZE = 200
@@ -174,15 +174,13 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
     about it (its similarity rate, size and path)
     '''
 
-    clicked = QtCore.pyqtSignal()
-
     def __init__(self, image: core.HashedImage, parent=None) -> None:
         super().__init__(parent)
         self.image = image
         self.selected = False
         self.imageLabel, self.imageInfo = self._widgets()
 
-        #self.signals = Signals()
+        self.signals = signals.Signals()
 
         self.setFixedWidth(SIZE)
         layout = QtWidgets.QVBoxLayout(self)
@@ -248,7 +246,7 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
             self.selected = True
             self.imageLabel.mark()
 
-        self.clicked.emit()
+        self.signals.clicked.emit()
 
     def delete(self) -> None:
         '''Delete the image from disk and its DuplicateWidget instance
