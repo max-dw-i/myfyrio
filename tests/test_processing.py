@@ -177,6 +177,7 @@ class TestImageProcessingClass(TestCase):
         self.assertListEqual(self.im_pr.folders, [])
         self.assertEqual(self.im_pr.sensitivity, 0)
         self.assertFalse(self.im_pr.interrupt)
+        self.assertFalse(self.im_pr.errors)
         self.assertEqual(self.im_pr.progress_bar_value, 0.0)
 
     @mock.patch('doppelganger.processing.core.find_images', return_value='paths')
@@ -260,6 +261,8 @@ class TestImageProcessingClass(TestCase):
         mock_calc.return_value = calc_res
         with self.assertLogs('main.processing', 'ERROR'):
             self.im_pr.hashes_calculating([])
+
+        self.assertTrue(self.im_pr.errors)
 
     @mock.patch('doppelganger.processing.core.caching')
     def test_caching_core_func_called(self, mock_caching):
@@ -396,6 +399,7 @@ class TestImageProcessingClass(TestCase):
         self.im_pr.run()
 
         self.assertEqual(len(spy_finished), 1)
+        self.assertTrue(self.im_pr.errors)
 
     @mock.patch('doppelganger.processing.ImageProcessing.find_images')
     def test_run_logs_errors(self, mock):
@@ -410,4 +414,14 @@ class TestImageProcessingClass(TestCase):
         self.im_pr.run()
 
         self.assertListEqual(spy_result[0][0], [])
+        self.assertEqual(len(spy_finished), 1)
+
+    def test_run_emits_error_signal(self):
+        spy_finished = QtTest.QSignalSpy(self.im_pr.signals.finished)
+        spy_error = QtTest.QSignalSpy(self.im_pr.signals.error)
+
+        self.im_pr.errors = True
+        self.im_pr.run()
+
+        self.assertEqual(len(spy_error), 1)
         self.assertEqual(len(spy_finished), 1)

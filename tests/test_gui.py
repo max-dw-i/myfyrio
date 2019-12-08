@@ -151,6 +151,12 @@ class TestMainForm(TestCase):
 
         self.assertTrue(mock_dialog.called)
 
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
+    def test_showErrMsg_calls_message_box(self, mock_msgbox):
+        self.form.showErrMsg()
+
+        self.assertTrue(mock_msgbox.called)
+
     def test_clearMainForm_no_group_widgets(self):
         self.form.clearMainForm()
         group_widgets = self.form.findChildren(widgets.ImageGroupWidget)

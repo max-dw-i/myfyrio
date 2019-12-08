@@ -163,6 +163,7 @@ class ImageProcessing:
         # 'interrupt' flag is changed to True
         mw_signals.interrupted.connect(self._is_interrupted)
         self.interrupt = False
+        self.errors = False
 
         self.progress_bar_value: float = 0.0
 
@@ -187,8 +188,11 @@ class ImageProcessing:
             processing_logger.info('Image processing has been interrupted by the user')
         except Exception:
             processing_logger.error('Unknown error: ', exc_info=True)
+            self.errors = True
         finally:
             self.signals.finished.emit()
+            if self.errors:
+                self.signals.error.emit()
 
     def find_images(self, folders: Iterable[core.FolderPath]) -> Set[core.ImagePath]:
         try:
@@ -234,6 +238,7 @@ class ImageProcessing:
         for image in calculated:
             if image.hash is None:
                 processing_logger.error(f'Hash of {image.path} cannot be calculated')
+                self.errors = True
             else:
                 good.append(image)
 

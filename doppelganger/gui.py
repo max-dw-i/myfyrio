@@ -157,6 +157,18 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         )
         return folder_path
 
+    def showErrMsg(self):
+        '''Show up when there've been some errors while running
+        the programme'''
+
+        msg_box = QtWidgets.QMessageBox(
+        QtWidgets.QMessageBox.Warning,
+            'Errors',
+            ("There've been some errors while running the programme. "
+            "For more details, see 'errors.log'")
+        )
+        msg_box.exec()
+
     def clearMainForm(self) -> None:
         '''Clear the form from the previous duplicate images and labels'''
 
@@ -271,6 +283,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         proc.signals.update_info.connect(self.updateLabel)
         proc.signals.update_progressbar.connect(self.progressBar.setValue)
         proc.signals.result.connect(self.render)
+        proc.signals.error.connect(self.showErrMsg)
         proc.signals.finished.connect(self.processing_finished)
 
         worker = processing.Worker(proc.run)
