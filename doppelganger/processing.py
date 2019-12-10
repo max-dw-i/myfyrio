@@ -21,7 +21,7 @@ from multiprocessing import Pool
 from typing import (Any, Callable, Collection, Dict, Iterable, List, Optional,
                     Set, Tuple)
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtGui
 
 from doppelganger import core, signals
 from doppelganger.exception import InterruptProcessing
@@ -192,7 +192,8 @@ class ImageProcessing:
         finally:
             self.signals.finished.emit()
             if self.errors:
-                self.signals.error.emit()
+                self.signals.error.emit('Something went wrong while '
+                                        'processing images')
 
     def find_images(self, folders: Iterable[core.FolderPath]) -> Set[core.ImagePath]:
         try:

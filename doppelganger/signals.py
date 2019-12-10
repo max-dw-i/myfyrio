@@ -7,7 +7,7 @@ class Signals(QtCore.QObject):
     ------------------
     :update_info: label to update: str, text to set: str,
     :update_progressbar: new progress bar's value: float,
-    :error: error traceback,
+    :error: error traceback: str,
     :result: groups of duplicate images: List[core.Group],
     :finished: processing is done,
     :interrupted: image processing must be stopped,
@@ -16,7 +16,7 @@ class Signals(QtCore.QObject):
 
     update_info = QtCore.pyqtSignal(str, str)
     update_progressbar = QtCore.pyqtSignal(float)
-    error = QtCore.pyqtSignal()
+    error = QtCore.pyqtSignal(str)
     result = QtCore.pyqtSignal(list)
     finished = QtCore.pyqtSignal()
     interrupted = QtCore.pyqtSignal()
