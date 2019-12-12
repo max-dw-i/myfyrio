@@ -71,7 +71,8 @@ class Config:
             raise OSError(e)
 
     def load(self) -> None:
-        """Load file 'config.p'
+        """Load file 'config.p'. If something went wrong
+        while loading 'config.p', the default data is loaded
 
         :raise OSError: if something goes wrong during
                         'config.p' loading attempt
