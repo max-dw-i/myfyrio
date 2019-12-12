@@ -114,3 +114,6 @@ venv.bak/
 
 # TODO
 TODO
+
+#mypy config
+mypy.ini
