@@ -54,6 +54,123 @@ class TestAboutForm(TestCase):
         self.assertTrue(mock_delete.called)
 
 
+class TestPreferencesForm(TestCase):
+
+    def setUp(self):
+        self.form = gui.PreferencesForm()
+
+    def clear_form(self):
+        self.form.sizeEdit.setText('13')
+        self.form.sortComboBox.setCurrentIndex(0)
+        self.form.similarityBox.setChecked(False)
+        self.form.sizeBox.setChecked(False)
+        self.form.pathBox.setChecked(False)
+        self.form.cachethumbsBox.setChecked(False)
+        self.form.deldirsBox.setChecked(False)
+
+    @mock.patch('doppelganger.gui.PreferencesForm._setWidgetEvents')
+    @mock.patch('doppelganger.gui.PreferencesForm._update_form')
+    @mock.patch('doppelganger.gui.PreferencesForm._load_prefs')
+    @mock.patch('PyQt5.QtWidgets.QComboBox.addItems')
+    def test_init(self, mock_combobox, mock_prefs, mock_update, mock_events):
+        gui.PreferencesForm()
+
+        mock_combobox.assert_called_once_with([
+            'Similarity rate',
+            'Filesize',
+            'Width and Height',
+            'Path'
+        ])
+        mock_prefs.assert_called_once()
+        mock_update.assert_called_once()
+        mock_events.assert_called_once()
+
+    @mock.patch('doppelganger.gui.PreferencesForm.deleteLater')
+    @mock.patch('PyQt5.QtWidgets.QMainWindow.closeEvent')
+    def test_closeEvent(self, mock_close, mock_delete):
+        self.form = gui.PreferencesForm()
+        self.form.close()
+
+        self.assertTrue(mock_close.called)
+        self.assertTrue(mock_delete.called)
+
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
+    @mock.patch('doppelganger.config.Config.load', side_effect=OSError)
+    def test_load_prefs_if_raise_OSError(self, mock_conf, mock_exec):
+        default_data = {'cache_thumbnails': False,
+                        'delete_dirs': False,
+                        'show_path': True,
+                        'show_similarity': True,
+                        'show_size': True,
+                        'size': 200,
+                        'sort': 0}
+        data = self.form._load_prefs()
+
+        mock_exec.assert_called_once()
+        self.assertDictEqual(data, default_data)
+
+    def test_update_form(self):
+        self.clear_form()
+
+        data = {'cache_thumbnails': True,
+                'delete_dirs': True,
+                'show_path': True,
+                'show_similarity': True,
+                'show_size': True,
+                'size': '666',
+                'sort': 1}
+
+        self.form._update_form(data)
+
+        self.assertEqual(data['size'], self.form.sizeEdit.text())
+        self.assertEqual(data['sort'], self.form.sortComboBox.currentIndex())
+        self.assertEqual(data['show_similarity'], self.form.similarityBox.isChecked())
+        self.assertEqual(data['show_size'], self.form.sizeBox.isChecked())
+        self.assertEqual(data['show_path'], self.form.pathBox.isChecked())
+        self.assertEqual(data['cache_thumbnails'], self.form.cachethumbsBox.isChecked())
+        self.assertEqual(data['delete_dirs'], self.form.deldirsBox.isChecked())
+
+    def test_gather_prefs(self):
+        self.clear_form()
+        data = {'cache_thumbnails': False,
+                'delete_dirs': False,
+                'show_path': False,
+                'show_similarity': False,
+                'show_size': False,
+                'size': 13,
+                'sort': 0}
+
+        gathered_data = self.form._gather_prefs()
+
+        self.assertDictEqual(data, gathered_data)
+
+    @mock.patch('PyQt5.QtWidgets.QMainWindow.deleteLater')
+    @mock.patch('doppelganger.config.Config.save')
+    @mock.patch('doppelganger.gui.PreferencesForm._gather_prefs', return_value={})
+    def test_saveBtn_click(self, mock_prefs, mock_save, mock_del):
+        QtTest.QTest.mouseClick(self.form.saveBtn, QtCore.Qt.LeftButton)
+
+        mock_prefs.assert_called_once()
+        mock_save.assert_called_once()
+        mock_del.assert_called_once()
+
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
+    @mock.patch('doppelganger.config.Config.save', side_effect=OSError)
+    @mock.patch('doppelganger.gui.PreferencesForm._gather_prefs', return_value={})
+    def test_saveBtn_click_if_raise_OSError(self, mock_prefs, mock_save, mock_exec):
+        QtTest.QTest.mouseClick(self.form.saveBtn, QtCore.Qt.LeftButton)
+
+        mock_prefs.assert_called_once()
+        mock_save.assert_called_once()
+        mock_exec.assert_called_once()
+
+    @mock.patch('PyQt5.QtWidgets.QMainWindow.deleteLater')
+    def test_cancelBtn_click(self, mock_del):
+        QtTest.QTest.mouseClick(self.form.cancelBtn, QtCore.Qt.LeftButton)
+
+        mock_del.assert_called_once()
+
+
 class TestMainForm(TestCase):
 
     def setUp(self):
@@ -78,7 +195,7 @@ class TestMainForm(TestCase):
             self.assertIn(menu.title(), titles)
 
     def test_init_menubar_disabled_enabled_menus(self):
-        disabled = {'File', 'Edit', 'View', 'Options'}
+        disabled = {'File', 'Edit', 'View'}
         enabled = {'Help'}
         for menu in self.form.menubar.findChildren(QtWidgets.QMenu):
             if menu.title() in disabled:
@@ -91,6 +208,14 @@ class TestMainForm(TestCase):
     def test_help_menu_calls_openAboutForm(self, mock_form, mock_init):
         aboutAction = self.form.findChild(QtWidgets.QAction, 'aboutAction')
         aboutAction.trigger()
+
+        self.assertTrue(mock_init.called)
+
+    @mock.patch('doppelganger.gui.PreferencesForm')
+    @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[])
+    def test_options_menu_calls_openPreferencesForm(self, mock_form, mock_init):
+        preferencesAction = self.form.findChild(QtWidgets.QAction, 'preferencesAction')
+        preferencesAction.trigger()
 
         self.assertTrue(mock_init.called)
 
@@ -138,10 +263,31 @@ class TestMainForm(TestCase):
 
         self.assertTrue(mock_show.called)
 
-    @mock.patch('doppelganger.gui.QtWidgets.QMainWindow.activateWindow')
-    @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[QtWidgets.QMainWindow()])
-    def test_openAboutForm_opened(self, mock_form, mock_activate):
+    @mock.patch('doppelganger.gui.AboutForm.activateWindow')
+    def test_openAboutForm_opened(self, mock_activate):
+        gui.AboutForm(self.form)
         self.form.openAboutForm()
+
+        self.assertTrue(mock_activate.called)
+
+    @mock.patch('doppelganger.gui.PreferencesForm')
+    @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[])
+    def test_openPreferencesForm_init_PreferencesForm(self, mock_form, mock_init):
+        self.form.openPreferencesForm()
+
+        self.assertTrue(mock_init.called)
+
+    @mock.patch('doppelganger.gui.PreferencesForm.show')
+    @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[])
+    def test_openPreferencesForm_show_PreferencesForm(self, mock_form, mock_show):
+        self.form.openPreferencesForm()
+
+        self.assertTrue(mock_show.called)
+
+    @mock.patch('doppelganger.gui.PreferencesForm.activateWindow')
+    def test_openPreferencesForm_opened(self, mock_activate):
+        gui.PreferencesForm(self.form)
+        self.form.openPreferencesForm()
 
         self.assertTrue(mock_activate.called)
 
@@ -153,7 +299,7 @@ class TestMainForm(TestCase):
 
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
     def test_showErrMsg_calls_message_box(self, mock_msgbox):
-        self.form.showErrMsg()
+        self.form.showErrMsg('test')
 
         self.assertTrue(mock_msgbox.called)
 

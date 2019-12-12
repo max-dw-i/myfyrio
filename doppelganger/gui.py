@@ -26,10 +26,11 @@ from typing import Iterable, Optional, Set
 
 from PyQt5 import QtCore, QtWidgets, uic
 
-from doppelganger import core, processing, signals, widgets
+from doppelganger import config, core, processing, signals, widgets
 
 UI = str(pathlib.Path('doppelganger') / 'gui.ui')
 ABOUT_UI = str(pathlib.Path('doppelganger') / 'about.ui')
+PREFERENCES_UI = str(pathlib.Path('doppelganger') / 'preferences.ui')
 
 gui_logger = logging.getLogger('main.gui')
 
@@ -45,6 +46,120 @@ class AboutForm(QtWidgets.QMainWindow):
         '''Function called on close event'''
 
         super().closeEvent(event)
+        self.deleteLater()
+
+
+class PreferencesForm(QtWidgets.QMainWindow):
+    """'Options' -> 'Preferences...' form"""
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        uic.loadUi(PREFERENCES_UI, self)
+        self.sortComboBox.addItems(
+            [
+                'Similarity rate',  # in 'config.p' - 0
+                'Filesize',         # in 'config.p' - 1
+                'Width and Height', # in 'config.p' - 2
+                'Path'              # in 'config.p' - 3
+            ]
+        )
+
+        data = self._load_prefs()
+        self._update_form(data)
+
+        self._setWidgetEvents()
+
+    def closeEvent(self, event) -> None:
+        '''Function called on close event'''
+
+        super().closeEvent(event)
+        self.deleteLater()
+
+    def _setWidgetEvents(self) -> None:
+        '''Link events and functions called on the events'''
+
+        self.saveBtn.clicked.connect(self.saveBtn_click)
+        self.cancelBtn.clicked.connect(self.cancelBtn_click)
+
+    def _load_prefs(self) -> config.ConfigData:
+        '''Load preferences
+
+        :return: dict with the loaded preferences
+        '''
+
+        c = config.Config()
+        try:
+            c.load()
+        except OSError:
+            msg_box = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning,
+                'Errors',
+                ("Cannot load preferences from file 'config.p'. Default "
+                 "preferences will be loaded. For more details, "
+                 "see 'errors.log'")
+            )
+            msg_box.exec()
+
+        return c.data
+
+    def _update_form(self, data: config.ConfigData) -> None:
+        '''Update the form with new preferences
+
+        :param data: new preferences data
+        '''
+
+        self.sizeEdit.setText(str(data['size']))
+        self.sortComboBox.setCurrentIndex(data['sort'])
+
+        if data['show_similarity']:
+            self.similarityBox.setChecked(True)
+        if data['show_size']:
+            self.sizeBox.setChecked(True)
+        if data['show_path']:
+            self.pathBox.setChecked(True)
+        if data['cache_thumbnails']:
+            self.cachethumbsBox.setChecked(True)
+        if data['delete_dirs']:
+            self.deldirsBox.setChecked(True)
+
+    def _gather_prefs(self) -> config.ConfigData:
+        '''Gather checked/unchecked/filled by a user options
+        and form a config dictionary
+
+        :return: dictionary with programme's preferences
+        '''
+
+        data = {
+            'size': int(self.sizeEdit.text()),
+            'show_similarity': self.similarityBox.isChecked(),
+            'show_size': self.sizeBox.isChecked(),
+            'show_path': self.pathBox.isChecked(),
+            'sort': self.sortComboBox.currentIndex(),
+            'cache_thumbnails': self.cachethumbsBox.isChecked(),
+            'delete_dirs': self.deldirsBox.isChecked(),
+        }
+        return data
+
+    def saveBtn_click(self) -> None:
+        '''Function called on pressing button "Save"'''
+
+        data = self._gather_prefs()
+        try:
+            config.Config(data).save()
+        except OSError:
+            msg_box = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning,
+                'Errors',
+                ("Cannot save preferences into file 'config.p'. "
+                 "For more details, see 'errors.log'")
+            )
+            msg_box.exec()
+        else:
+            self.deleteLater()
+
+    def cancelBtn_click(self) -> None:
+        '''Function called on pressing button "Cancel"'''
+
         self.deleteLater()
 
 
@@ -97,11 +212,16 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         #viewMenu.addAction(self.showDifference)
 
         optionsMenu = self.menubar.addMenu('Options')
-        optionsMenu.setEnabled(False)
+        optionsMenu.setObjectName('optionsMenu')
         #optionsMenu.addAction(self.showHiddenFolders)
         #optionsMenu.addAction(self.includeSubfolders)
         #optionsMenu.addAction(self.betweenFoldersOnly)
         #optionsMenu.addAction(self.confirmToClose)
+
+        preferences = QtWidgets.QAction('Preferences...', self)
+        preferences.setObjectName('preferencesAction')
+        preferences.triggered.connect(self.openPreferencesForm)
+        optionsMenu.addAction(preferences)
 
         helpMenu = self.menubar.addMenu('Help')
         helpMenu.setObjectName('helpMenu')
@@ -146,6 +266,16 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
             about = AboutForm(self)
             about.show()
 
+    def openPreferencesForm(self) -> None:
+        """Open 'Options' -> 'Preferences...' form"""
+
+        preferences = self.findChildren(PreferencesForm, options=QtCore.Qt.FindDirectChildrenOnly)
+        if preferences:
+            preferences[0].activateWindow()
+        else:
+            preferences = PreferencesForm(self)
+            preferences.show()
+
     def openFolderNameDialog(self) -> core.FolderPath:
         '''Open file dialog and return the full path of a folder'''
 
@@ -157,15 +287,17 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         )
         return folder_path
 
-    def showErrMsg(self):
+    def showErrMsg(self, msg: str) -> None:
         '''Show up when there've been some errors while running
-        the programme'''
+        the programme
+
+        :param msg: error message
+        '''
 
         msg_box = QtWidgets.QMessageBox(
-        QtWidgets.QMessageBox.Warning,
+            QtWidgets.QMessageBox.Warning,
             'Errors',
-            ("There've been some errors while running the programme. "
-            "For more details, see 'errors.log'")
+            (f"{msg}. For more details, see 'errors.log'")
         )
         msg_box.exec()
 
