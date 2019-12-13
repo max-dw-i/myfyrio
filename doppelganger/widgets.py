@@ -28,7 +28,7 @@ from typing import Iterable, List, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from doppelganger import core, signals
+from doppelganger import config, core, signals
 
 IMAGE_ERROR = str(pathlib.Path('doppelganger') / 'resources' / 'image_error.png')
 SIZE = 200
@@ -122,31 +122,33 @@ class ImageInfoWidget(QtWidgets.QWidget):
 class ThumbnailWidget(QtWidgets.QLabel):
     '''Widget to render the thumbnail of an image'''
 
-    def __init__(self, thumbnail: QtCore.QByteArray, parent=None) -> None:
+    def __init__(self, thumbnail: QtCore.QByteArray, size: int, parent=None) -> None:
         super().__init__(parent)
         self.setAlignment(QtCore.Qt.AlignHCenter)
-        self.pixmap = self._QByteArray_to_QPixmap(thumbnail)
+        self.pixmap = self._QByteArray_to_QPixmap(thumbnail, size)
         self.setPixmap(self.pixmap)
 
     @staticmethod
-    def _QByteArray_to_QPixmap(thumbnail: QtCore.QByteArray) -> QtGui.QPixmap:
+    def _QByteArray_to_QPixmap(thumbnail: QtCore.QByteArray,
+                               size: int) -> QtGui.QPixmap:
         '''Convert 'QByteArray' to 'QPixmap'
 
         :param thumbnails: image in format 'QByteArray',
+        :param size: thumbnail size,
         :return: image in format 'QPixmap' or, if something's
                  wrong - error image
         '''
 
         # Pixmap can read BMP, GIF, JPG, JPEG, PNG, PBM, PGM, PPM, XBM, XPM
         if thumbnail is None:
-            return QtGui.QPixmap(IMAGE_ERROR).scaled(SIZE, SIZE)
+            return QtGui.QPixmap(IMAGE_ERROR).scaled(size, size)
 
         pixmap = QtGui.QPixmap()
         pixmap.loadFromData(thumbnail)
 
         if pixmap.isNull():
             widgets_logger.error('Something happened while converting QByteArray into QPixmap')
-            return QtGui.QPixmap(IMAGE_ERROR).scaled(SIZE, SIZE)
+            return QtGui.QPixmap(IMAGE_ERROR).scaled(size, size)
 
         return pixmap
 
@@ -174,15 +176,17 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
     about it (its similarity rate, size and path)
     '''
 
-    def __init__(self, image: core.HashedImage, parent=None) -> None:
+    def __init__(self, image: core.HashedImage, conf: config.ConfigData,
+                 parent=None) -> None:
         super().__init__(parent)
         self.image = image
+        self.conf = conf
         self.selected = False
         self.imageLabel, self.imageInfo = self._widgets()
 
         self.signals = signals.Signals()
 
-        self.setFixedWidth(SIZE)
+        self.setFixedWidth(conf['size'])
         layout = QtWidgets.QVBoxLayout(self)
         layout.setAlignment(QtCore.Qt.AlignTop)
         for widget in (self.imageLabel, self.imageInfo):
@@ -195,7 +199,7 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
         :return: tuple, ('ThumbnailWidget' obj, 'ImageInfoWidget' obj)
         '''
 
-        imageLabel = ThumbnailWidget(self.image.thumbnail, self)
+        imageLabel = ThumbnailWidget(self.image.thumbnail, self.conf['size'], self)
 
         try:
             dimensions = self.image.dimensions()
@@ -296,12 +300,13 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
 class ImageGroupWidget(QtWidgets.QWidget):
     '''Widget to group similar images together'''
 
-    def __init__(self, image_group: Iterable[core.HashedImage], parent=None) -> None:
+    def __init__(self, image_group: Iterable[core.HashedImage],
+                 conf: config.ConfigData, parent=None) -> None:
         super().__init__(parent)
         layout = QtWidgets.QHBoxLayout(self)
         layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
         for image in image_group:
-            thumbnail = DuplicateWidget(image, self)
+            thumbnail = DuplicateWidget(image, conf, self)
             layout.addWidget(thumbnail)
         self.setLayout(layout)
 

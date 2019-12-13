@@ -336,8 +336,13 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
             )
             msg_box.exec()
         else:
+            conf = config.Config()
+            conf.load()
+
             for group in image_groups:
-                self.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(group, self.scrollArea))
+                self.scrollAreaLayout.addWidget(
+                    widgets.ImageGroupWidget(group, conf.data, self.scrollArea)
+                )
 
             for widget in self.findChildren(widgets.DuplicateWidget):
                 widget.signals.clicked.connect(self.switchButtons)
@@ -404,13 +409,16 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         self.startBtn.setEnabled(True)
         self.stopBtn.setEnabled(False)
 
-    def start_processing(self, folders: Iterable[core.FolderPath]) -> None:
+    def start_processing(self, folders: Iterable[core.FolderPath],
+                         conf: config.ConfigData) -> None:
         '''Set up image processing and run it
 
-        :param folders: folders to process
+        :param folders: folders to process,
+        :param conf: dict with preferences data
         '''
 
-        proc = processing.ImageProcessing(self.signals, folders, self.sensitivity)
+        proc = processing.ImageProcessing(self.signals, folders,
+                                          self.sensitivity, conf)
 
         proc.signals.update_info.connect(self.updateLabel)
         proc.signals.update_progressbar.connect(self.progressBar.setValue)
@@ -471,8 +479,11 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         self.stopBtn.setEnabled(True)
         self.startBtn.setEnabled(False)
 
+        conf = config.Config()
+        conf.load()
+
         folders = self.getFolders()
-        self.start_processing(folders)
+        self.start_processing(folders, conf.data)
 
     @QtCore.pyqtSlot()
     def stopBtn_click(self) -> None:

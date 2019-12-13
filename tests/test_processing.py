@@ -171,7 +171,8 @@ class TestImageProcessingClass(TestCase):
         cls.mw = gui.MainForm()
 
     def setUp(self):
-        self.im_pr = processing.ImageProcessing(self.mw.signals, [], 0)
+        self.conf = {'size': 555}
+        self.im_pr = processing.ImageProcessing(self.mw.signals, [], 0, self.conf)
 
     def test_attributes_initial_values(self):
         self.assertListEqual(self.im_pr.folders, [])
@@ -179,6 +180,14 @@ class TestImageProcessingClass(TestCase):
         self.assertFalse(self.im_pr.interrupt)
         self.assertFalse(self.im_pr.errors)
         self.assertEqual(self.im_pr.progress_bar_value, 0.0)
+        self.assertEqual(self.conf, self.im_pr.conf)
+
+    @mock.patch('doppelganger.processing.change_size')
+    def test_init_call_change_size(self, mock_ch):
+        conf = {'size': 555}
+        processing.ImageProcessing(self.mw.signals, [], 0, conf)
+
+        mock_ch.assert_called_once()
 
     @mock.patch('doppelganger.processing.core.find_images', return_value='paths')
     def test_find_images_return(self, mock_paths):

@@ -23,7 +23,7 @@ from typing import (Any, Callable, Collection, Dict, Iterable, List, Optional,
 
 from PyQt5 import QtCore, QtGui
 
-from doppelganger import core, signals
+from doppelganger import config, core, signals
 from doppelganger.exception import InterruptProcessing
 
 SIZE = 200
@@ -127,6 +127,15 @@ def _QImage_to_QByteArray(image: QtGui.QImage, suffix: str) -> Optional[QtCore.Q
 
     return ba
 
+def change_size(size):
+    '''VERY naughty and dirty hack!!! Since multiprocessing.imap
+    is used with function 'thumbnail', we cannot pass size as
+    an argument'''
+
+    global SIZE
+
+    SIZE = size
+
 
 class Worker(QtCore.QRunnable):
     '''QRunnable class reimplementation to handle a separate thread'''
@@ -153,11 +162,13 @@ class ImageProcessing:
     '''
 
     def __init__(self, mw_signals: signals.Signals, folders: Iterable[core.FolderPath],
-                 sensitivity: core.Sensitivity) -> None:
+                 sensitivity: core.Sensitivity, conf: config.ConfigData) -> None:
         super().__init__()
         self.signals = signals.Signals()
         self.folders = folders
         self.sensitivity = sensitivity
+        self.conf = conf
+        change_size(conf['size'])
 
         # If a user's clicked button 'Stop' in the main (GUI) thread,
         # 'interrupt' flag is changed to True

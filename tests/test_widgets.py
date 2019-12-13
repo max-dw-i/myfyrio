@@ -108,29 +108,29 @@ class TestThumbnailWidget(TestCase):
     @mock.patch('doppelganger.widgets.ThumbnailWidget.setPixmap')
     def test_init(self, mock_set, mock_pixmap):
         th = 'thumbnail'
-        w = widgets.ThumbnailWidget(th)
+        w = widgets.ThumbnailWidget(th, 666)
 
         self.assertEqual(w.alignment(), QtCore.Qt.AlignHCenter)
-        mock_pixmap.assert_called_once_with(th)
+        mock_pixmap.assert_called_once_with(th, 666)
         mock_set.assert_called_once_with('pix')
         self.assertTrue(mock_set.called)
 
     @mock.patch('doppelganger.widgets.QtGui.QPixmap')
     def test_QByteArray_to_QPixmap_returns_error_image_if_thumbnail_is_None(self, mock_qp):
-        widgets.ThumbnailWidget._QByteArray_to_QPixmap(None)
+        widgets.ThumbnailWidget._QByteArray_to_QPixmap(None, 666)
 
         mock_qp.assert_called_once_with(widgets.IMAGE_ERROR)
 
     def test_QByteArray_to_QPixmap_returns_QPixmap_obj_if_thumbnail_is_None(self):
-        qp = widgets.ThumbnailWidget._QByteArray_to_QPixmap(None)
+        qp = widgets.ThumbnailWidget._QByteArray_to_QPixmap(None, 666)
 
         self.assertIsInstance(qp, QtGui.QPixmap)
 
     def test_QByteArray_to_QPixmap_returns_error_image_with_SIZEs(self):
-        qp = widgets.ThumbnailWidget._QByteArray_to_QPixmap(None)
+        qp = widgets.ThumbnailWidget._QByteArray_to_QPixmap(None, 666)
 
-        self.assertEqual(widgets.SIZE, qp.height())
-        self.assertEqual(widgets.SIZE, qp.width())
+        self.assertEqual(666, qp.height())
+        self.assertEqual(666, qp.width())
 
     @mock.patch('doppelganger.widgets.QtGui.QPixmap')
     @mock.patch('doppelganger.widgets.QtGui.QPixmap.isNull', return_value=True)
@@ -138,14 +138,14 @@ class TestThumbnailWidget(TestCase):
     def test_QByteArray_to_QPixmap_returns_error_image_if_isNull(
             self, mock_load, mock_null, mock_qp
         ):
-        widgets.ThumbnailWidget._QByteArray_to_QPixmap('thumbnail')
+        widgets.ThumbnailWidget._QByteArray_to_QPixmap('thumbnail', 666)
 
         mock_qp.assert_called_with(widgets.IMAGE_ERROR)
 
     @mock.patch('doppelganger.widgets.QtGui.QPixmap.isNull', return_value=True)
     @mock.patch('doppelganger.widgets.QtGui.QPixmap.loadFromData')
     def test_QByteArray_to_QPixmap_returns_QPixmap_obj_if_isNull(self, mock_load, mock_null):
-        qp = widgets.ThumbnailWidget._QByteArray_to_QPixmap('thumbnail')
+        qp = widgets.ThumbnailWidget._QByteArray_to_QPixmap('thumbnail', 666)
 
         self.assertIsInstance(qp, QtGui.QPixmap)
 
@@ -153,19 +153,19 @@ class TestThumbnailWidget(TestCase):
     @mock.patch('doppelganger.widgets.QtGui.QPixmap.loadFromData')
     def test_QByteArray_to_QPixmap_logs_errors_if_isNull(self, mock_load, mock_null):
         with self.assertLogs('main.widgets', 'ERROR'):
-            widgets.ThumbnailWidget._QByteArray_to_QPixmap('thumbnail')
+            widgets.ThumbnailWidget._QByteArray_to_QPixmap('thumbnail', 666)
 
     @mock.patch('doppelganger.widgets.QtGui.QPixmap.isNull', return_value=False)
     @mock.patch('doppelganger.widgets.QtGui.QPixmap.loadFromData')
     def test_QByteArray_to_QPixmap_returns_QPixmap_obj(self, mock_load, mock_null):
-        qp = widgets.ThumbnailWidget._QByteArray_to_QPixmap('thumbnail')
+        qp = widgets.ThumbnailWidget._QByteArray_to_QPixmap('thumbnail', 666)
 
         self.assertIsInstance(qp, QtGui.QPixmap)
 
     @mock.patch('doppelganger.widgets.ThumbnailWidget._QByteArray_to_QPixmap')
     @mock.patch('doppelganger.widgets.ThumbnailWidget.setPixmap')
     def test_unmark(self, mock_set, mock_qp):
-        w = widgets.ThumbnailWidget('thumbnail')
+        w = widgets.ThumbnailWidget('thumbnail', 666)
         w.unmark()
 
         mock_set.assert_called_with(w.pixmap)
@@ -173,7 +173,7 @@ class TestThumbnailWidget(TestCase):
     @mock.patch('doppelganger.widgets.ThumbnailWidget._QByteArray_to_QPixmap')
     @mock.patch('doppelganger.widgets.ThumbnailWidget.setPixmap')
     def test_mark(self, mock_set, mock_qp):
-        w = widgets.ThumbnailWidget('thumbnail')
+        w = widgets.ThumbnailWidget('thumbnail', 666)
         w.unmark()
 
         self.assertTrue(mock_qp.called)
@@ -182,9 +182,18 @@ class TestThumbnailWidget(TestCase):
 class TestDuplicateWidget(TestCase):
 
     def setUp(self):
+        self.CONF = {
+            'size': 200,
+            'show_similarity': True,
+            'show_size': True,
+            'show_path': True,
+            'sort': 0,
+            'cache_thumbnails': False,
+            'delete_dirs': False
+        }
         self.path, self.difference = 'image.png', 1
         self.image = core.Image(self.path, difference=self.difference)
-        self.w = widgets.DuplicateWidget(self.image)
+        self.w = widgets.DuplicateWidget(self.image, self.CONF)
 
     def test_init(self):
         self.assertEqual(self.w.width(), 200)
@@ -192,6 +201,7 @@ class TestDuplicateWidget(TestCase):
         self.assertEqual(self.w.layout().alignment(), QtCore.Qt.AlignTop)
         self.assertEqual(self.w.image, self.image)
         self.assertFalse(self.w.selected)
+        self.assertEqual(self.w.conf, self.CONF)
 
     def test_ThumbnailWidget_n_ImageInfoWidget_in_DuplicateWidget(self):
         th_widgets = self.w.findChildren(
@@ -341,7 +351,16 @@ class TestDuplicateWidget(TestCase):
 class TestImageGroupWidget(TestCase):
 
     def setUp(self):
-        self.w = widgets.ImageGroupWidget([core.Image('image.png')])
+        self.CONF = {
+            'size': 200,
+            'show_similarity': True,
+            'show_size': True,
+            'show_path': True,
+            'sort': 0,
+            'cache_thumbnails': False,
+            'delete_dirs': False
+        }
+        self.w = widgets.ImageGroupWidget([core.Image('image.png')], self.CONF)
 
     def test_widget_alignment(self):
         l = self.w.layout()
@@ -366,6 +385,6 @@ class TestImageGroupWidget(TestCase):
         self.assertListEqual(self.w.getSelectedWidgets(), ws)
 
     def test_len(self):
-        self.w = widgets.ImageGroupWidget([core.Image('image.png')])
+        self.w = widgets.ImageGroupWidget([core.Image('image.png')], self.CONF)
 
         self.assertEqual(len(self.w), 1)
