@@ -39,8 +39,10 @@ widgets_logger = logging.getLogger('main.widgets')
 class InfoLabelWidget(QtWidgets.QLabel):
     '''Abstract Label class'''
 
-    def __init__(self, text: str, parent=None) -> None:
+    def __init__(self, text: str, widget_size: int, parent=None) -> None:
         super().__init__(parent)
+        self.widget_size = widget_size
+
         self.setAlignment(QtCore.Qt.AlignHCenter)
         self.setText(self._word_wrap(text))
 
@@ -58,7 +60,8 @@ class InfoLabelWidget(QtWidgets.QLabel):
 
         for c in text:
             # We have 4 margins 9px each (I guess) so we take 40
-            if fontMetrics.size(QtCore.Qt.TextSingleLine, line + c).width() > SIZE - 40:
+            width = fontMetrics.size(QtCore.Qt.TextSingleLine, line + c).width()
+            if width > self.widget_size - 40:
                 wrapped_text += line + '\n'
                 line = c
             else:
@@ -79,8 +82,9 @@ class ImageSizeLabel(InfoLabelWidget):
 class ImagePathLabel(InfoLabelWidget):
     '''Widget to show the path to an image'''
 
-    def __init__(self, text: core.ImagePath, parent=None) -> None:
-        super().__init__(QtCore.QFileInfo(text).canonicalFilePath(), parent)
+    def __init__(self, text: core.ImagePath, widget_size: int, parent=None) -> None:
+        super().__init__(QtCore.QFileInfo(text).canonicalFilePath(),
+                         widget_size, parent)
 
 class ImageInfoWidget(QtWidgets.QWidget):
     '''Widget to show info about an image (its similarity
@@ -88,18 +92,25 @@ class ImageInfoWidget(QtWidgets.QWidget):
 
     def __init__(self, path: core.ImagePath, difference: core.Distance,
                  dimensions: Tuple[core.Width, core.Height], filesize: core.FileSize,
-                 parent=None) -> None:
+                 conf: config.ConfigData, parent=None) -> None:
         super().__init__(parent)
         layout = QtWidgets.QVBoxLayout(self)
         layout.setAlignment(QtCore.Qt.AlignBottom)
 
-        widgets = (
-            SimilarityLabel(str(difference), self),
-            ImageSizeLabel(self._get_image_size(dimensions, filesize), self),
-            ImagePathLabel(path, self)
-        )
-        for widget in widgets:
+        if conf['show_similarity']:
+            widget = SimilarityLabel(str(difference), conf['size'], self)
             layout.addWidget(widget)
+        if conf['show_size']:
+            widget = ImageSizeLabel(
+                self._get_image_size(dimensions, filesize),
+                conf['size'],
+                self
+            )
+            layout.addWidget(widget)
+        if conf['show_path']:
+            widget = ImagePathLabel(path, conf['size'], self)
+            layout.addWidget(widget)
+
         self.setLayout(layout)
 
     @staticmethod
@@ -214,7 +225,7 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
             filesize = 0
 
         imageInfo = ImageInfoWidget(self.image.path, self.image.difference,
-                                    dimensions, filesize, self)
+                                    dimensions, filesize, self.conf, self)
 
         return imageLabel, imageInfo
 

@@ -42,21 +42,22 @@ class TestInfoLabelWidget(TestCase):
 
     @mock.patch('doppelganger.widgets.InfoLabelWidget._word_wrap', return_value='test_wrapped')
     def test_init(self, mock_wrap):
-        w = widgets.InfoLabelWidget('test')
+        w = widgets.InfoLabelWidget('test', 200)
 
         self.assertEqual(w.text(), 'test_wrapped')
         self.assertEqual(w.alignment(), QtCore.Qt.AlignHCenter)
+        self.assertEqual(w.widget_size, 200)
 
-    @mock.patch('PyQt5.QtCore.QSize.width', return_value=widgets.SIZE)
+    @mock.patch('PyQt5.QtCore.QSize.width', return_value=200)
     def test_word_wrap_more_than_one_line(self, mock_width):
-        w = widgets.InfoLabelWidget('test')
+        w = widgets.InfoLabelWidget('test', 200)
         res = w._word_wrap('test')
 
         self.assertEqual(res, '\nt\ne\ns\nt')
 
-    @mock.patch('PyQt5.QtCore.QSize.width', return_value=widgets.SIZE - 40 - 1)
+    @mock.patch('PyQt5.QtCore.QSize.width', return_value=200 - 40 - 1)
     def test_word_wrap_one_line(self, mock_width):
-        w = widgets.InfoLabelWidget('test')
+        w = widgets.InfoLabelWidget('test', 200)
         res = w._word_wrap('test')
 
         self.assertEqual(res, 'test')
@@ -74,17 +75,35 @@ class ImagePathLabel(TestCase):
     @mock.patch('doppelganger.widgets.QtCore.QFileInfo.canonicalFilePath', return_value='test_path')
     @mock.patch('doppelganger.widgets.InfoLabelWidget.__init__')
     def test_init(self, mock_init, mock_path):
-        widgets.ImagePathLabel('test')
+        CONF = {
+            'size': 200,
+            'show_similarity': True,
+            'show_size': True,
+            'show_path': True,
+            'sort': 0,
+            'cache_thumbnails': False,
+            'delete_dirs': False
+        }
+        widgets.ImagePathLabel('test', CONF)
 
-        mock_init.assert_called_once_with('test_path', None)
+        mock_init.assert_called_once_with('test_path', CONF, None)
 
 
 class TestImageInfoWidget(TestCase):
 
     @mock.patch('doppelganger.widgets.QtCore.QFileInfo.canonicalFilePath', return_value='path')
     def test_init(self, mock_path):
+        CONF = {
+            'size': 200,
+            'show_similarity': True,
+            'show_size': True,
+            'show_path': True,
+            'sort': 0,
+            'cache_thumbnails': False,
+            'delete_dirs': False
+        }
         path, difference, dimensions, filesize = 'path', 0, (1, 2), 3
-        w = widgets.ImageInfoWidget(path, difference, dimensions, filesize)
+        w = widgets.ImageInfoWidget(path, difference, dimensions, filesize, CONF)
 
         similarity_label = w.findChild(widgets.SimilarityLabel)
         image_size_label = w.findChild(widgets.ImageSizeLabel)
@@ -94,6 +113,28 @@ class TestImageInfoWidget(TestCase):
         self.assertEqual(similarity_label.text(), str(difference))
         self.assertEqual(image_size_label.text(), '1x2, 3 KB')
         self.assertEqual(image_path_label.text(), path)
+
+    @mock.patch('doppelganger.widgets.QtCore.QFileInfo.canonicalFilePath', return_value='path')
+    def test_init_with_widgets_turned_off(self, mock_path):
+        CONF = {
+            'size': 200,
+            'show_similarity': False,
+            'show_size': False,
+            'show_path': False,
+            'sort': 0,
+            'cache_thumbnails': False,
+            'delete_dirs': False
+        }
+        path, difference, dimensions, filesize = 'path', 0, (1, 2), 3
+        w = widgets.ImageInfoWidget(path, difference, dimensions, filesize, CONF)
+
+        similarity_label = w.findChild(widgets.SimilarityLabel)
+        image_size_label = w.findChild(widgets.ImageSizeLabel)
+        image_path_label = w.findChild(widgets.ImagePathLabel)
+
+        self.assertIsNone(similarity_label)
+        self.assertIsNone(image_size_label)
+        self.assertIsNone(image_path_label)
 
     def test_get_image_size(self):
         result = widgets.ImageInfoWidget._get_image_size((1, 2), 3)
@@ -222,7 +263,8 @@ class TestDuplicateWidget(TestCase):
     def test_widgets_if_get_dimensions_raises_OSError(self, mock_info, mock_dim, mock_size):
         self.w._widgets()
 
-        mock_info.assert_called_once_with(self.path, self.difference, (0, 0), 3, self.w)
+        mock_info.assert_called_once_with(self.path, self.difference, (0, 0), 3,
+                                          self.CONF, self.w)
 
     @mock.patch('doppelganger.core.Image.filesize', return_value=3)
     @mock.patch('doppelganger.core.Image.dimensions', side_effect=OSError)
@@ -237,7 +279,8 @@ class TestDuplicateWidget(TestCase):
     def test_widgets_if_get_filesize_raises_OSError(self, mock_info, mock_dim, mock_size):
         self.w._widgets()
 
-        mock_info.assert_called_once_with(self.path, self.difference, 2, 0, self.w)
+        mock_info.assert_called_once_with(self.path, self.difference, 2, 0,
+                                          self.CONF, self.w)
 
     @mock.patch('doppelganger.core.Image.filesize', side_effect=OSError)
     @mock.patch('doppelganger.core.Image.dimensions', return_value=2)
@@ -252,7 +295,8 @@ class TestDuplicateWidget(TestCase):
     def test_widgets_ImageInfoWidget_called_with_what_args(self, mock_info, mock_dim, mock_size):
         self.w._widgets()
 
-        mock_info.assert_called_once_with(self.path, self.difference, 2, 3, self.w)
+        mock_info.assert_called_once_with(self.path, self.difference, 2, 3,
+                                          self.CONF, self.w)
 
     @mock.patch('doppelganger.widgets.ThumbnailWidget')
     def test_widgets_calls_ThumbnailWidget(self, mock_th):
@@ -282,7 +326,7 @@ class TestDuplicateWidget(TestCase):
             mock_run.side_effect = subprocess.CalledProcessError(1, 'cmd')
 
             with self.assertLogs('main.widgets', 'ERROR'):
-                        self.w._open_image()
+                self.w._open_image()
 
     def test_contextMenuEvent(self):
         pass

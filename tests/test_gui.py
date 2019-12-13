@@ -177,6 +177,15 @@ class TestMainForm(TestCase):
 
     def setUp(self):
         self.form = gui.MainForm()
+        self.CONF = {
+            'size': 200,
+            'show_similarity': True,
+            'show_size': True,
+            'show_path': True,
+            'sort': 0,
+            'cache_thumbnails': False,
+            'delete_dirs': False
+        }
 
     @mock.patch('doppelganger.gui.MainForm._setMenubar')
     @mock.patch('doppelganger.gui.QtWidgets.QRadioButton.click')
@@ -224,8 +233,7 @@ class TestMainForm(TestCase):
     @mock.patch('doppelganger.widgets.DuplicateWidget.move', side_effect=OSError)
     def test_call_on_selected_widgets_move_raises_OSError(self, mock_move):
         image_group = [core.Image('img1.png')]
-        conf = {'size': 777}
-        self.form.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(image_group, conf))
+        self.form.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(image_group, self.CONF))
         w = self.form.findChild(widgets.DuplicateWidget)
         w.selected = True
         dst = 'new_dst'
@@ -236,8 +244,7 @@ class TestMainForm(TestCase):
     @mock.patch('doppelganger.widgets.DuplicateWidget.delete', side_effect=OSError)
     def test_call_on_selected_widgets_delete_raises_OSError(self, mock_delete):
         image_group = [core.Image('img1.png')]
-        conf = {'size': 777}
-        self.form.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(image_group, conf))
+        self.form.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(image_group, self.CONF))
         w = self.form.findChild(widgets.DuplicateWidget)
         w.selected = True
         with self.assertLogs('main.gui', 'ERROR'):
@@ -248,8 +255,7 @@ class TestMainForm(TestCase):
     @mock.patch('doppelganger.widgets.ImageGroupWidget.deleteLater')
     def test_call_on_selected_widgets_deleteLater_on_ImageGroupWidget(self, mock_later):
         image_group = [core.Image('img1.png')]
-        conf = {'size': 777}
-        self.form.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(image_group, conf))
+        self.form.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(image_group, self.CONF))
         self.form._call_on_selected_widgets()
 
         mock_later.assert_called_once()
@@ -377,18 +383,16 @@ class TestMainForm(TestCase):
             self.assertEqual(labels[label].text(), ' '.join(prev_text) + ' text')
 
     def test_hasSelectedWidgets_False(self):
-        conf = {'size': 777}
         self.form.scrollAreaLayout.addWidget(
-            widgets.ImageGroupWidget([core.Image('image.png')], conf)
+            widgets.ImageGroupWidget([core.Image('image.png')], self.CONF)
         )
         w = self.form.findChild(widgets.DuplicateWidget)
 
         self.assertFalse(w.selected)
 
     def test_hasSelectedWidgets_True(self):
-        conf = {'size': 777}
         self.form.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(
-            [core.Image('image.png')], conf)
+            [core.Image('image.png')], self.CONF)
             )
         w = self.form.findChild(widgets.DuplicateWidget)
         w.selected = True
