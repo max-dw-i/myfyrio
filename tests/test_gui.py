@@ -60,7 +60,7 @@ class TestPreferencesForm(TestCase):
         self.form = gui.PreferencesForm()
 
     def clear_form(self):
-        self.form.sizeEdit.setText('13')
+        self.form.sizeSpinBox.setValue(333)
         self.form.sortComboBox.setCurrentIndex(0)
         self.form.similarityBox.setChecked(False)
         self.form.sizeBox.setChecked(False)
@@ -73,7 +73,7 @@ class TestPreferencesForm(TestCase):
     @mock.patch('doppelganger.gui.PreferencesForm._load_prefs')
     @mock.patch('PyQt5.QtWidgets.QComboBox.addItems')
     def test_init(self, mock_combobox, mock_prefs, mock_update, mock_events):
-        gui.PreferencesForm()
+        f = gui.PreferencesForm()
 
         mock_combobox.assert_called_once_with([
             'Similarity rate',
@@ -81,6 +81,8 @@ class TestPreferencesForm(TestCase):
             'Width and Height',
             'Path'
         ])
+        self.assertEqual(f.sizeSpinBox.minimum(), 100)
+        self.assertEqual(f.sizeSpinBox.maximum(), 4000)
         mock_prefs.assert_called_once()
         mock_update.assert_called_once()
         mock_events.assert_called_once()
@@ -117,12 +119,12 @@ class TestPreferencesForm(TestCase):
                 'show_path': True,
                 'show_similarity': True,
                 'show_size': True,
-                'size': '666',
+                'size': 666,
                 'sort': 1}
 
         self.form._update_form(data)
 
-        self.assertEqual(data['size'], self.form.sizeEdit.text())
+        self.assertEqual(data['size'], self.form.sizeSpinBox.value())
         self.assertEqual(data['sort'], self.form.sortComboBox.currentIndex())
         self.assertEqual(data['show_similarity'], self.form.similarityBox.isChecked())
         self.assertEqual(data['show_size'], self.form.sizeBox.isChecked())
@@ -137,7 +139,7 @@ class TestPreferencesForm(TestCase):
                 'show_path': False,
                 'show_similarity': False,
                 'show_size': False,
-                'size': 13,
+                'size': 333,
                 'sort': 0}
 
         gathered_data = self.form._gather_prefs()

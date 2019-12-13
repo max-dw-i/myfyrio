@@ -63,6 +63,8 @@ class PreferencesForm(QtWidgets.QMainWindow):
                 'Path'              # in 'config.p' - 3
             ]
         )
+        self.sizeSpinBox.setMinimum(100)
+        self.sizeSpinBox.setMaximum(4000)
 
         data = self._load_prefs()
         self._update_form(data)
@@ -108,7 +110,7 @@ class PreferencesForm(QtWidgets.QMainWindow):
         :param data: new preferences data
         '''
 
-        self.sizeEdit.setText(str(data['size']))
+        self.sizeSpinBox.setValue(data['size'])
         self.sortComboBox.setCurrentIndex(data['sort'])
 
         if data['show_similarity']:
@@ -130,7 +132,7 @@ class PreferencesForm(QtWidgets.QMainWindow):
         '''
 
         data = {
-            'size': int(self.sizeEdit.text()),
+            'size': self.sizeSpinBox.value(),
             'show_similarity': self.similarityBox.isChecked(),
             'show_size': self.sizeBox.isChecked(),
             'show_path': self.pathBox.isChecked(),

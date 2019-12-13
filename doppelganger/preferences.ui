@@ -35,8 +35,8 @@
              </property>
             </widget>
            </item>
-           <item alignment="Qt::AlignRight">
-            <widget class="QLineEdit" name="sizeEdit"/>
+           <item>
+            <widget class="QSpinBox" name="sizeSpinBox"/>
            </item>
           </layout>
          </widget>
