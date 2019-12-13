@@ -268,8 +268,26 @@ class TestCacheFunctions(TestCase):
         '''
 
         images = [core.Image(path, dhash=666) for path in self.cached]
-        core.caching(images, {})
+        new_cache = {}
+        expected = {path: 666 for path in self.cached}
+        core.caching(images, new_cache)
 
+        self.assertDictEqual(expected, new_cache)
+        self.assertTrue(mock_cache.called)
+
+    @mock.patch(CORE + 'pickle.dump')
+    @mock.patch(CORE + 'open')
+    def test_caching_with_None_hash(self, mock_open, mock_cache):
+        '''!!! BE AWARE WHEN CHANGE THIS TEST. IF THERE'S
+        ALREADY POPULATED CACHE FILE AND YOU DON'T PATCH
+        OPEN(), YOU'LL REWRITE THE FILE
+        '''
+
+        images = [core.Image(path, dhash=None) for path in self.cached]
+        new_cache = {}
+        core.caching(images, new_cache)
+
+        self.assertDictEqual({}, new_cache)
         self.assertTrue(mock_cache.called)
 
 

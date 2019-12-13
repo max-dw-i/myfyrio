@@ -206,7 +206,9 @@ def caching(images: Iterable[HashedImage], cached_hashes: Dict[ImagePath, Hash])
     '''
 
     for image in images:
-        cached_hashes[image.path] = image.hash
+        img_hash = image.hash
+        if img_hash is not None:
+            cached_hashes[image.path] = img_hash
 
     with open('image_hashes.p', 'wb') as f:
         pickle.dump(cached_hashes, f)
