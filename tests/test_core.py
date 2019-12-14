@@ -53,6 +53,9 @@ from doppelganger import core
 CORE = 'doppelganger.core.'
 
 
+# pylint: disable=unused-argument,missing-class-docstring,protected-access
+
+
 class TestImageClass(TestCase):
 
     def setUp(self):

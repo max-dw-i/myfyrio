@@ -36,6 +36,9 @@ if app is None:
     app = QtWidgets.QApplication([])
 
 
+# pylint: disable=unused-argument,missing-class-docstring,protected-access
+
+
 class TestAboutForm(TestCase):
 
     @mock.patch('doppelganger.gui.uic.loadUi')
@@ -395,9 +398,9 @@ class TestMainForm(TestCase):
         self.assertFalse(w.selected)
 
     def test_hasSelectedWidgets_True(self):
-        self.form.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(
-            [core.Image('image.png')], self.CONF)
-            )
+        self.form.scrollAreaLayout.addWidget(
+            widgets.ImageGroupWidget([core.Image('image.png')], self.CONF)
+        )
         w = self.form.findChild(widgets.DuplicateWidget)
         w.selected = True
 

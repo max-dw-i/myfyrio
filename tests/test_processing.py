@@ -36,6 +36,9 @@ if app is None:
     app = QtWidgets.QApplication([])
 
 
+# pylint: disable=unused-argument,missing-class-docstring,protected-access
+
+
 class TestThumbnailFunction(TestCase):
 
     def setUp(self):

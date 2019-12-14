@@ -38,6 +38,9 @@ if app is None:
     app = QtWidgets.QApplication([])
 
 
+# pylint: disable=unused-argument,missing-class-docstring
+
+
 class TestConfig(TestCase):
 
     @classmethod

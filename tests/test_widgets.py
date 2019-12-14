@@ -38,6 +38,9 @@ if app is None:
     app = QtWidgets.QApplication([])
 
 
+# pylint: disable=unused-argument,missing-class-docstring,protected-access
+
+
 class TestInfoLabelWidget(TestCase):
 
     @mock.patch('doppelganger.widgets.InfoLabelWidget._word_wrap', return_value='test_wrapped')
