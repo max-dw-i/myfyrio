@@ -243,7 +243,10 @@ class Image():
         self.difference = difference
         self.hash = dhash
         self.thumbnail = thumbnail
-        self.suffix = pathlib.Path(path).suffix # '.jpg', '.png', etc.
+        self.suffix: Suffix = pathlib.Path(path).suffix # '.jpg', '.png', etc.
+        self.size: FileSize = None
+        self.width: Width = None
+        self.height: Height = None
 
     @return_obj
     def dhash(self) -> Optional[Hash]:
@@ -273,11 +276,14 @@ class Image():
         :raise OSError: any problem while opening the image
         '''
 
-        try:
-            image = PILImage.open(self.path)
-        except OSError:
-            raise OSError(f'Cannot get the dimensions of {self.path}')
-        return image.size
+        if self.width is None or self.height is None:
+            try:
+                image = PILImage.open(self.path)
+            except OSError:
+                raise OSError(f'Cannot get the dimensions of {self.path}')
+            else:
+                self.width, self.height = image.size
+        return self.width, self.height
 
     def filesize(self, size_format: SizeFormat = 'KB') -> FileSize:
         '''Return the file size of the image
@@ -289,17 +295,20 @@ class Image():
         :raise ValueError: :size_format: is not amongst the allowed values
         '''
 
-        try:
-            image_size = os.path.getsize(self.path)
-        except OSError:
-            raise OSError(f'Cannot get the file size of {self.path}')
+        if self.size is None:
+            try:
+                image_size = os.path.getsize(self.path)
+            except OSError:
+                raise OSError(f'Cannot get the file size of {self.path}')
+            else:
+                self.size = image_size
 
         if size_format == 'B':
-            return image_size
+            return self.size
         if size_format == 'KB':
-            return round(image_size / 1024, 1)
+            return round(self.size / 1024, 1)
         if size_format == 'MB':
-            return round(image_size / (1024**2), 1)
+            return round(self.size / (1024**2), 1)
 
         raise ValueError('Wrong size format')
 

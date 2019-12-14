@@ -97,7 +97,23 @@ class TestImageClass(TestCase):
         self.assertEqual(size[0], 13)
         self.assertEqual(size[1], 666)
 
+    @mock.patch(CORE + 'PILImage.open')
+    def test_dimensions_return_saved_values(self, mock_open):
+        self.image.width, self.image.height = 13, 666
+
+        size = self.image.dimensions()
+
+        self.assertEqual(size[0], 13)
+        self.assertEqual(size[1], 666)
+        self.assertFalse(mock_open.called)
+
     # Image.filesize
+
+    def test_filesize_return_saved_value(self):
+        self.image.size = 444
+        filesize = self.image.filesize(size_format='B')
+
+        self.assertEqual(filesize, self.image.size)
 
     @mock.patch(CORE + 'os.path.getsize', side_effect=OSError)
     def test_filesize_raise_OSError(self, mock_size):
