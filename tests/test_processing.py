@@ -164,6 +164,85 @@ class TestThumbnailFunction(TestCase):
         self.assertIsInstance(ba, QtCore.QByteArray)
 
 
+class TestSort(TestCase):
+
+    def test_similarity_rate_100(self):
+        img_group = [[core.Image('test', difference=0)]]
+        processing.similarity_rate(img_group)
+
+        self.assertEqual(img_group[0][0].difference, 100)
+
+    def test_similarity_rate_0(self):
+        img_group = [[core.Image('test', difference=128)]]
+        processing.similarity_rate(img_group)
+
+        self.assertEqual(img_group[0][0].difference, 0)
+
+    def test_similarity_rate(self):
+        img_group = [[core.Image('test', difference=64)]]
+        processing.similarity_rate(img_group)
+
+        self.assertEqual(img_group[0][0].difference, 50)
+
+    def test_similarity_sort(self):
+        img1 = core.Image('test', difference=5)
+        img2 = core.Image('test', difference=0)
+        img3 = core.Image('test', difference=3)
+        img_groups = [[img1, img2, img3]]
+
+        s = processing.Sort(img_groups)
+        s.sort(0)
+
+        self.assertListEqual(img_groups[0], [img1, img2, img3])
+
+    def test_size_sort(self):
+        '''Image.filesize returns values in KB by default.
+        So do not use small numbers or you might get incorrect
+        sort results
+        '''
+
+        img1 = core.Image('test')
+        img1.size = 3072
+        img2 = core.Image('test')
+        img2.size = 1024
+        img3 = core.Image('test')
+        img3.size = 2048
+        img_groups = [[img1, img2, img3]]
+
+        s = processing.Sort(img_groups)
+        s.sort(1)
+
+        self.assertListEqual(img_groups[0], [img1, img3, img2])
+
+    def test_dimensions_sort(self):
+        img1 = core.Image('test')
+        img1.width = 4
+        img1.height = 6
+        img2 = core.Image('test')
+        img2.width = 1
+        img2.height = 1
+        img3 = core.Image('test')
+        img3.width = 5
+        img3.height = 3
+        img_groups = [[img1, img2, img3]]
+
+        s = processing.Sort(img_groups)
+        s.sort(2)
+
+        self.assertListEqual(img_groups[0], [img1, img3, img2])
+
+    def test_path_sort(self):
+        img1 = core.Image('test3')
+        img2 = core.Image('test1')
+        img3 = core.Image('test2')
+        img_groups = [[img1, img2, img3]]
+
+        s = processing.Sort(img_groups)
+        s.sort(3)
+
+        self.assertListEqual(img_groups[0], [img2, img3, img1])
+
+
 class TestImageProcessingClass(TestCase):
 
     @classmethod
@@ -171,8 +250,16 @@ class TestImageProcessingClass(TestCase):
         cls.mw = gui.MainForm()
 
     def setUp(self):
-        self.conf = {'size': 555}
-        self.im_pr = processing.ImageProcessing(self.mw.signals, [], 0, self.conf)
+        self.CONF = {
+            'size': 200,
+            'show_similarity': True,
+            'show_size': True,
+            'show_path': True,
+            'sort': 0,
+            'cache_thumbnails': False,
+            'delete_dirs': False
+        }
+        self.im_pr = processing.ImageProcessing(self.mw.signals, [], 0, self.CONF)
 
     def test_attributes_initial_values(self):
         self.assertListEqual(self.im_pr.folders, [])
@@ -180,7 +267,7 @@ class TestImageProcessingClass(TestCase):
         self.assertFalse(self.im_pr.interrupt)
         self.assertFalse(self.im_pr.errors)
         self.assertEqual(self.im_pr.progress_bar_value, 0.0)
-        self.assertEqual(self.conf, self.im_pr.conf)
+        self.assertEqual(self.CONF, self.im_pr.conf)
 
     @mock.patch('doppelganger.processing.change_size')
     def test_init_call_change_size(self, mock_ch):

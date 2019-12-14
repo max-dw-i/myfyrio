@@ -98,7 +98,7 @@ class ImageInfoWidget(QtWidgets.QWidget):
         layout.setAlignment(QtCore.Qt.AlignBottom)
 
         if conf['show_similarity']:
-            widget = SimilarityLabel(str(difference), conf['size'], self)
+            widget = SimilarityLabel(f'{difference}%', conf['size'], self)
             layout.addWidget(widget)
         if conf['show_size']:
             widget = ImageSizeLabel(

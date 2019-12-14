@@ -110,7 +110,7 @@ class TestImageInfoWidget(TestCase):
         image_path_label = w.findChild(widgets.ImagePathLabel)
 
         self.assertEqual(w.layout().alignment(), QtCore.Qt.AlignBottom)
-        self.assertEqual(similarity_label.text(), str(difference))
+        self.assertEqual(similarity_label.text(), f'{difference}%')
         self.assertEqual(image_size_label.text(), '1x2, 3 KB')
         self.assertEqual(image_path_label.text(), path)
 
