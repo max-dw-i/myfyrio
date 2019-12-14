@@ -230,8 +230,9 @@ class TestMainForm(TestCase):
 
         self.assertTrue(mock_init.called)
 
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
     @mock.patch('doppelganger.widgets.DuplicateWidget.move', side_effect=OSError)
-    def test_call_on_selected_widgets_move_raises_OSError(self, mock_move):
+    def test_call_on_selected_widgets_move_raises_OSError(self, mock_move, mock_box):
         image_group = [core.Image('img1.png')]
         self.form.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(image_group, self.CONF))
         w = self.form.findChild(widgets.DuplicateWidget)
@@ -240,9 +241,11 @@ class TestMainForm(TestCase):
         self.form._call_on_selected_widgets(dst)
 
         mock_move.assert_called_once_with(dst)
+        self.assertTrue(mock_box.called)
 
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
     @mock.patch('doppelganger.widgets.DuplicateWidget.delete', side_effect=OSError)
-    def test_call_on_selected_widgets_delete_raises_OSError(self, mock_delete):
+    def test_call_on_selected_widgets_delete_raises_OSError(self, mock_delete, mock_box):
         image_group = [core.Image('img1.png')]
         self.form.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(image_group, self.CONF))
         w = self.form.findChild(widgets.DuplicateWidget)
@@ -251,6 +254,7 @@ class TestMainForm(TestCase):
             self.form._call_on_selected_widgets()
 
         mock_delete.assert_called_once()
+        self.assertTrue(mock_box.called)
 
     @mock.patch('doppelganger.widgets.ImageGroupWidget.deleteLater')
     def test_call_on_selected_widgets_deleteLater_on_ImageGroupWidget(self, mock_later):

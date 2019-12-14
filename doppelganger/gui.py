@@ -151,7 +151,7 @@ class PreferencesForm(QtWidgets.QMainWindow):
         except OSError:
             msg_box = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning,
-                'Errors',
+                'Error',
                 ("Cannot save preferences into file 'config.p'. "
                  "For more details, see 'errors.log'")
             )
@@ -251,6 +251,13 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
                         selected_widget.delete()
                 except OSError as e:
                     gui_logger.error(e)
+                    msgBox = QtWidgets.QMessageBox(
+                        QtWidgets.QMessageBox.Warning,
+                        'Removing/Moving image',
+                        ('Error occured while removing/moving '
+                         f'image {selected_widget.image.path}')
+                    )
+                    msgBox.exec()
             # If we select all (or except one) the images in a group,
             if len(group_widget) - len(selected_widgets) <= 1:
                 # and all the selected images were processed correctly (so

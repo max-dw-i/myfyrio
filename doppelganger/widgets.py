@@ -272,13 +272,6 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
         try:
             self.image.delete()
         except OSError as e:
-            msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning,
-                'Removing image',
-                f'Error occured while removing image {self.image.path}'
-            )
-            msgBox.exec()
-
             raise OSError(e)
         else:
             self.selected = False
@@ -295,13 +288,6 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
         try:
             self.image.move(dst)
         except OSError as e:
-            msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning,
-                'Moving image',
-                f'Error occured while moving image {self.image.path}'
-            )
-            msgBox.exec()
-
             raise OSError(e)
         else:
             self.selected = False

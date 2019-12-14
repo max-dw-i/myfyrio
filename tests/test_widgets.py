@@ -364,13 +364,10 @@ class TestDuplicateWidget(TestCase):
         self.assertFalse(self.w.selected)
         self.assertTrue(mock_later.called)
 
-    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
     @mock.patch('doppelganger.core.Image.delete', side_effect=OSError)
-    def test_delete_raises_OSError(self, mock_img, mock_box):
+    def test_delete_raises_OSError(self, mock_img):
         with self.assertRaises(OSError):
             self.w.delete()
-
-        self.assertTrue(mock_box.called)
 
     @mock.patch('PyQt5.QtCore.QObject.deleteLater')
     @mock.patch('doppelganger.core.Image.move')
@@ -382,14 +379,11 @@ class TestDuplicateWidget(TestCase):
         self.assertFalse(self.w.selected)
         self.assertTrue(mock_later.called)
 
-    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
     @mock.patch('doppelganger.core.Image.move', side_effect=OSError)
-    def test_move_raises_OSError(self, mock_img, mock_box):
+    def test_move_raises_OSError(self, mock_img):
         dst = 'new_dst'
         with self.assertRaises(OSError):
             self.w.move(dst)
-
-        self.assertTrue(mock_box.called)
 
 
 class TestImageGroupWidget(TestCase):
