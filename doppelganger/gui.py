@@ -66,8 +66,7 @@ class PreferencesForm(QtWidgets.QMainWindow):
         self.sizeSpinBox.setMinimum(100)
         self.sizeSpinBox.setMaximum(4000)
 
-        data = self._load_prefs()
-        self._update_form(data)
+        self._update_form(parent.conf)
 
         self._setWidgetEvents()
 
@@ -82,27 +81,6 @@ class PreferencesForm(QtWidgets.QMainWindow):
 
         self.saveBtn.clicked.connect(self.saveBtn_click)
         self.cancelBtn.clicked.connect(self.cancelBtn_click)
-
-    def _load_prefs(self) -> config.ConfigData:
-        '''Load preferences
-
-        :return: dict with the loaded preferences
-        '''
-
-        c = config.Config()
-        try:
-            c.load()
-        except OSError:
-            msg_box = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning,
-                'Errors',
-                ("Cannot load preferences from file 'config.p'. Default "
-                 "preferences will be loaded. For more details, "
-                 "see 'errors.log'")
-            )
-            msg_box.exec()
-
-        return c.data
 
     def _update_form(self, data: config.ConfigData) -> None:
         '''Update the form with new preferences
@@ -157,6 +135,7 @@ class PreferencesForm(QtWidgets.QMainWindow):
             )
             msg_box.exec()
         else:
+            self.parent().conf = data
             self.deleteLater()
 
     def cancelBtn_click(self) -> None:
@@ -177,11 +156,32 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
 
         self.threadpool = QtCore.QThreadPool()
         self._setWidgetEvents()
-
+        self.conf = self._load_prefs()
         self.sensitivity = 0
         self.highRb.click()
 
         self._setMenubar()
+
+    def _load_prefs(self) -> config.ConfigData:
+        '''Load preferences
+
+        :return: dict with the loaded preferences
+        '''
+
+        c = config.Config()
+        try:
+            c.load()
+        except OSError:
+            msg_box = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning,
+                'Errors',
+                ("Cannot load preferences from file 'config.p'. Default "
+                 "preferences will be loaded. For more details, "
+                 "see 'errors.log'")
+            )
+            msg_box.exec()
+
+        return c.data
 
     def _setWidgetEvents(self) -> None:
         '''Link events and functions called on the events'''
@@ -345,12 +345,9 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
             )
             msg_box.exec()
         else:
-            conf = config.Config()
-            conf.load()
-
             for group in image_groups:
                 self.scrollAreaLayout.addWidget(
-                    widgets.ImageGroupWidget(group, conf.data, self.scrollArea)
+                    widgets.ImageGroupWidget(group, self.conf, self.scrollArea)
                 )
 
             for widget in self.findChildren(widgets.DuplicateWidget):
@@ -418,8 +415,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         self.startBtn.setEnabled(True)
         self.stopBtn.setEnabled(False)
 
-    def start_processing(self, folders: Iterable[core.FolderPath],
-                         conf: config.ConfigData) -> None:
+    def start_processing(self, folders: Iterable[core.FolderPath]) -> None:
         '''Set up image processing and run it
 
         :param folders: folders to process,
@@ -427,7 +423,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         '''
 
         proc = processing.ImageProcessing(self.signals, folders,
-                                          self.sensitivity, conf)
+                                          self.sensitivity, self.conf)
 
         proc.signals.update_info.connect(self.updateLabel)
         proc.signals.update_progressbar.connect(self.progressBar.setValue)
@@ -488,11 +484,8 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         self.stopBtn.setEnabled(True)
         self.startBtn.setEnabled(False)
 
-        conf = config.Config()
-        conf.load()
-
         folders = self.getFolders()
-        self.start_processing(folders, conf.data)
+        self.start_processing(folders)
 
     @QtCore.pyqtSlot()
     def stopBtn_click(self) -> None:

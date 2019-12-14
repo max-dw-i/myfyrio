@@ -59,8 +59,18 @@ class TestAboutForm(TestCase):
 
 class TestPreferencesForm(TestCase):
 
+    class P(QtWidgets.QWidget):
+        conf = {'cache_thumbnails': True,
+                'delete_dirs': True,
+                'show_path': True,
+                'show_similarity': True,
+                'show_size': True,
+                'size': 666,
+                'sort': 1}
+
     def setUp(self):
-        self.form = gui.PreferencesForm()
+        self.p = self.P()
+        self.form = gui.PreferencesForm(parent=self.p)
 
     def clear_form(self):
         self.form.sizeSpinBox.setValue(333)
@@ -73,10 +83,9 @@ class TestPreferencesForm(TestCase):
 
     @mock.patch('doppelganger.gui.PreferencesForm._setWidgetEvents')
     @mock.patch('doppelganger.gui.PreferencesForm._update_form')
-    @mock.patch('doppelganger.gui.PreferencesForm._load_prefs')
     @mock.patch('PyQt5.QtWidgets.QComboBox.addItems')
-    def test_init(self, mock_combobox, mock_prefs, mock_update, mock_events):
-        f = gui.PreferencesForm()
+    def test_init(self, mock_combobox, mock_update, mock_events):
+        f = gui.PreferencesForm(self.p)
 
         mock_combobox.assert_called_once_with([
             'Similarity rate',
@@ -86,44 +95,20 @@ class TestPreferencesForm(TestCase):
         ])
         self.assertEqual(f.sizeSpinBox.minimum(), 100)
         self.assertEqual(f.sizeSpinBox.maximum(), 4000)
-        mock_prefs.assert_called_once()
         mock_update.assert_called_once()
         mock_events.assert_called_once()
 
     @mock.patch('doppelganger.gui.PreferencesForm.deleteLater')
     @mock.patch('PyQt5.QtWidgets.QMainWindow.closeEvent')
     def test_closeEvent(self, mock_close, mock_delete):
-        self.form = gui.PreferencesForm()
         self.form.close()
 
         self.assertTrue(mock_close.called)
         self.assertTrue(mock_delete.called)
 
-    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
-    @mock.patch('doppelganger.config.Config.load', side_effect=OSError)
-    def test_load_prefs_if_raise_OSError(self, mock_conf, mock_exec):
-        default_data = {'cache_thumbnails': False,
-                        'delete_dirs': False,
-                        'show_path': True,
-                        'show_similarity': True,
-                        'show_size': True,
-                        'size': 200,
-                        'sort': 0}
-        data = self.form._load_prefs()
-
-        mock_exec.assert_called_once()
-        self.assertDictEqual(data, default_data)
-
     def test_update_form(self):
         self.clear_form()
-
-        data = {'cache_thumbnails': True,
-                'delete_dirs': True,
-                'show_path': True,
-                'show_similarity': True,
-                'show_size': True,
-                'size': 666,
-                'sort': 1}
+        data = self.p.conf
 
         self.form._update_form(data)
 
@@ -158,6 +143,7 @@ class TestPreferencesForm(TestCase):
         mock_prefs.assert_called_once()
         mock_save.assert_called_once()
         mock_del.assert_called_once()
+        self.assertDictEqual(self.p.conf, {})
 
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
     @mock.patch('doppelganger.config.Config.save', side_effect=OSError)
@@ -179,21 +165,23 @@ class TestPreferencesForm(TestCase):
 class TestMainForm(TestCase):
 
     def setUp(self):
-        self.form = gui.MainForm()
-        self.CONF = {
-            'size': 200,
-            'show_similarity': True,
-            'show_size': True,
-            'show_path': True,
-            'sort': 0,
-            'cache_thumbnails': False,
-            'delete_dirs': False
-        }
+        self.conf = {'size': 200,
+                     'show_similarity': True,
+                     'show_size': True,
+                     'show_path': True,
+                     'sort': 0,
+                     'cache_thumbnails': False,
+                     'delete_dirs': False}
+        with mock.patch('doppelganger.gui.MainForm._load_prefs') as mock_load:
+            mock_load.return_value = self.conf
 
+            self.form = gui.MainForm()
+
+    @mock.patch('doppelganger.gui.MainForm._load_prefs')
     @mock.patch('doppelganger.gui.MainForm._setMenubar')
     @mock.patch('doppelganger.gui.QtWidgets.QRadioButton.click')
     @mock.patch('doppelganger.gui.MainForm._setWidgetEvents')
-    def test_init(self, mock_events, mock_button, mock_menubar):
+    def test_init(self, mock_events, mock_button, mock_menubar, mock_load):
         form = gui.MainForm()
         scroll_area_align = form.scrollAreaLayout.layout().alignment()
         self.assertEqual(scroll_area_align, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
@@ -202,6 +190,15 @@ class TestMainForm(TestCase):
         self.assertTrue(mock_events.called)
         self.assertTrue(mock_button.called)
         self.assertTrue(mock_menubar.called)
+        self.assertTrue(mock_load.called)
+
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
+    @mock.patch('doppelganger.config.Config.load', side_effect=OSError)
+    def test_load_prefs_if_raise_OSError(self, mock_conf, mock_exec):
+        conf = self.form._load_prefs()
+
+        mock_exec.assert_called_once()
+        self.assertDictEqual(conf, self.conf)
 
     def test_init_menubar(self):
         titles = {'File', 'Edit', 'View', 'Options', 'Help'}
@@ -237,7 +234,9 @@ class TestMainForm(TestCase):
     @mock.patch('doppelganger.widgets.DuplicateWidget.move', side_effect=OSError)
     def test_call_on_selected_widgets_move_raises_OSError(self, mock_move, mock_box):
         image_group = [core.Image('img1.png')]
-        self.form.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(image_group, self.CONF))
+        self.form.scrollAreaLayout.addWidget(
+            widgets.ImageGroupWidget(image_group, self.form.conf)
+        )
         w = self.form.findChild(widgets.DuplicateWidget)
         w.selected = True
         dst = 'new_dst'
@@ -250,7 +249,9 @@ class TestMainForm(TestCase):
     @mock.patch('doppelganger.widgets.DuplicateWidget.delete', side_effect=OSError)
     def test_call_on_selected_widgets_delete_raises_OSError(self, mock_delete, mock_box):
         image_group = [core.Image('img1.png')]
-        self.form.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(image_group, self.CONF))
+        self.form.scrollAreaLayout.addWidget(
+            widgets.ImageGroupWidget(image_group, self.form.conf)
+        )
         w = self.form.findChild(widgets.DuplicateWidget)
         w.selected = True
         with self.assertLogs('main.gui', 'ERROR'):
@@ -262,7 +263,9 @@ class TestMainForm(TestCase):
     @mock.patch('doppelganger.widgets.ImageGroupWidget.deleteLater')
     def test_call_on_selected_widgets_deleteLater_on_ImageGroupWidget(self, mock_later):
         image_group = [core.Image('img1.png')]
-        self.form.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(image_group, self.CONF))
+        self.form.scrollAreaLayout.addWidget(
+            widgets.ImageGroupWidget(image_group, self.form.conf)
+        )
         self.form._call_on_selected_widgets()
 
         mock_later.assert_called_once()
@@ -370,12 +373,6 @@ class TestMainForm(TestCase):
         self.assertEqual(len(rendered_widgets), len(image_groups))
         self.assertIsInstance(rendered_widgets[0], widgets.ImageGroupWidget)
 
-    @mock.patch('doppelganger.config.Config.load')
-    def test_render_call_config_load(self, mock_conf):
-        self.form.render([[core.Image('image.jpg')]])
-
-        mock_conf.assert_called_once()
-
     def test_updateLabel(self):
         labels = {'thumbnails': self.form.thumbnailsLabel,
                   'image_groups': self.form.dupGroupLabel,
@@ -391,7 +388,7 @@ class TestMainForm(TestCase):
 
     def test_hasSelectedWidgets_False(self):
         self.form.scrollAreaLayout.addWidget(
-            widgets.ImageGroupWidget([core.Image('image.png')], self.CONF)
+            widgets.ImageGroupWidget([core.Image('image.png')], self.form.conf)
         )
         w = self.form.findChild(widgets.DuplicateWidget)
 
@@ -399,7 +396,7 @@ class TestMainForm(TestCase):
 
     def test_hasSelectedWidgets_True(self):
         self.form.scrollAreaLayout.addWidget(
-            widgets.ImageGroupWidget([core.Image('image.png')], self.CONF)
+            widgets.ImageGroupWidget([core.Image('image.png')], self.form.conf)
         )
         w = self.form.findChild(widgets.DuplicateWidget)
         w.selected = True
@@ -473,14 +470,14 @@ class TestMainForm(TestCase):
 
     @mock.patch('doppelganger.processing.ImageProcessing')
     def test_start_processing_calls_ImageProcessing(self, mock_processing):
-        self.form.start_processing([], {'size': 666})
+        self.form.start_processing([])
 
         self.assertTrue(mock_processing.called)
 
     @mock.patch('PyQt5.QtCore.QThreadPool.start')
     @mock.patch('doppelganger.processing.Worker')
     def test_start_processing_creates_Worker_n_thread(self, mock_worker, mock_thread):
-        self.form.start_processing([], {'size': 666})
+        self.form.start_processing([])
 
         self.assertTrue(mock_worker.called)
         self.assertTrue(mock_thread.called)
@@ -548,15 +545,6 @@ class TestMainForm(TestCase):
         self.assertTrue(mock_clear.called)
         self.assertFalse(self.form.startBtn.isEnabled())
         self.assertTrue(self.form.stopBtn.isEnabled())
-
-    @mock.patch('doppelganger.config.Config.load')
-    @mock.patch('doppelganger.gui.MainForm.start_processing')
-    def test_startBtn_click_calls_config_load(self, mock_processing, mock_conf):
-        self.form.startBtn.setEnabled(True)
-        self.form.stopBtn.setEnabled(False)
-        QtTest.QTest.mouseClick(self.form.startBtn, QtCore.Qt.LeftButton)
-
-        self.assertTrue(mock_conf.called)
 
     @mock.patch('doppelganger.gui.MainForm.start_processing')
     @mock.patch('doppelganger.gui.MainForm.getFolders', return_value=[])
