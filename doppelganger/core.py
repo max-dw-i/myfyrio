@@ -339,6 +339,13 @@ class Image():
         except OSError:
             raise OSError(f'{self.path} cannot be moved')
 
+    def del_parent_dir(self) -> None:
+        '''Delete the parent directory if it is empty'''
+
+        parent_dir = pathlib.Path(self.path).parent
+        if not list(parent_dir.glob('*')):
+            parent_dir.rmdir()
+
     def __str__(self) -> str:
         return self.path
 

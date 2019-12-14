@@ -260,6 +260,36 @@ class TestMainForm(TestCase):
         mock_delete.assert_called_once()
         self.assertTrue(mock_box.called)
 
+    @mock.patch('doppelganger.core.Image.del_parent_dir')
+    @mock.patch('doppelganger.widgets.DuplicateWidget.delete')
+    def test_call_on_selected_widgets_delete_empty_dir(self, mock_delete, mock_dir):
+        image_group = [core.Image('img1.png')]
+        self.form.scrollAreaLayout.addWidget(
+            widgets.ImageGroupWidget(image_group, self.form.conf)
+        )
+        w = self.form.findChild(widgets.DuplicateWidget)
+        w.selected = True
+        self.form.conf['delete_dirs'] = True
+
+        self.form._call_on_selected_widgets()
+
+        self.assertTrue(mock_dir.called)
+
+    @mock.patch('doppelganger.core.Image.del_parent_dir')
+    @mock.patch('doppelganger.widgets.DuplicateWidget.delete')
+    def test_call_on_selected_widgets_not_delete_empty_dir(self, mock_delete, mock_dir):
+        image_group = [core.Image('img1.png')]
+        self.form.scrollAreaLayout.addWidget(
+            widgets.ImageGroupWidget(image_group, self.form.conf)
+        )
+        w = self.form.findChild(widgets.DuplicateWidget)
+        w.selected = True
+        self.form.conf['delete_dirs'] = False
+
+        self.form._call_on_selected_widgets()
+
+        self.assertFalse(mock_dir.called)
+
     @mock.patch('doppelganger.widgets.ImageGroupWidget.deleteLater')
     def test_call_on_selected_widgets_deleteLater_on_ImageGroupWidget(self, mock_later):
         image_group = [core.Image('img1.png')]

@@ -258,6 +258,9 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
                          f'image {selected_widget.image.path}')
                     )
                     msgBox.exec()
+                else:
+                    if self.conf['delete_dirs']:
+                        selected_widget.image.del_parent_dir()
             # If we select all (or except one) the images in a group,
             if len(group_widget) - len(selected_widgets) <= 1:
                 # and all the selected images were processed correctly (so

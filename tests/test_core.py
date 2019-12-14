@@ -174,6 +174,22 @@ class TestImageClass(TestCase):
 
         mock_rename.assert_called_once_with(self.image.path, new_path)
 
+    # Image.del_parent_dir
+
+    @mock.patch(CORE + 'pathlib.Path.rmdir')
+    @mock.patch(CORE + 'pathlib.Path.glob', return_value=[])
+    def test_del_parent_dir_true(self, mock_glob, mock_rm):
+        self.image.del_parent_dir()
+
+        self.assertTrue(mock_rm.called)
+
+    @mock.patch(CORE + 'pathlib.Path.rmdir')
+    @mock.patch(CORE + 'pathlib.Path.glob', return_value=['test_path'])
+    def test_del_parent_dir_false(self, mock_glob, mock_rm):
+        self.image.del_parent_dir()
+
+        self.assertFalse(mock_rm.called)
+
 
 class TestFindImagesFunction(TestCase):
 
