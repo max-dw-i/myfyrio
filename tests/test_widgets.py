@@ -23,7 +23,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtGui, QtTest, QtWidgets
 
-from doppelganger import core, widgets
+from doppelganger import config, core, widgets
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -78,15 +78,7 @@ class ImagePathLabel(TestCase):
     @mock.patch('doppelganger.widgets.QtCore.QFileInfo.canonicalFilePath', return_value='test_path')
     @mock.patch('doppelganger.widgets.InfoLabelWidget.__init__')
     def test_init(self, mock_init, mock_path):
-        CONF = {
-            'size': 200,
-            'show_similarity': True,
-            'show_size': True,
-            'show_path': True,
-            'sort': 0,
-            'cache_thumbnails': False,
-            'delete_dirs': False
-        }
+        CONF = config.Config.DEFAULT_CONFIG_DATA.copy()
         widgets.ImagePathLabel('test', CONF)
 
         mock_init.assert_called_once_with('test_path', CONF, None)
@@ -96,15 +88,7 @@ class TestImageInfoWidget(TestCase):
 
     @mock.patch('doppelganger.widgets.QtCore.QFileInfo.canonicalFilePath', return_value='path')
     def test_init(self, mock_path):
-        CONF = {
-            'size': 200,
-            'show_similarity': True,
-            'show_size': True,
-            'show_path': True,
-            'sort': 0,
-            'cache_thumbnails': False,
-            'delete_dirs': False
-        }
+        CONF = config.Config.DEFAULT_CONFIG_DATA.copy()
         path, difference, dimensions, filesize = 'path', 0, (1, 2), 3
         w = widgets.ImageInfoWidget(path, difference, dimensions, filesize, CONF)
 
@@ -126,7 +110,8 @@ class TestImageInfoWidget(TestCase):
             'show_path': False,
             'sort': 0,
             'cache_thumbnails': False,
-            'delete_dirs': False
+            'delete_dirs': False,
+            'size_format': 'B'
         }
         path, difference, dimensions, filesize = 'path', 0, (1, 2), 3
         w = widgets.ImageInfoWidget(path, difference, dimensions, filesize, CONF)
@@ -140,7 +125,7 @@ class TestImageInfoWidget(TestCase):
         self.assertIsNone(image_path_label)
 
     def test_get_image_size(self):
-        result = widgets.ImageInfoWidget._get_image_size((1, 2), 3)
+        result = widgets.ImageInfoWidget._get_image_size((1, 2), 3, 'KB')
         expected = '1x2, 3 KB'
 
         self.assertEqual(result, expected)
@@ -226,15 +211,7 @@ class TestThumbnailWidget(TestCase):
 class TestDuplicateWidget(TestCase):
 
     def setUp(self):
-        self.CONF = {
-            'size': 200,
-            'show_similarity': True,
-            'show_size': True,
-            'show_path': True,
-            'sort': 0,
-            'cache_thumbnails': False,
-            'delete_dirs': False
-        }
+        self.CONF = config.Config.DEFAULT_CONFIG_DATA.copy()
         self.path, self.difference = 'image.png', 1
         self.image = core.Image(self.path, difference=self.difference)
         self.w = widgets.DuplicateWidget(self.image, self.CONF)
@@ -392,15 +369,7 @@ class TestDuplicateWidget(TestCase):
 class TestImageGroupWidget(TestCase):
 
     def setUp(self):
-        self.CONF = {
-            'size': 200,
-            'show_similarity': True,
-            'show_size': True,
-            'show_path': True,
-            'sort': 0,
-            'cache_thumbnails': False,
-            'delete_dirs': False
-        }
+        self.CONF = config.Config.DEFAULT_CONFIG_DATA.copy()
         self.w = widgets.ImageGroupWidget([core.Image('image.png')], self.CONF)
 
     def test_widget_alignment(self):

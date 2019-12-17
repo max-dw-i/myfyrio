@@ -45,15 +45,7 @@ class TestConfig(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.DEFAULT_CONFIG_DATA = {
-            'size': 200,
-            'show_similarity': True,
-            'show_size': True,
-            'show_path': True,
-            'sort': 0,
-            'cache_thumbnails': False,
-            'delete_dirs': False
-        }
+        cls.DEFAULT_CONFIG_DATA = config.Config.DEFAULT_CONFIG_DATA.copy()
 
     def setUp(self):
         self.c = config.Config()

@@ -102,7 +102,7 @@ class ImageInfoWidget(QtWidgets.QWidget):
             layout.addWidget(widget)
         if conf['show_size']:
             widget = ImageSizeLabel(
-                self._get_image_size(dimensions, filesize),
+                self._get_image_size(dimensions, filesize, conf['size_format']),
                 conf['size'],
                 self
             )
@@ -115,7 +115,7 @@ class ImageInfoWidget(QtWidgets.QWidget):
 
     @staticmethod
     def _get_image_size(dimensions: Tuple[core.Width, core.Height],
-                        filesize: core.FileSize) -> str:
+                        filesize: core.FileSize, size_format: str) -> str:
         '''Return info about image dimensions and file size
 
         :param dimensions: image dimensions,
@@ -125,9 +125,8 @@ class ImageInfoWidget(QtWidgets.QWidget):
         '''
 
         width, height = dimensions[0], dimensions[1]
-        units = 'KB'
 
-        return f'{width}x{height}, {filesize} {units}'
+        return f'{width}x{height}, {filesize} {size_format}'
 
 
 class ThumbnailWidget(QtWidgets.QLabel):
@@ -219,7 +218,7 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
             dimensions = (0, 0)
 
         try:
-            filesize = self.image.filesize()
+            filesize = self.image.filesize(self.conf['size_format'])
         except OSError as e:
             widgets_logger.error(e)
             filesize = 0

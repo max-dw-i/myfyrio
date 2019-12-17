@@ -21,7 +21,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
 
-from doppelganger import core, gui, widgets
+from doppelganger import config, core, gui, widgets
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -65,6 +65,7 @@ class TestPreferencesForm(TestCase):
                 'show_path': True,
                 'show_similarity': True,
                 'show_size': True,
+                'size_format': 'MB',
                 'size': 666,
                 'sort': 1}
 
@@ -80,6 +81,7 @@ class TestPreferencesForm(TestCase):
         self.form.pathBox.setChecked(False)
         self.form.cachethumbsBox.setChecked(False)
         self.form.deldirsBox.setChecked(False)
+        self.form.sizeFormatComboBox.setCurrentIndex(0)
 
     @mock.patch('doppelganger.gui.PreferencesForm._setWidgetEvents')
     @mock.patch('doppelganger.gui.PreferencesForm._update_form')
@@ -87,12 +89,17 @@ class TestPreferencesForm(TestCase):
     def test_init(self, mock_combobox, mock_update, mock_events):
         f = gui.PreferencesForm(self.p)
 
-        mock_combobox.assert_called_once_with([
-            'Similarity rate',
-            'Filesize',
-            'Width and Height',
-            'Path'
-        ])
+        sort = ['Similarity rate',
+                'Filesize',
+                'Width and Height',
+                'Path']
+
+        size_format = ['Bytes (B)',
+                       'KiloBytes (KB)',
+                       'MegaBytes (MB)']
+
+        mock_combobox.assert_any_call(sort)
+        mock_combobox.assert_any_call(size_format)
         self.assertEqual(f.sizeSpinBox.minimum(), 100)
         self.assertEqual(f.sizeSpinBox.maximum(), 4000)
         mock_update.assert_called_once()
@@ -128,7 +135,8 @@ class TestPreferencesForm(TestCase):
                 'show_similarity': False,
                 'show_size': False,
                 'size': 333,
-                'sort': 0}
+                'sort': 0,
+                'size_format': 'B'}
 
         gathered_data = self.form._gather_prefs()
 
@@ -165,13 +173,7 @@ class TestPreferencesForm(TestCase):
 class TestMainForm(TestCase):
 
     def setUp(self):
-        self.conf = {'size': 200,
-                     'show_similarity': True,
-                     'show_size': True,
-                     'show_path': True,
-                     'sort': 0,
-                     'cache_thumbnails': False,
-                     'delete_dirs': False}
+        self.conf = config.Config.DEFAULT_CONFIG_DATA.copy()
         with mock.patch('doppelganger.gui.MainForm._load_prefs') as mock_load:
             mock_load.return_value = self.conf
 

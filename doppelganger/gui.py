@@ -63,6 +63,13 @@ class PreferencesForm(QtWidgets.QMainWindow):
                 'Path'              # in 'config.p' - 3
             ]
         )
+        self.sizeFormatComboBox.addItems(
+            [
+                'Bytes (B)',        # in 'config.p' - 'B'
+                'KiloBytes (KB)',   # in 'config.p' - 'KB'
+                'MegaBytes (MB)',   # in 'config.p' - 'MB'
+            ]
+        )
         self.sizeSpinBox.setMinimum(100)
         self.sizeSpinBox.setMaximum(4000)
 
@@ -82,6 +89,18 @@ class PreferencesForm(QtWidgets.QMainWindow):
         self.saveBtn.clicked.connect(self.saveBtn_click)
         self.cancelBtn.clicked.connect(self.cancelBtn_click)
 
+    def _encode_size_format(self, size_format: core.SizeFormat) -> int:
+        sf = {'B': 0,
+              'KB': 1,
+              'MB': 2}
+        return sf[size_format]
+
+    def _decode_size_format(self, index: int) -> core.SizeFormat:
+        sf = {0: 'B',
+              1: 'KB',
+              2: 'MB'}
+        return sf[index]
+
     def _update_form(self, data: config.ConfigData) -> None:
         '''Update the form with new preferences
 
@@ -90,6 +109,9 @@ class PreferencesForm(QtWidgets.QMainWindow):
 
         self.sizeSpinBox.setValue(data['size'])
         self.sortComboBox.setCurrentIndex(data['sort'])
+        self.sizeFormatComboBox.setCurrentIndex(
+            self._encode_size_format(data['size_format'])
+        )
 
         if data['show_similarity']:
             self.similarityBox.setChecked(True)
@@ -117,6 +139,9 @@ class PreferencesForm(QtWidgets.QMainWindow):
             'sort': self.sortComboBox.currentIndex(),
             'cache_thumbnails': self.cachethumbsBox.isChecked(),
             'delete_dirs': self.deldirsBox.isChecked(),
+            'size_format': self._decode_size_format(
+                self.sizeFormatComboBox.currentIndex()
+            )
         }
         return data
 

@@ -47,7 +47,8 @@ class Config:
         'show_path': True,
         'sort': 0,
         'cache_thumbnails': False,
-        'delete_dirs': False
+        'delete_dirs': False,
+        'size_format': 'KB'
     }
 
     def __init__(self, data: Optional[ConfigData] = None) -> None:
