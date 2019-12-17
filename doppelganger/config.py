@@ -46,7 +46,6 @@ class Config:
         'show_size': True,
         'show_path': True,
         'sort': 0,
-        'cache_thumbnails': False,
         'delete_dirs': False,
         'size_format': 'KB'
     }

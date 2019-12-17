@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>435</width>
-    <height>405</height>
+    <height>378</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -111,13 +111,6 @@
             </widget>
            </item>
           </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="cachethumbsBox">
-          <property name="text">
-           <string>Cache thumbnails</string>
-          </property>
          </widget>
         </item>
        </layout>

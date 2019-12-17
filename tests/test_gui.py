@@ -60,8 +60,7 @@ class TestAboutForm(TestCase):
 class TestPreferencesForm(TestCase):
 
     class P(QtWidgets.QWidget):
-        conf = {'cache_thumbnails': True,
-                'delete_dirs': True,
+        conf = {'delete_dirs': True,
                 'show_path': True,
                 'show_similarity': True,
                 'show_size': True,
@@ -79,7 +78,6 @@ class TestPreferencesForm(TestCase):
         self.form.similarityBox.setChecked(False)
         self.form.sizeBox.setChecked(False)
         self.form.pathBox.setChecked(False)
-        self.form.cachethumbsBox.setChecked(False)
         self.form.deldirsBox.setChecked(False)
         self.form.sizeFormatComboBox.setCurrentIndex(0)
 
@@ -124,13 +122,11 @@ class TestPreferencesForm(TestCase):
         self.assertEqual(data['show_similarity'], self.form.similarityBox.isChecked())
         self.assertEqual(data['show_size'], self.form.sizeBox.isChecked())
         self.assertEqual(data['show_path'], self.form.pathBox.isChecked())
-        self.assertEqual(data['cache_thumbnails'], self.form.cachethumbsBox.isChecked())
         self.assertEqual(data['delete_dirs'], self.form.deldirsBox.isChecked())
 
     def test_gather_prefs(self):
         self.clear_form()
-        data = {'cache_thumbnails': False,
-                'delete_dirs': False,
+        data = {'delete_dirs': False,
                 'show_path': False,
                 'show_similarity': False,
                 'show_size': False,

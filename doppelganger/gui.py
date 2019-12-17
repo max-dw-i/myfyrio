@@ -119,8 +119,6 @@ class PreferencesForm(QtWidgets.QMainWindow):
             self.sizeBox.setChecked(True)
         if data['show_path']:
             self.pathBox.setChecked(True)
-        if data['cache_thumbnails']:
-            self.cachethumbsBox.setChecked(True)
         if data['delete_dirs']:
             self.deldirsBox.setChecked(True)
 
@@ -137,7 +135,6 @@ class PreferencesForm(QtWidgets.QMainWindow):
             'show_size': self.sizeBox.isChecked(),
             'show_path': self.pathBox.isChecked(),
             'sort': self.sortComboBox.currentIndex(),
-            'cache_thumbnails': self.cachethumbsBox.isChecked(),
             'delete_dirs': self.deldirsBox.isChecked(),
             'size_format': self._decode_size_format(
                 self.sizeFormatComboBox.currentIndex()
