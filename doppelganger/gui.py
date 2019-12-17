@@ -224,9 +224,17 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         """Initialise the menus of 'menubar'"""
 
         fileMenu = self.menubar.addMenu('File')
-        fileMenu.setEnabled(False)
-        #fileMenu.addAction(self.addFolderAct)
-        #fileMenu.addSeparator(self.exitAct)
+        fileMenu.setObjectName('fileMenu')
+
+        addFolder = QtWidgets.QAction('Add folder...', self)
+        addFolder.setObjectName('addFolderAction')
+        addFolder.triggered.connect(self.add_folder)
+        fileMenu.addAction(addFolder)
+
+        closeProg = QtWidgets.QAction('Exit', self)
+        closeProg.setObjectName('exitAction')
+        closeProg.triggered.connect(self.close)
+        fileMenu.addAction(closeProg)
 
         editMenu = self.menubar.addMenu('Edit')
         editMenu.setEnabled(False)
@@ -419,6 +427,17 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
             self.moveBtn.setEnabled(False)
             self.deleteBtn.setEnabled(False)
 
+    def add_folder(self):
+        '''Add folder for searching duplicate images'''
+
+        folder_path = self.openFolderNameDialog()
+        if folder_path:
+            folder_path_item = QtWidgets.QListWidgetItem()
+            folder_path_item.setData(QtCore.Qt.DisplayRole, folder_path)
+            self.pathListWidget.addItem(folder_path_item)
+            self.delFolderBtn.setEnabled(True)
+            self.startBtn.setEnabled(True)
+
     def delete_images(self) -> None:
         """Delete selected images and corresponding 'DuplicateWidget's"""
 
@@ -481,13 +500,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
     def addFolderBtn_click(self) -> None:
         """Function called on 'Add Path' button click event"""
 
-        folder_path = self.openFolderNameDialog()
-        if folder_path:
-            folder_path_item = QtWidgets.QListWidgetItem()
-            folder_path_item.setData(QtCore.Qt.DisplayRole, folder_path)
-            self.pathListWidget.addItem(folder_path_item)
-            self.delFolderBtn.setEnabled(True)
-            self.startBtn.setEnabled(True)
+        self.add_folder()
 
     @QtCore.pyqtSlot()
     def delFolderBtn_click(self) -> None:

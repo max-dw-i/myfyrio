@@ -204,8 +204,8 @@ class TestMainForm(TestCase):
             self.assertIn(menu.title(), titles)
 
     def test_init_menubar_disabled_enabled_menus(self):
-        disabled = {'File', 'Edit', 'View'}
-        enabled = {'Help'}
+        disabled = {'Edit', 'View'}
+        enabled = {'File', 'Options', 'Help'}
         for menu in self.form.menubar.findChildren(QtWidgets.QMenu):
             if menu.title() in disabled:
                 self.assertFalse(menu.isEnabled())
@@ -227,6 +227,14 @@ class TestMainForm(TestCase):
         preferencesAction.trigger()
 
         self.assertTrue(mock_init.called)
+
+    @mock.patch('doppelganger.gui.MainForm.add_folder')
+    def test_add_folder_menu_calls_add_folder_func(self, mock_folder):
+        pass
+
+    @mock.patch('PyQt5.QtWidgets.QWidget.close')
+    def test_exit_menu_calls_close_func(self, mock_exit):
+        pass
 
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
     @mock.patch('doppelganger.widgets.DuplicateWidget.move', side_effect=OSError)
@@ -460,6 +468,20 @@ class TestMainForm(TestCase):
         self.assertFalse(self.form.moveBtn.isEnabled())
         self.assertFalse(self.form.deleteBtn.isEnabled())
 
+    @mock.patch('doppelganger.gui.MainForm.openFolderNameDialog', return_value='path')
+    def test_add_folder(self, mock_dialog):
+        self.form.add_folder()
+        result = self.form.pathListWidget.item(0).data(QtCore.Qt.DisplayRole)
+
+        self.assertEqual(result, 'path')
+
+    @mock.patch('doppelganger.gui.MainForm.openFolderNameDialog')
+    def test_add_folder_enable_buttons(self, mock_dialog):
+        self.form.add_folder()
+
+        self.assertTrue(self.form.delFolderBtn.isEnabled())
+        self.assertTrue(self.form.startBtn.isEnabled())
+
     @mock.patch('doppelganger.gui.MainForm.switchButtons')
     @mock.patch('doppelganger.gui.MainForm._call_on_selected_widgets')
     def test_delete_images(self, mock_call, mock_switch):
@@ -531,13 +553,11 @@ class TestMainForm(TestCase):
 
         self.assertEqual(self.form.sensitivity, 20)
 
-    @mock.patch('doppelganger.gui.MainForm.openFolderNameDialog', return_value='path')
-    def test_addFolderBtn_click(self, mock_dialog):
-        self.form.delFolderBtn.setEnabled(False)
+    @mock.patch('doppelganger.gui.MainForm.add_folder')
+    def test_addFolderBtn_click(self, mock_folder):
         QtTest.QTest.mouseClick(self.form.addFolderBtn, QtCore.Qt.LeftButton)
-        result = self.form.pathListWidget.item(0).data(QtCore.Qt.DisplayRole)
 
-        self.assertEqual(result, 'path')
+        mock_folder.assert_called_once()
 
     @mock.patch('doppelganger.gui.MainForm.openFolderNameDialog')
     def test_addFolderBtn_click_enables_buttons(self, mock_dialog):
