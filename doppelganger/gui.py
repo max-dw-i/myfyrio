@@ -253,7 +253,21 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         fileMenu.addAction(closeProg)
 
         editMenu = self.menubar.addMenu('Edit')
-        editMenu.setEnabled(False)
+        editMenu.setObjectName('editMenu')
+
+        move = QtWidgets.QAction('Move images', self)
+        move.setObjectName('moveAction')
+        move.triggered.connect(self.moveBtn_click)
+        move.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
+                                            + QtCore.Qt.Key_M))
+        editMenu.addAction(move)
+
+        delete = QtWidgets.QAction('Delete images', self)
+        delete.setObjectName('deleteAction')
+        delete.triggered.connect(self.deleteBtn_click)
+        delete.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
+                                              + QtCore.Qt.Key_D))
+        editMenu.addAction(delete)
 
         viewMenu = self.menubar.addMenu('View')
         viewMenu.setEnabled(False)

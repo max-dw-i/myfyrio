@@ -204,8 +204,8 @@ class TestMainForm(TestCase):
             self.assertIn(menu.title(), titles)
 
     def test_init_menubar_disabled_enabled_menus(self):
-        disabled = {'Edit', 'View'}
-        enabled = {'File', 'Options', 'Help'}
+        disabled = {'View'}
+        enabled = {'File', 'Edit', 'Options', 'Help'}
         for menu in self.form.menubar.findChildren(QtWidgets.QMenu):
             if menu.title() in disabled:
                 self.assertFalse(menu.isEnabled())
@@ -235,6 +235,12 @@ class TestMainForm(TestCase):
         pass
 
     def test_exit_menu_calls_close_func(self):
+        pass
+
+    def test_delete_images_menu_calls_close_func(self):
+        pass
+
+    def test_move_images_menu_calls_close_func(self):
         pass
 
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
