@@ -24,7 +24,7 @@ import logging
 import pathlib
 from typing import Iterable, Optional, Set
 
-from PyQt5 import QtCore, QtWidgets, uic
+from PyQt5 import QtCore, QtWidgets, uic, QtGui
 
 from doppelganger import config, core, processing, signals, widgets
 
@@ -229,11 +229,27 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         addFolder = QtWidgets.QAction('Add folder...', self)
         addFolder.setObjectName('addFolderAction')
         addFolder.triggered.connect(self.add_folder)
+        addFolder.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
+                                                 + QtCore.Qt.Key_A))
         fileMenu.addAction(addFolder)
+
+        removeFolder = QtWidgets.QAction('Remove folder...', self)
+        removeFolder.setObjectName('removeFolderAction')
+        removeFolder.triggered.connect(self.del_folder)
+        removeFolder.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
+                                                    + QtCore.Qt.Key_R))
+        fileMenu.addAction(removeFolder)
+
+        separator1 = QtWidgets.QAction('', self)
+        separator1.setObjectName('separator1')
+        separator1.setSeparator(True)
+        fileMenu.addAction(separator1)
 
         closeProg = QtWidgets.QAction('Exit', self)
         closeProg.setObjectName('exitAction')
         closeProg.triggered.connect(self.close)
+        closeProg.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
+                                                 + QtCore.Qt.Key_W))
         fileMenu.addAction(closeProg)
 
         editMenu = self.menubar.addMenu('Edit')
@@ -257,7 +273,6 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
 
         helpMenu = self.menubar.addMenu('Help')
         helpMenu.setObjectName('helpMenu')
-        #helpMenu.addAction(self.help)
         #helpMenu.addAction(self.homePage)
 
         about = QtWidgets.QAction('About', self)
@@ -438,6 +453,17 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
             self.delFolderBtn.setEnabled(True)
             self.startBtn.setEnabled(True)
 
+    def del_folder(self):
+        '''Delete folder from searching duplicate images'''
+
+        item_list = self.pathListWidget.selectedItems()
+        for item in item_list:
+            self.pathListWidget.takeItem(self.pathListWidget.row(item))
+
+        if not self.pathListWidget.count():
+            self.delFolderBtn.setEnabled(False)
+            self.startBtn.setEnabled(False)
+
     def delete_images(self) -> None:
         """Delete selected images and corresponding 'DuplicateWidget's"""
 
@@ -506,13 +532,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
     def delFolderBtn_click(self) -> None:
         """Function called on 'Delete Path' button click event"""
 
-        item_list = self.pathListWidget.selectedItems()
-        for item in item_list:
-            self.pathListWidget.takeItem(self.pathListWidget.row(item))
-
-        if not self.pathListWidget.count():
-            self.delFolderBtn.setEnabled(False)
-            self.startBtn.setEnabled(False)
+        self.del_folder()
 
     @QtCore.pyqtSlot()
     def startBtn_click(self) -> None:
