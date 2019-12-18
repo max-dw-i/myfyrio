@@ -43,6 +43,9 @@ if app is None:
 
 class TestInfoLabelWidget(TestCase):
 
+    def setUp(self):
+        self.w = widgets.InfoLabelWidget('test', 200)
+
     @mock.patch('doppelganger.widgets.InfoLabelWidget._word_wrap', return_value='test_wrapped')
     def test_init(self, mock_wrap):
         w = widgets.InfoLabelWidget('test', 200)
@@ -51,17 +54,23 @@ class TestInfoLabelWidget(TestCase):
         self.assertEqual(w.alignment(), QtCore.Qt.AlignHCenter)
         self.assertEqual(w.widget_size, 200)
 
+    @mock.patch('doppelganger.widgets.InfoLabelWidget._word_wrap', return_value='text')
+    def test_setText(self, mock_wrap):
+        new_text = 'text'
+        self.w.setText(new_text)
+
+        self.assertEqual(new_text, self.w.text())
+        mock_wrap.assert_called_once()
+
     @mock.patch('PyQt5.QtCore.QSize.width', return_value=200)
     def test_word_wrap_more_than_one_line(self, mock_width):
-        w = widgets.InfoLabelWidget('test', 200)
-        res = w._word_wrap('test')
+        res = self.w._word_wrap('test')
 
         self.assertEqual(res, '\nt\ne\ns\nt')
 
     @mock.patch('PyQt5.QtCore.QSize.width', return_value=200 - 40 - 1)
     def test_word_wrap_one_line(self, mock_width):
-        w = widgets.InfoLabelWidget('test', 200)
-        res = w._word_wrap('test')
+        res = self.w._word_wrap('test')
 
         self.assertEqual(res, 'test')
 
@@ -78,10 +87,9 @@ class ImagePathLabel(TestCase):
     @mock.patch('doppelganger.widgets.QtCore.QFileInfo.canonicalFilePath', return_value='test_path')
     @mock.patch('doppelganger.widgets.InfoLabelWidget.__init__')
     def test_init(self, mock_init, mock_path):
-        CONF = config.Config.DEFAULT_CONFIG_DATA.copy()
-        widgets.ImagePathLabel('test', CONF)
+        widgets.ImagePathLabel('test', 200)
 
-        mock_init.assert_called_once_with('test_path', CONF, None)
+        mock_init.assert_called_once_with('test_path', 200, None)
 
 
 class TestImageInfoWidget(TestCase):
@@ -307,6 +315,30 @@ class TestDuplicateWidget(TestCase):
 
             with self.assertLogs('main.widgets', 'ERROR'):
                 self.w._open_image()
+
+    @mock.patch('doppelganger.widgets.ImagePathLabel.setText')
+    @mock.patch('doppelganger.core.Image.rename')
+    @mock.patch('PyQt5.QtWidgets.QInputDialog.getText', return_value=('test', True))
+    def test_rename_image(self, mock_get, mock_rename, mock_set):
+        mw = QtWidgets.QMainWindow()
+        mw.setCentralWidget(self.w)
+
+        self.w._rename_image()
+
+        mock_rename.assert_called_once_with('test')
+        mock_set.assert_called_once_with(self.image.path)
+
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
+    @mock.patch('doppelganger.core.Image.rename', side_effect=FileExistsError)
+    @mock.patch('PyQt5.QtWidgets.QInputDialog.getText', return_value=('test', True))
+    def test_rename_image_if_raise_FileExistsError(self, mock_get, mock_rename, mock_exec):
+        mw = QtWidgets.QMainWindow()
+        mw.setCentralWidget(self.w)
+
+        with self.assertLogs('main.widgets', 'ERROR'):
+            self.w._rename_image()
+
+        mock_exec.assert_called_once()
 
     def test_contextMenuEvent(self):
         pass

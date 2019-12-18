@@ -339,6 +339,24 @@ class Image():
         except OSError:
             raise OSError(f'{self.path} cannot be moved')
 
+    def rename(self, name: str) -> None:
+        '''Rename the image
+
+        :param name: new name of the image,
+        :raise FileExistsError: if a file with name :new_name:
+                                already exists (on Unix replaces
+                                the old file silently)
+        '''
+
+        path = pathlib.Path(self.path)
+        new_name = path.parent / name
+        try:
+            path.rename(new_name)
+        except FileExistsError as e:
+            raise FileExistsError(f"File with name '{name}' already exists")
+        else:
+            self.path = str(new_name)
+
     def del_parent_dir(self) -> None:
         '''Delete the parent directory if it is empty'''
 

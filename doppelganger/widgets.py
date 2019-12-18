@@ -44,7 +44,11 @@ class InfoLabelWidget(QtWidgets.QLabel):
         self.widget_size = widget_size
 
         self.setAlignment(QtCore.Qt.AlignHCenter)
-        self.setText(self._word_wrap(text))
+        self.setText(text)
+
+    def setText(self, text: str):
+        new_text = self._word_wrap(text)
+        super().setText(new_text)
 
     def _word_wrap(self, text: str) -> str:
         '''QLabel wraps words only at word-breaks but we need
@@ -241,12 +245,42 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
             msg = 'Something wrong happened while opening the image viewer'
             widgets_logger.error(msg, exc_info=True)
 
+    def _rename_image(self) -> None:
+        '''Rename the image'''
+
+        name = pathlib.Path(self.image.path).name
+        new_name, ok = QtWidgets.QInputDialog.getText(
+            self,
+            'New name',
+            'Input a new name of the image:',
+            text=name,
+        )
+        if ok:
+            try:
+                self.image.rename(new_name)
+            except FileExistsError as e:
+                widgets_logger.error(e)
+                msgBox = QtWidgets.QMessageBox(
+                    QtWidgets.QMessageBox.Warning,
+                    'Renaming image',
+                    f"File with name '{new_name}' already exists"
+                )
+                msgBox.exec()
+            else:
+                pathLabel = self.findChild(ImagePathLabel)
+                pathLabel.setText(self.image.path)
+
+
     def contextMenuEvent(self, event) -> None:
         menu = QtWidgets.QMenu(self)
         openAction = menu.addAction("Open")
+        menu.addSeparator()
+        renameAction = menu.addAction("Rename")
         action = menu.exec_(self.mapToGlobal(event.pos()))
         if action == openAction:
             self._open_image()
+        if action == renameAction:
+            self._rename_image()
 
     def mouseReleaseEvent(self, event) -> None:
         '''Function called on mouse release event'''

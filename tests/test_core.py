@@ -174,6 +174,22 @@ class TestImageClass(TestCase):
 
         mock_rename.assert_called_once_with(self.image.path, new_path)
 
+    # Image.rename
+
+    @mock.patch(CORE + 'pathlib.Path.rename')
+    def test_rename(self, mock_rename):
+        new_name = 'new_name'
+        self.image.rename(new_name)
+
+        self.assertTrue(mock_rename.called)
+        self.assertEqual(new_name, self.image.path)
+
+    @mock.patch(CORE + 'pathlib.Path.rename', side_effect=FileExistsError)
+    def test_rename_raise_FileExistsError(self, mock_rename):
+        new_name = 'new_name'
+        with self.assertRaises(FileExistsError):
+            self.image.rename(new_name)
+
     # Image.del_parent_dir
 
     @mock.patch(CORE + 'pathlib.Path.rmdir')
