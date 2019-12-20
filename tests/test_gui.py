@@ -235,6 +235,9 @@ class TestMainForm(TestCase):
     def test_move_images_menu_calls_close_func(self):
         pass
 
+    def test_documentation_menu_calls_openDocs_func(self):
+        pass
+
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
     @mock.patch('doppelganger.widgets.DuplicateWidget.move', side_effect=OSError)
     def test_call_on_selected_widgets_move_raises_OSError(self, mock_move, mock_box):
@@ -352,6 +355,14 @@ class TestMainForm(TestCase):
         self.form.openFolderNameDialog()
 
         self.assertTrue(mock_dialog.called)
+
+    @mock.patch('doppelganger.gui.webbrowser.open')
+    def test_openDocs(self, mock_open):
+        self.form.openDocs()
+
+        mock_open.assert_called_once_with(
+            'https://github.com/oratosquilla-oratoria/doppelganger'
+        )
 
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
     def test_showErrMsg_calls_message_box(self, mock_msgbox):

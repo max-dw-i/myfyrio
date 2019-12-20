@@ -22,6 +22,7 @@ Module implementing graphical user interface
 
 import logging
 import pathlib
+import webbrowser
 from typing import Iterable, Optional, Set
 
 from PyQt5 import QtCore, QtWidgets, uic, QtGui
@@ -285,6 +286,11 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         helpMenu.setObjectName('helpMenu')
         #helpMenu.addAction(self.homePage)
 
+        docs = QtWidgets.QAction('Documentation', self)
+        docs.setObjectName('docsAction')
+        docs.triggered.connect(self.openDocs)
+        helpMenu.addAction(docs)
+
         about = QtWidgets.QAction('About', self)
         about.setObjectName('aboutAction')
         about.triggered.connect(self.openAboutForm)
@@ -353,6 +359,11 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
             QtWidgets.QFileDialog.ShowDirsOnly
         )
         return folder_path
+
+    def openDocs(self) -> None:
+        '''Open URL with the docs'''
+
+        webbrowser.open('https://github.com/oratosquilla-oratoria/doppelganger')
 
     def showErrMsg(self, msg: str) -> None:
         '''Show up when there've been some errors while running
