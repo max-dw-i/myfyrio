@@ -64,10 +64,12 @@ from PIL import ImageFile
 # Crazy hack not to get error 'IOError: image file is truncated...'
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-def find_images(folders: Iterable[FolderPath]) -> Set[ImagePath]:
+def find_images(folders: Iterable[FolderPath],
+                subfolders: bool = True) -> Set[ImagePath]:
     '''Find all the images in :folders:
 
     :param folders: paths of the folders,
+    :param subfolders: recursive search (include subfolders),
     :return: full paths of the images,
     :raise ValueError: any of the folders does not exist
     '''
@@ -75,12 +77,17 @@ def find_images(folders: Iterable[FolderPath]) -> Set[ImagePath]:
     IMG_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp'}
     paths = set()
 
+    if subfolders:
+        search = pathlib.Path.rglob
+    else:
+        search = pathlib.Path.glob
+
     for path in folders:
         p = pathlib.Path(path)
         if not p.exists():
             raise ValueError(f'{path} does not exist')
         for ext in IMG_EXTENSIONS:
-            for filename in p.glob(f'**/*{ext}'):
+            for filename in search(p, f'*{ext}'):
                 if filename.is_file():
                     paths.add(str(filename))
     return paths

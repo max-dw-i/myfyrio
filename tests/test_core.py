@@ -230,6 +230,11 @@ class TestFindImagesFunction(TestCase):
             cls.unsupported.append(dirs)
             os.makedirs(dirs)
 
+        # Create a file in subfolder to test recursive search
+        cls.subfile = str(cls.test_dir / 'dir' / 'rec.png')
+        with open(cls.subfile, 'w') as f:
+            f.write('Recursive')
+
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree(cls.test_dir)
@@ -239,11 +244,17 @@ class TestFindImagesFunction(TestCase):
 
         self.assertSequenceEqual(images, [])
 
-    def test_find_images_return(self):
-        paths = set(core.find_images([self.test_dir]))
+    def test_find_images_with_subfolders(self):
+        self.supported.append(self.subfile)
+        paths = set(core.find_images([self.test_dir], subfolders=True))
         for path in paths:
             self.assertIn(path, self.supported)
             self.assertNotIn(path, self.unsupported)
+
+    def test_find_images_without_subfolders(self):
+        paths = set(core.find_images([self.test_dir], subfolders=False))
+
+        self.assertNotIn(self.subfile, paths)
 
     @mock.patch(CORE + 'pathlib.Path.exists', return_value=False)
     def test_find_images_raise_ValueError(self, mock_exists):

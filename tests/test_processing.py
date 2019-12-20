@@ -21,7 +21,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtGui, QtTest, QtWidgets
 
-from doppelganger import core, exception, gui, processing
+from doppelganger import config, core, exception, gui, processing
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -253,15 +253,7 @@ class TestImageProcessingClass(TestCase):
         cls.mw = gui.MainForm()
 
     def setUp(self):
-        self.CONF = {
-            'size': 200,
-            'show_similarity': True,
-            'show_size': True,
-            'show_path': True,
-            'sort': 0,
-            'cache_thumbnails': False,
-            'delete_dirs': False
-        }
+        self.CONF = config.Config.DEFAULT_CONFIG_DATA.copy()
         self.im_pr = processing.ImageProcessing(self.mw.signals, [], 0, self.CONF)
 
     def test_attributes_initial_values(self):

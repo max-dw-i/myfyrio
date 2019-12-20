@@ -22,7 +22,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="thumbnailsTab">
        <attribute name="title">
@@ -129,6 +129,13 @@
         <string>Misc</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
+        <item>
+         <widget class="QCheckBox" name="subfoldersBox">
+          <property name="text">
+           <string>Recursive search (include subfolders)</string>
+          </property>
+         </widget>
+        </item>
         <item>
          <widget class="QCheckBox" name="deldirsBox">
           <property name="text">

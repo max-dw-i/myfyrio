@@ -47,7 +47,8 @@ class Config:
         'show_path': True,
         'sort': 0,
         'delete_dirs': False,
-        'size_format': 'KB'
+        'size_format': 'KB',
+        'subfolders': True,
     }
 
     def __init__(self, data: Optional[ConfigData] = None) -> None:

@@ -275,7 +275,7 @@ class ImageProcessing:
 
     def find_images(self, folders: Iterable[core.FolderPath]) -> Set[core.ImagePath]:
         try:
-            paths = core.find_images(folders)
+            paths = core.find_images(folders, self.conf['subfolders'])
         except ValueError as e:
             raise ValueError(e)
 

@@ -66,7 +66,8 @@ class TestPreferencesForm(TestCase):
                 'show_size': True,
                 'size_format': 'MB',
                 'size': 666,
-                'sort': 1}
+                'sort': 1,
+                'subfolders': True}
 
     def setUp(self):
         self.p = self.P()
@@ -80,6 +81,7 @@ class TestPreferencesForm(TestCase):
         self.form.pathBox.setChecked(False)
         self.form.deldirsBox.setChecked(False)
         self.form.sizeFormatComboBox.setCurrentIndex(0)
+        self.form.subfoldersBox.setChecked(False)
 
     @mock.patch('doppelganger.gui.PreferencesForm._setWidgetEvents')
     @mock.patch('doppelganger.gui.PreferencesForm._update_form')
@@ -123,6 +125,7 @@ class TestPreferencesForm(TestCase):
         self.assertEqual(data['show_size'], self.form.sizeBox.isChecked())
         self.assertEqual(data['show_path'], self.form.pathBox.isChecked())
         self.assertEqual(data['delete_dirs'], self.form.deldirsBox.isChecked())
+        self.assertEqual(data['subfolders'], self.form.subfoldersBox.isChecked())
 
     def test_gather_prefs(self):
         self.clear_form()
@@ -132,7 +135,8 @@ class TestPreferencesForm(TestCase):
                 'show_size': False,
                 'size': 333,
                 'sort': 0,
-                'size_format': 'B'}
+                'size_format': 'B',
+                'subfolders': False}
 
         gathered_data = self.form._gather_prefs()
 

@@ -122,6 +122,8 @@ class PreferencesForm(QtWidgets.QMainWindow):
             self.pathBox.setChecked(True)
         if data['delete_dirs']:
             self.deldirsBox.setChecked(True)
+        if data['subfolders']:
+            self.subfoldersBox.setChecked(True)
 
     def _gather_prefs(self) -> config.ConfigData:
         '''Gather checked/unchecked/filled by a user options
@@ -139,7 +141,8 @@ class PreferencesForm(QtWidgets.QMainWindow):
             'delete_dirs': self.deldirsBox.isChecked(),
             'size_format': self._decode_size_format(
                 self.sizeFormatComboBox.currentIndex()
-            )
+            ),
+            'subfolders': self.subfoldersBox.isChecked(),
         }
         return data
 
@@ -272,10 +275,6 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
 
         optionsMenu = self.menubar.addMenu('Options')
         optionsMenu.setObjectName('optionsMenu')
-        #optionsMenu.addAction(self.showHiddenFolders)
-        #optionsMenu.addAction(self.includeSubfolders)
-        #optionsMenu.addAction(self.betweenFoldersOnly)
-        #optionsMenu.addAction(self.confirmToClose)
 
         preferences = QtWidgets.QAction('Preferences...', self)
         preferences.setObjectName('preferencesAction')
