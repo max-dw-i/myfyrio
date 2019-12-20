@@ -284,12 +284,16 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
 
         helpMenu = self.menubar.addMenu('Help')
         helpMenu.setObjectName('helpMenu')
-        #helpMenu.addAction(self.homePage)
 
         docs = QtWidgets.QAction('Documentation', self)
         docs.setObjectName('docsAction')
         docs.triggered.connect(self.openDocs)
         helpMenu.addAction(docs)
+
+        homePage = QtWidgets.QAction('Home Page', self)
+        homePage.setObjectName('homePageAction')
+        homePage.triggered.connect(self.openDocs)
+        helpMenu.addAction(homePage)
 
         about = QtWidgets.QAction('About', self)
         about.setObjectName('aboutAction')
