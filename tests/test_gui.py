@@ -198,18 +198,10 @@ class TestMainForm(TestCase):
         mock_exec.assert_called_once()
         self.assertDictEqual(conf, self.conf)
 
-    def test_init_menubar(self):
-        titles = {'File', 'Edit', 'View', 'Options', 'Help'}
-        for menu in self.form.menubar.findChildren(QtWidgets.QMenu):
-            self.assertIn(menu.title(), titles)
-
     def test_init_menubar_disabled_enabled_menus(self):
-        disabled = {'View'}
         enabled = {'File', 'Edit', 'Options', 'Help'}
         for menu in self.form.menubar.findChildren(QtWidgets.QMenu):
-            if menu.title() in disabled:
-                self.assertFalse(menu.isEnabled())
-            elif menu.title() in enabled:
+            if menu.title() in enabled:
                 self.assertTrue(menu.isEnabled())
 
     @mock.patch('doppelganger.gui.AboutForm')

@@ -269,10 +269,6 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
                                               + QtCore.Qt.Key_D))
         editMenu.addAction(delete)
 
-        viewMenu = self.menubar.addMenu('View')
-        viewMenu.setEnabled(False)
-        #viewMenu.addAction(self.showDifference)
-
         optionsMenu = self.menubar.addMenu('Options')
         optionsMenu.setObjectName('optionsMenu')
         #optionsMenu.addAction(self.showHiddenFolders)
