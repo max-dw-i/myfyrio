@@ -252,6 +252,16 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         separator1.setSeparator(True)
         fileMenu.addAction(separator1)
 
+        preferences = QtWidgets.QAction('Preferences...', self)
+        preferences.setObjectName('preferencesAction')
+        preferences.triggered.connect(self.openPreferencesForm)
+        fileMenu.addAction(preferences)
+
+        separator2 = QtWidgets.QAction('', self)
+        separator2.setObjectName('separator2')
+        separator2.setSeparator(True)
+        fileMenu.addAction(separator2)
+
         closeProg = QtWidgets.QAction('Exit', self)
         closeProg.setObjectName('exitAction')
         closeProg.triggered.connect(self.close)
@@ -275,14 +285,6 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         delete.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
                                               + QtCore.Qt.Key_D))
         editMenu.addAction(delete)
-
-        optionsMenu = self.menubar.addMenu('Options')
-        optionsMenu.setObjectName('optionsMenu')
-
-        preferences = QtWidgets.QAction('Preferences...', self)
-        preferences.setObjectName('preferencesAction')
-        preferences.triggered.connect(self.openPreferencesForm)
-        optionsMenu.addAction(preferences)
 
         helpMenu = self.menubar.addMenu('Help')
         helpMenu.setObjectName('helpMenu')
