@@ -124,6 +124,8 @@ class PreferencesForm(QtWidgets.QMainWindow):
             self.deldirsBox.setChecked(True)
         if data['subfolders']:
             self.subfoldersBox.setChecked(True)
+        if data['close_confirmation']:
+            self.closeBox.setChecked(True)
 
     def _gather_prefs(self) -> config.ConfigData:
         '''Gather checked/unchecked/filled by a user options
@@ -143,6 +145,7 @@ class PreferencesForm(QtWidgets.QMainWindow):
                 self.sizeFormatComboBox.currentIndex()
             ),
             'subfolders': self.subfoldersBox.isChecked(),
+            'close_confirmation': self.closeBox.isChecked(),
         }
         return data
 
@@ -331,6 +334,20 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
                 # there are no selected images anymore), delete the whole group
                 if not group_widget.getSelectedWidgets():
                     group_widget.deleteLater()
+
+    def closeEvent(self, event) -> None:
+        '''Called on programme close event'''
+
+        if self.conf['close_confirmation']:
+            confirm = QtWidgets.QMessageBox.question(
+                self,
+                'Closing confirmation',
+                'Do you really want to exit?',
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel
+            )
+
+            if confirm == QtWidgets.QMessageBox.Cancel:
+                event.ignore()
 
     def openAboutForm(self) -> None:
         """Open 'Help' -> 'About' form"""

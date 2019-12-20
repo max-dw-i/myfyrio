@@ -67,7 +67,8 @@ class TestPreferencesForm(TestCase):
                 'size_format': 'MB',
                 'size': 666,
                 'sort': 1,
-                'subfolders': True}
+                'subfolders': True,
+                'close_confirmation': True}
 
     def setUp(self):
         self.p = self.P()
@@ -82,6 +83,7 @@ class TestPreferencesForm(TestCase):
         self.form.deldirsBox.setChecked(False)
         self.form.sizeFormatComboBox.setCurrentIndex(0)
         self.form.subfoldersBox.setChecked(False)
+        self.form.closeBox.setChecked(False)
 
     @mock.patch('doppelganger.gui.PreferencesForm._setWidgetEvents')
     @mock.patch('doppelganger.gui.PreferencesForm._update_form')
@@ -126,6 +128,7 @@ class TestPreferencesForm(TestCase):
         self.assertEqual(data['show_path'], self.form.pathBox.isChecked())
         self.assertEqual(data['delete_dirs'], self.form.deldirsBox.isChecked())
         self.assertEqual(data['subfolders'], self.form.subfoldersBox.isChecked())
+        self.assertEqual(data['close_confirmation'], self.form.closeBox.isChecked())
 
     def test_gather_prefs(self):
         self.clear_form()
@@ -136,7 +139,8 @@ class TestPreferencesForm(TestCase):
                 'size': 333,
                 'sort': 0,
                 'size_format': 'B',
-                'subfolders': False}
+                'subfolders': False,
+                'close_confirmation': False}
 
         gathered_data = self.form._gather_prefs()
 
@@ -311,6 +315,14 @@ class TestMainForm(TestCase):
         self.form._call_on_selected_widgets()
 
         mock_later.assert_called_once()
+
+    @mock.patch('PyQt5.QtCore.QEvent.ignore')
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.question', return_value=QtWidgets.QMessageBox.Cancel)
+    def test_closeEvent(self, mock_q, mock_ign):
+        self.conf['close_confirmation'] = True
+        self.form.close()
+
+        mock_ign.assert_called_once()
 
     @mock.patch('doppelganger.gui.AboutForm')
     @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[])

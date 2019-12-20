@@ -49,6 +49,7 @@ class Config:
         'delete_dirs': False,
         'size_format': 'KB',
         'subfolders': True,
+        'close_confirmation': False,
     }
 
     def __init__(self, data: Optional[ConfigData] = None) -> None:
