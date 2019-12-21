@@ -344,28 +344,32 @@ class TestDuplicateWidget(TestCase):
         pass
 
     @mock.patch('doppelganger.widgets.ThumbnailWidget.unmark')
-    def test_mouseReleaseEvent_on_selected_widget(self, mock_unmark):
-        mw = QtWidgets.QMainWindow()
-        mw.setCentralWidget(self.w)
+    def test_click_on_selected_widget(self, mock_unmark):
         self.w.selected = True
         spy = QtTest.QSignalSpy(self.w.signals.clicked)
-        QtTest.QTest.mouseClick(self.w, QtCore.Qt.LeftButton)
+        self.w.click()
 
         self.assertFalse(self.w.selected)
         self.assertTrue(mock_unmark.called)
         self.assertEqual(len(spy), 1)
 
     @mock.patch('doppelganger.widgets.ThumbnailWidget.mark')
-    def test_mouseReleaseEvent_on_unselected_widget(self, mock_mark):
-        mw = QtWidgets.QMainWindow()
-        mw.setCentralWidget(self.w)
+    def test_click_on_unselected_widget(self, mock_mark):
         self.w.selected = False
         spy = QtTest.QSignalSpy(self.w.signals.clicked)
-        QtTest.QTest.mouseClick(self.w, QtCore.Qt.LeftButton)
+        self.w.click()
 
         self.assertTrue(self.w.selected)
         self.assertTrue(mock_mark.called)
         self.assertEqual(len(spy), 1)
+
+    @mock.patch('doppelganger.widgets.DuplicateWidget.click')
+    def test_mouseReleaseEvent(self, mock_click):
+        mw = QtWidgets.QMainWindow()
+        mw.setCentralWidget(self.w)
+        QtTest.QTest.mouseClick(self.w, QtCore.Qt.LeftButton)
+
+        self.assertTrue(mock_click.called)
 
     @mock.patch('PyQt5.QtCore.QObject.deleteLater')
     @mock.patch('doppelganger.core.Image.delete')
@@ -426,7 +430,13 @@ class TestImageGroupWidget(TestCase):
 
         self.assertListEqual(self.w.getSelectedWidgets(), ws)
 
-    def test_len(self):
-        self.w = widgets.ImageGroupWidget([core.Image('image.png')], self.CONF)
+    def test_auto_select(self):
+        w = widgets.ImageGroupWidget([core.Image('image1.png'), core.Image('image2.png')],
+                                     self.CONF)
+        w.auto_select()
 
+        self.assertFalse(w.duplicate_widgets[0].selected)
+        self.assertTrue(w.duplicate_widgets[1].selected)
+
+    def test_len(self):
         self.assertEqual(len(self.w), 1)

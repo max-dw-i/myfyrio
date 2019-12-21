@@ -282,10 +282,8 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
         if action == renameAction:
             self._rename_image()
 
-    def mouseReleaseEvent(self, event) -> None:
-        '''Function called on mouse release event'''
-
-        super().mouseReleaseEvent(event)
+    def click(self) -> None:
+        '''Select/unselect widget and emit signal about it'''
 
         if self.selected:
             self.selected = False
@@ -295,6 +293,13 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
             self.imageLabel.mark()
 
         self.signals.clicked.emit()
+
+    def mouseReleaseEvent(self, event) -> None:
+        '''Function called on mouse release event'''
+
+        super().mouseReleaseEvent(event)
+
+        self.click()
 
     def delete(self) -> None:
         '''Delete the image from disk and its DuplicateWidget instance
@@ -335,9 +340,11 @@ class ImageGroupWidget(QtWidgets.QWidget):
         super().__init__(parent)
         layout = QtWidgets.QHBoxLayout(self)
         layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+        self.duplicate_widgets = []
         for image in image_group:
-            thumbnail = DuplicateWidget(image, conf, self)
-            layout.addWidget(thumbnail)
+            duplicate_widgets = DuplicateWidget(image, conf, self)
+            self.duplicate_widgets.append(duplicate_widgets)
+            layout.addWidget(duplicate_widgets)
         self.setLayout(layout)
 
     def getSelectedWidgets(self) -> List[DuplicateWidget]:
@@ -352,6 +359,11 @@ class ImageGroupWidget(QtWidgets.QWidget):
         )
         return [widget for widget in widgets if widget.selected]
 
+    def auto_select(self) -> None:
+        '''Automatic selection of DuplicateWidget's'''
+
+        for i in range(1, len(self)):
+            self.duplicate_widgets[i].click()
+
     def __len__(self) -> int:
-        return len(self.findChildren(DuplicateWidget,
-                                     options=QtCore.Qt.FindDirectChildrenOnly))
+        return len(self.duplicate_widgets)

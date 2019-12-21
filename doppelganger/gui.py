@@ -222,6 +222,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         self.stopBtn.clicked.connect(self.stopBtn_click)
         self.moveBtn.clicked.connect(self.moveBtn_click)
         self.deleteBtn.clicked.connect(self.deleteBtn_click)
+        self.autoSelectBtn.clicked.connect(self.autoSelectBtn_click)
 
         self.veryHighRb.clicked.connect(self.veryHighRb_click)
         self.highRb.clicked.connect(self.highRb_click)
@@ -287,6 +288,18 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         delete.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
                                               + QtCore.Qt.Key_D))
         editMenu.addAction(delete)
+
+        separator3 = QtWidgets.QAction('', self)
+        separator3.setObjectName('separator3')
+        separator3.setSeparator(True)
+        editMenu.addAction(separator3)
+
+        autoSelect = QtWidgets.QAction('Auto select images', self)
+        autoSelect.setObjectName('autoSelectAction')
+        autoSelect.triggered.connect(self.auto_select)
+        autoSelect.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
+                                                  + QtCore.Qt.Key_S))
+        editMenu.addAction(autoSelect)
 
         helpMenu = self.menubar.addMenu('Help')
         helpMenu.setObjectName('helpMenu')
@@ -523,12 +536,20 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
             self._call_on_selected_widgets(new_dst)
             self.switchButtons()
 
+    def auto_select(self) -> None:
+        '''Automatic selection of DuplicateWidget's'''
+
+        group_widgets = self.findChildren(widgets.ImageGroupWidget)
+        for group in group_widgets:
+            group.auto_select()
+
     def processing_finished(self) -> None:
         '''Called when image processing is finished'''
 
         self.progressBar.setValue(100)
         self.startBtn.setEnabled(True)
         self.stopBtn.setEnabled(False)
+        self.autoSelectBtn.setEnabled(True)
 
     def start_processing(self, folders: Iterable[core.FolderPath]) -> None:
         '''Set up image processing and run it
@@ -598,6 +619,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         self.clearMainForm()
         self.stopBtn.setEnabled(True)
         self.startBtn.setEnabled(False)
+        self.autoSelectBtn.setEnabled(False)
 
         folders = self.getFolders()
         self.start_processing(folders)
@@ -636,3 +658,8 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
 
         if confirm == QtWidgets.QMessageBox.Yes:
             self.delete_images()
+
+    def autoSelectBtn_click(self) -> None:
+        """Function called on 'Auto Select' button click event"""
+
+        self.auto_select()

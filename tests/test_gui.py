@@ -546,11 +546,13 @@ class TestMainForm(TestCase):
         self.form.progressBar.setValue(0)
         self.form.startBtn.setEnabled(False)
         self.form.stopBtn.setEnabled(True)
+        self.form.autoSelectBtn.setEnabled(False)
         self.form.processing_finished()
 
         self.assertEqual(self.form.progressBar.value(), 100)
         self.assertTrue(self.form.startBtn.isEnabled())
         self.assertFalse(self.form.stopBtn.isEnabled())
+        self.assertTrue(self.form.autoSelectBtn.isEnabled())
 
     @mock.patch('doppelganger.processing.ImageProcessing')
     def test_start_processing_calls_ImageProcessing(self, mock_processing):
@@ -619,11 +621,13 @@ class TestMainForm(TestCase):
     def test_startBtn_click_calls_clearMainForm(self, mock_processing, mock_clear):
         self.form.startBtn.setEnabled(True)
         self.form.stopBtn.setEnabled(False)
+        self.form.autoSelectBtn.setEnabled(True)
         QtTest.QTest.mouseClick(self.form.startBtn, QtCore.Qt.LeftButton)
 
         self.assertTrue(mock_clear.called)
         self.assertFalse(self.form.startBtn.isEnabled())
         self.assertTrue(self.form.stopBtn.isEnabled())
+        self.assertFalse(self.form.autoSelectBtn.isEnabled())
 
     @mock.patch('doppelganger.gui.MainForm.start_processing')
     @mock.patch('doppelganger.gui.MainForm.getFolders', return_value=[])
@@ -677,3 +681,10 @@ class TestMainForm(TestCase):
         QtTest.QTest.mouseClick(self.form.deleteBtn, QtCore.Qt.LeftButton)
 
         self.assertTrue(mock_del.called)
+
+    @mock.patch('doppelganger.gui.MainForm.auto_select')
+    def test_autoSelectBtn_click_calls_auto_select(self, mock_auto):
+        self.form.autoSelectBtn.setEnabled(True)
+        QtTest.QTest.mouseClick(self.form.autoSelectBtn, QtCore.Qt.LeftButton)
+
+        self.assertTrue(mock_auto.called)
