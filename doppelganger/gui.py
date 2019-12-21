@@ -223,6 +223,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         self.moveBtn.clicked.connect(self.moveBtn_click)
         self.deleteBtn.clicked.connect(self.deleteBtn_click)
         self.autoSelectBtn.clicked.connect(self.autoSelectBtn_click)
+        self.unselectBtn.clicked.connect(self.unselectBtn_click)
 
         self.veryHighRb.clicked.connect(self.veryHighRb_click)
         self.highRb.clicked.connect(self.highRb_click)
@@ -300,6 +301,13 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         autoSelect.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
                                                   + QtCore.Qt.Key_S))
         editMenu.addAction(autoSelect)
+
+        unselect = QtWidgets.QAction('Unselect images', self)
+        unselect.setObjectName('unselectAction')
+        unselect.triggered.connect(self.unselect)
+        unselect.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
+                                                + QtCore.Qt.Key_U))
+        editMenu.addAction(unselect)
 
         helpMenu = self.menubar.addMenu('Help')
         helpMenu.setObjectName('helpMenu')
@@ -496,9 +504,11 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         if self.hasSelectedWidgets():
             self.moveBtn.setEnabled(True)
             self.deleteBtn.setEnabled(True)
+            self.unselectBtn.setEnabled(True)
         else:
             self.moveBtn.setEnabled(False)
             self.deleteBtn.setEnabled(False)
+            self.unselectBtn.setEnabled(False)
 
     def add_folder(self):
         '''Add folder for searching duplicate images'''
@@ -542,6 +552,14 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         group_widgets = self.findChildren(widgets.ImageGroupWidget)
         for group in group_widgets:
             group.auto_select()
+
+    def unselect(self) -> None:
+        '''Unselect all the selected DuplicateWidget's'''
+
+        duplicate_widgets = self.findChildren(widgets.DuplicateWidget)
+        for w in duplicate_widgets:
+            if w.selected:
+                w.click()
 
     def processing_finished(self) -> None:
         '''Called when image processing is finished'''
@@ -663,3 +681,8 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         """Function called on 'Auto Select' button click event"""
 
         self.auto_select()
+
+    def unselectBtn_click(self) -> None:
+        """Function called on 'Unselect' button click event"""
+
+        self.unselect()

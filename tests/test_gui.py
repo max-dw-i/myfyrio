@@ -463,30 +463,36 @@ class TestMainForm(TestCase):
     def test_switchButtons_called_when_signal_emitted(self, mock_has):
         self.form.moveBtn.setEnabled(False)
         self.form.deleteBtn.setEnabled(False)
+        self.form.unselectBtn.setEnabled(False)
         self.form.render([[core.Image('image.png', 0)]])
         dw = self.form.findChild(widgets.DuplicateWidget)
         dw.signals.clicked.emit()
 
         self.assertTrue(self.form.moveBtn.isEnabled())
         self.assertTrue(self.form.deleteBtn.isEnabled())
+        self.assertTrue(self.form.unselectBtn.isEnabled())
 
     @mock.patch('doppelganger.gui.MainForm.hasSelectedWidgets', return_value=True)
     def test_switchButtons_if_hasSelectedWidgets_True(self, mock_has):
         self.form.moveBtn.setEnabled(False)
         self.form.deleteBtn.setEnabled(False)
+        self.form.unselectBtn.setEnabled(False)
         self.form.switchButtons()
 
         self.assertTrue(self.form.moveBtn.isEnabled())
         self.assertTrue(self.form.deleteBtn.isEnabled())
+        self.assertTrue(self.form.unselectBtn.isEnabled())
 
     @mock.patch('doppelganger.gui.MainForm.hasSelectedWidgets', return_value=False)
     def test_switch_buttons_if_hasSelectedWidgets_False(self, mock_has):
         self.form.moveBtn.setEnabled(True)
         self.form.deleteBtn.setEnabled(True)
+        self.form.unselectBtn.setEnabled(True)
         self.form.switchButtons()
 
         self.assertFalse(self.form.moveBtn.isEnabled())
         self.assertFalse(self.form.deleteBtn.isEnabled())
+        self.assertFalse(self.form.unselectBtn.isEnabled())
 
     @mock.patch('doppelganger.gui.MainForm.openFolderNameDialog', return_value='path')
     def test_add_folder(self, mock_dialog):
@@ -688,3 +694,10 @@ class TestMainForm(TestCase):
         QtTest.QTest.mouseClick(self.form.autoSelectBtn, QtCore.Qt.LeftButton)
 
         self.assertTrue(mock_auto.called)
+
+    @mock.patch('doppelganger.gui.MainForm.unselect')
+    def test_unselectBtn_click_calls_unselect(self, mock_un):
+        self.form.unselectBtn.setEnabled(True)
+        QtTest.QTest.mouseClick(self.form.unselectBtn, QtCore.Qt.LeftButton)
+
+        self.assertTrue(mock_un.called)
