@@ -187,7 +187,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         self._setWidgetEvents()
         self.conf = self._load_prefs()
         self.sensitivity = 0
-        self.highRb.click()
+        self.veryHighRb.click()
 
         self._setMenubar()
 
@@ -223,9 +223,11 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         self.moveBtn.clicked.connect(self.moveBtn_click)
         self.deleteBtn.clicked.connect(self.deleteBtn_click)
 
+        self.veryHighRb.clicked.connect(self.veryHighRb_click)
         self.highRb.clicked.connect(self.highRb_click)
         self.mediumRb.clicked.connect(self.mediumRb_click)
         self.lowRb.clicked.connect(self.lowRb_click)
+        self.veryLowRb.clicked.connect(self.veryLowRb_click)
 
     def _setMenubar(self) -> None:
         """Initialise the menus of 'menubar'"""
@@ -548,6 +550,12 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         self.threadpool.start(worker)
 
     @QtCore.pyqtSlot()
+    def veryHighRb_click(self) -> None:
+        """Function called on 'High' radio button click event"""
+
+        self.sensitivity = 0
+
+    @QtCore.pyqtSlot()
     def highRb_click(self) -> None:
         """Function called on 'High' radio button click event"""
 
@@ -562,6 +570,12 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
     @QtCore.pyqtSlot()
     def lowRb_click(self) -> None:
         """Function called on 'Low' radio button click event"""
+
+        self.sensitivity = 15
+
+    @QtCore.pyqtSlot()
+    def veryLowRb_click(self) -> None:
+        """Function called on 'High' radio button click event"""
 
         self.sensitivity = 20
 

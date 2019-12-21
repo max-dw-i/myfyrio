@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>640</width>
-    <height>480</height>
+    <width>764</width>
+    <height>526</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -62,8 +62,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>620</width>
-         <height>200</height>
+         <width>744</width>
+         <height>216</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="scrollAreaLayout">
@@ -103,7 +103,7 @@
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>210</height>
+        <height>240</height>
        </size>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -132,13 +132,13 @@
          </property>
          <property name="minimumSize">
           <size>
-           <width>330</width>
+           <width>0</width>
            <height>0</height>
           </size>
          </property>
          <property name="maximumSize">
           <size>
-           <width>500</width>
+           <width>16777215</width>
            <height>16777215</height>
           </size>
          </property>
@@ -477,7 +477,7 @@
             </property>
             <property name="minimumSize">
              <size>
-              <width>80</width>
+              <width>0</width>
               <height>0</height>
              </size>
             </property>
@@ -495,12 +495,22 @@
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_6">
              <item>
+              <widget class="QRadioButton" name="veryHighRb">
+               <property name="text">
+                <string>Very High</string>
+               </property>
+               <property name="checked">
+                <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
               <widget class="QRadioButton" name="highRb">
                <property name="text">
                 <string>High</string>
                </property>
                <property name="checked">
-                <bool>true</bool>
+                <bool>false</bool>
                </property>
               </widget>
              </item>
@@ -527,6 +537,13 @@
                </property>
                <property name="checkable">
                 <bool>true</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QRadioButton" name="veryLowRb">
+               <property name="text">
+                <string>Very Low</string>
                </property>
               </widget>
              </item>
@@ -644,7 +661,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>640</width>
+     <width>764</width>
      <height>22</height>
     </rect>
    </property>

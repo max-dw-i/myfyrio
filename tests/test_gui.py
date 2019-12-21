@@ -206,12 +206,6 @@ class TestMainForm(TestCase):
         mock_exec.assert_called_once()
         self.assertDictEqual(conf, self.conf)
 
-    def test_init_menubar_disabled_enabled_menus(self):
-        enabled = {'File', 'Edit', 'Options', 'Help'}
-        for menu in self.form.menubar.findChildren(QtWidgets.QMenu):
-            if menu.title() in enabled:
-                self.assertTrue(menu.isEnabled())
-
     @mock.patch('doppelganger.gui.AboutForm')
     @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[])
     def test_help_menu_calls_openAboutForm(self, mock_form, mock_init):
@@ -572,24 +566,38 @@ class TestMainForm(TestCase):
         self.assertTrue(mock_worker.called)
         self.assertTrue(mock_thread.called)
 
+    def test_veryHighRb_click(self):
+        self.form.sensitivity = -5
+        self.form.show() # some bug: if show() is not used, mouseClick() do nothing
+        QtTest.QTest.mouseClick(self.form.veryHighRb, QtCore.Qt.LeftButton)
+
+        self.assertEqual(self.form.sensitivity, 0)
+
     def test_highRb_click(self):
-        self.form.sensitivity = 0
+        self.form.sensitivity = -5
         self.form.show() # some bug: if show() is not used, mouseClick() do nothing
         QtTest.QTest.mouseClick(self.form.highRb, QtCore.Qt.LeftButton)
 
         self.assertEqual(self.form.sensitivity, 5)
 
     def test_mediumRb_click(self):
-        self.form.sensitivity = 0
+        self.form.sensitivity = -5
         #self.form.show() # some bug: if show() is not used, mouseClick() do nothing
         QtTest.QTest.mouseClick(self.form.mediumRb, QtCore.Qt.LeftButton)
 
         self.assertEqual(self.form.sensitivity, 10)
 
     def test_lowRb_click(self):
-        self.form.sensitivity = 0
+        self.form.sensitivity = -5
         self.form.show() # some bug: if show() is not used, mouseClick() do nothing
         QtTest.QTest.mouseClick(self.form.lowRb, QtCore.Qt.LeftButton)
+
+        self.assertEqual(self.form.sensitivity, 15)
+
+    def test_veryLowRb_click(self):
+        self.form.sensitivity = -5
+        self.form.show() # some bug: if show() is not used, mouseClick() do nothing
+        QtTest.QTest.mouseClick(self.form.veryLowRb, QtCore.Qt.LeftButton)
 
         self.assertEqual(self.form.sensitivity, 20)
 
