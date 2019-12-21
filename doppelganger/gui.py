@@ -237,95 +237,109 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         fileMenu = self.menubar.addMenu('File')
         fileMenu.setObjectName('fileMenu')
 
-        addFolder = QtWidgets.QAction('Add folder...', self)
-        addFolder.setObjectName('addFolderAction')
-        addFolder.triggered.connect(self.add_folder)
-        addFolder.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
-                                                 + QtCore.Qt.Key_A))
-        fileMenu.addAction(addFolder)
+        addFolderAction = QtWidgets.QAction('Add folder...', fileMenu)
+        addFolderAction.setObjectName('addFolderAction')
+        addFolderAction.triggered.connect(self.add_folder)
+        addFolderAction.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.ControlModifier + QtCore.Qt.Key_A)
+        )
+        fileMenu.addAction(addFolderAction)
 
-        removeFolder = QtWidgets.QAction('Remove folder...', self)
-        removeFolder.setObjectName('removeFolderAction')
-        removeFolder.triggered.connect(self.del_folder)
-        removeFolder.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
-                                                    + QtCore.Qt.Key_R))
-        fileMenu.addAction(removeFolder)
+        self.removeFolderAction = QtWidgets.QAction('Remove folder...',
+                                                    fileMenu)
+        self.removeFolderAction.setObjectName('removeFolderAction')
+        self.removeFolderAction.triggered.connect(self.del_folder)
+        self.removeFolderAction.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.ControlModifier + QtCore.Qt.Key_R)
+        )
+        self.removeFolderAction.setEnabled(False)
+        fileMenu.addAction(self.removeFolderAction)
 
-        separator1 = QtWidgets.QAction('', self)
+        separator1 = QtWidgets.QAction('', fileMenu)
         separator1.setObjectName('separator1')
         separator1.setSeparator(True)
         fileMenu.addAction(separator1)
 
-        preferences = QtWidgets.QAction('Preferences...', self)
-        preferences.setObjectName('preferencesAction')
-        preferences.triggered.connect(self.openPreferencesForm)
-        fileMenu.addAction(preferences)
+        preferencesAction = QtWidgets.QAction('Preferences...', fileMenu)
+        preferencesAction.setObjectName('preferencesAction')
+        preferencesAction.triggered.connect(self.openPreferencesForm)
+        fileMenu.addAction(preferencesAction)
 
-        separator2 = QtWidgets.QAction('', self)
+        separator2 = QtWidgets.QAction('', fileMenu)
         separator2.setObjectName('separator2')
         separator2.setSeparator(True)
         fileMenu.addAction(separator2)
 
-        closeProg = QtWidgets.QAction('Exit', self)
-        closeProg.setObjectName('exitAction')
-        closeProg.triggered.connect(self.close)
-        closeProg.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
-                                                 + QtCore.Qt.Key_W))
-        fileMenu.addAction(closeProg)
+        closeProgAction = QtWidgets.QAction('Exit', fileMenu)
+        closeProgAction.setObjectName('exitAction')
+        closeProgAction.triggered.connect(self.close)
+        closeProgAction.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.ControlModifier + QtCore.Qt.Key_W)
+        )
+        fileMenu.addAction(closeProgAction)
 
         editMenu = self.menubar.addMenu('Edit')
         editMenu.setObjectName('editMenu')
 
-        move = QtWidgets.QAction('Move images', self)
-        move.setObjectName('moveAction')
-        move.triggered.connect(self.moveBtn_click)
-        move.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
-                                            + QtCore.Qt.Key_M))
-        editMenu.addAction(move)
+        self.moveAction = QtWidgets.QAction('Move images', editMenu)
+        self.moveAction.setObjectName('moveAction')
+        self.moveAction.triggered.connect(self.moveBtn_click)
+        self.moveAction.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.ControlModifier + QtCore.Qt.Key_M)
+        )
+        self.moveAction.setEnabled(False)
+        editMenu.addAction(self.moveAction)
 
-        delete = QtWidgets.QAction('Delete images', self)
-        delete.setObjectName('deleteAction')
-        delete.triggered.connect(self.deleteBtn_click)
-        delete.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
-                                              + QtCore.Qt.Key_D))
-        editMenu.addAction(delete)
+        self.deleteAction = QtWidgets.QAction('Delete images', editMenu)
+        self.deleteAction.setObjectName('deleteAction')
+        self.deleteAction.triggered.connect(self.deleteBtn_click)
+        self.deleteAction.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.ControlModifier + QtCore.Qt.Key_D)
+        )
+        self.deleteAction.setEnabled(False)
+        editMenu.addAction(self.deleteAction)
 
-        separator3 = QtWidgets.QAction('', self)
+        separator3 = QtWidgets.QAction('', editMenu)
         separator3.setObjectName('separator3')
         separator3.setSeparator(True)
         editMenu.addAction(separator3)
 
-        autoSelect = QtWidgets.QAction('Auto select images', self)
-        autoSelect.setObjectName('autoSelectAction')
-        autoSelect.triggered.connect(self.auto_select)
-        autoSelect.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
-                                                  + QtCore.Qt.Key_S))
-        editMenu.addAction(autoSelect)
+        self.autoSelectAction = QtWidgets.QAction('Auto select images',
+                                                  editMenu)
+        self.autoSelectAction.setObjectName('autoSelectAction')
+        self.autoSelectAction.triggered.connect(self.auto_select)
+        self.autoSelectAction.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.ControlModifier + QtCore.Qt.Key_S)
+        )
+        self.autoSelectAction.setEnabled(False)
+        editMenu.addAction(self.autoSelectAction)
 
-        unselect = QtWidgets.QAction('Unselect images', self)
-        unselect.setObjectName('unselectAction')
-        unselect.triggered.connect(self.unselect)
-        unselect.setShortcut(QtGui.QKeySequence(QtCore.Qt.ControlModifier
-                                                + QtCore.Qt.Key_U))
-        editMenu.addAction(unselect)
+        self.unselectAction = QtWidgets.QAction('Unselect images', editMenu)
+        self.unselectAction.setObjectName('unselectAction')
+        self.unselectAction.triggered.connect(self.unselect)
+        self.unselectAction.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.ControlModifier + QtCore.Qt.Key_U)
+        )
+        self.unselectAction.setEnabled(False)
+        editMenu.addAction(self.unselectAction)
 
         helpMenu = self.menubar.addMenu('Help')
         helpMenu.setObjectName('helpMenu')
 
-        docs = QtWidgets.QAction('Documentation', self)
-        docs.setObjectName('docsAction')
-        docs.triggered.connect(self.openDocs)
-        helpMenu.addAction(docs)
+        docsAction = QtWidgets.QAction('Documentation', helpMenu)
+        docsAction.setObjectName('docsAction')
+        docsAction.triggered.connect(self.openDocs)
+        helpMenu.addAction(docsAction)
 
-        homePage = QtWidgets.QAction('Home Page', self)
-        homePage.setObjectName('homePageAction')
-        homePage.triggered.connect(self.openDocs)
-        helpMenu.addAction(homePage)
+        homePageAction = QtWidgets.QAction('Home Page', helpMenu)
+        homePageAction.setObjectName('homePageAction')
+        homePageAction.triggered.connect(self.openDocs)
+        helpMenu.addAction(homePageAction)
 
-        about = QtWidgets.QAction('About', self)
-        about.setObjectName('aboutAction')
-        about.triggered.connect(self.openAboutForm)
-        helpMenu.addAction(about)
+        aboutAction = QtWidgets.QAction('About', helpMenu)
+        aboutAction.setObjectName('aboutAction')
+        aboutAction.triggered.connect(self.openAboutForm)
+        helpMenu.addAction(aboutAction)
 
     def _call_on_selected_widgets(self, dst: Optional[core.FolderPath] = None) -> None:
         '''Call 'move' or 'delete' on selected widgets
@@ -505,10 +519,18 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
             self.moveBtn.setEnabled(True)
             self.deleteBtn.setEnabled(True)
             self.unselectBtn.setEnabled(True)
+
+            self.moveAction.setEnabled(True)
+            self.deleteAction.setEnabled(True)
+            self.unselectAction.setEnabled(True)
         else:
             self.moveBtn.setEnabled(False)
             self.deleteBtn.setEnabled(False)
             self.unselectBtn.setEnabled(False)
+
+            self.moveAction.setEnabled(False)
+            self.deleteAction.setEnabled(False)
+            self.unselectAction.setEnabled(False)
 
     def add_folder(self):
         '''Add folder for searching duplicate images'''
@@ -520,6 +542,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
             self.pathListWidget.addItem(folder_path_item)
             self.delFolderBtn.setEnabled(True)
             self.startBtn.setEnabled(True)
+            self.removeFolderAction.setEnabled(True)
 
     def del_folder(self):
         '''Delete folder from searching duplicate images'''
@@ -531,6 +554,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         if not self.pathListWidget.count():
             self.delFolderBtn.setEnabled(False)
             self.startBtn.setEnabled(False)
+            self.removeFolderAction.setEnabled(False)
 
     def delete_images(self) -> None:
         """Delete selected images and corresponding 'DuplicateWidget's"""
@@ -568,6 +592,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         self.startBtn.setEnabled(True)
         self.stopBtn.setEnabled(False)
         self.autoSelectBtn.setEnabled(True)
+        self.autoSelectAction.setEnabled(True)
 
     def start_processing(self, folders: Iterable[core.FolderPath]) -> None:
         '''Set up image processing and run it
@@ -638,6 +663,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
         self.stopBtn.setEnabled(True)
         self.startBtn.setEnabled(False)
         self.autoSelectBtn.setEnabled(False)
+        self.autoSelectAction.setEnabled(False)
 
         folders = self.getFolders()
         self.start_processing(folders)
