@@ -299,6 +299,9 @@
              <property name="rightMargin">
               <number>0</number>
              </property>
+             <property name="bottomMargin">
+              <number>30</number>
+             </property>
              <item>
               <widget class="QLabel" name="loadedPicLabel">
                <property name="minimumSize">
@@ -378,7 +381,7 @@
             </property>
            </widget>
           </item>
-          <item>
+          <item alignment="Qt::AlignBottom">
            <widget class="QWidget" name="widget_2" native="true">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
