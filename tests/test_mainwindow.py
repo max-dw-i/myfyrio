@@ -1,4 +1,4 @@
-'''Copyright 2019 Maxim Shpak <maxim.shpak@posteo.uk>
+'''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
 This file is part of Doppelgänger.
 
@@ -21,8 +21,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
 
-from doppelganger import (aboutwindow, config, core, mainwindow,
-                          preferenceswindow, widgets)
+from doppelganger import config, core, mainwindow, preferenceswindow, widgets
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -184,26 +183,19 @@ class TestMainForm(TestCase):
 
         mock_ign.assert_called_once()
 
-    """@mock.patch('doppelganger.aboutwindow.AboutWindow')
-    @mock.patch('doppelganger.mainwindow.MainWindow.findChildren', return_value=[])
-    def test_openAboutWindow_init_AboutForm(self, mock_form, mock_init):
+    @mock.patch('PyQt5.QtWidgets.QWidget.show')
+    @mock.patch('PyQt5.QtWidgets.QWidget.isVisible', return_value=False)
+    def test_openAboutWindow_show_it_if_not_visible(self, mock_vis, mock_show):
         self.form.openAboutWindow()
 
-        self.assertTrue(mock_init.called)"""
+        mock_show.assert_called_once_with()
 
-    @mock.patch('doppelganger.aboutwindow.AboutWindow.show')
-    @mock.patch('doppelganger.mainwindow.MainWindow.findChildren', return_value=[])
-    def test_openAboutWindow_show_AboutForm(self, mock_form, mock_show):
+    @mock.patch('PyQt5.QtWidgets.QMainWindow.activateWindow')
+    @mock.patch('PyQt5.QtWidgets.QWidget.isVisible', return_value=True)
+    def test_openAboutWindow_activated_if_visible(self, mock_vis, mock_activ):
         self.form.openAboutWindow()
 
-        self.assertTrue(mock_show.called)
-
-    @mock.patch('doppelganger.aboutwindow.AboutWindow.activateWindow')
-    def test_openAboutWindow_opened(self, mock_activate):
-        aboutwindow.AboutWindow(self.form)
-        self.form.openAboutWindow()
-
-        self.assertTrue(mock_activate.called)
+        mock_activ.assert_called_once_with()
 
     """@mock.patch('doppelganger.preferenceswindow.PreferencesWindow')
     @mock.patch('doppelganger.mainwindow.MainWindow.findChildren', return_value=[])

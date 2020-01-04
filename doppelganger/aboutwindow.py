@@ -26,15 +26,14 @@ from PyQt5 import QtWidgets, uic
 
 
 class AboutWindow(QtWidgets.QMainWindow):
-    """'Help' -> 'About' form"""
+    '''Class implementing window "About"'''
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
+
         ABOUT_UI = pathlib.Path('doppelganger/resources/ui/aboutwindow.ui')
         uic.loadUi(str(ABOUT_UI), self)
 
-    def closeEvent(self, event) -> None:
-        '''Function called on close event'''
-
-        super().closeEvent(event)
-        self.deleteLater()
+        sizeHint = self.sizeHint()
+        self.setMaximumSize(sizeHint)
+        self.resize(sizeHint)

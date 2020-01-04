@@ -1,4 +1,4 @@
-'''Copyright 2019 Maxim Shpak <maxim.shpak@posteo.uk>
+'''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
 This file is part of Doppelgänger.
 
@@ -41,7 +41,8 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         super().__init__()
         MAIN_UI = pathlib.Path('doppelganger/resources/ui/mainwindow.ui')
         uic.loadUi(str(MAIN_UI), self)
-        self.scrollAreaLayout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+        self.scrollAreaLayout.setAlignment(QtCore.Qt.AlignTop
+                                           | QtCore.Qt.AlignLeft)
 
         self.signals = signals.Signals()
 
@@ -52,6 +53,8 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.veryHighRb.click()
 
         self._setMenubar()
+
+        self.aboutWindow = AboutWindow(self)
 
     def _load_prefs(self) -> config.ConfigData:
         '''Load preferences
@@ -251,17 +254,10 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
                 event.ignore()
 
     def openAboutWindow(self) -> None:
-        """Open 'Help' -> 'About'"""
-
-        about = self.findChildren(
-            AboutWindow,
-            options=QtCore.Qt.FindDirectChildrenOnly
-        )
-        if about:
-            about[0].activateWindow()
+        if self.aboutWindow.isVisible():
+            self.aboutWindow.activateWindow()
         else:
-            about = AboutWindow(self)
-            about.show()
+            self.aboutWindow.show()
 
     def openPreferencesWindow(self) -> None:
         """Open 'Options' -> 'Preferences...' form"""
@@ -290,7 +286,8 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
     def openDocs(self) -> None:
         '''Open URL with the docs'''
 
-        webbrowser.open('https://github.com/oratosquilla-oratoria/doppelganger')
+        docs_url = 'https://github.com/oratosquilla-oratoria/doppelganger'
+        webbrowser.open(docs_url)
 
     def showErrMsg(self, msg: str) -> None:
         '''Show up when there've been some errors while running
