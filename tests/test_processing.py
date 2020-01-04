@@ -21,7 +21,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtGui, QtTest, QtWidgets
 
-from doppelganger import config, core, exception, gui, processing
+from doppelganger import config, core, exception, mainwindow, processing
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -250,7 +250,7 @@ class TestImageProcessingClass(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.mw = gui.MainForm()
+        cls.mw = mainwindow.MainWindow()
 
     def setUp(self):
         self.CONF = config.Config.DEFAULT_CONFIG_DATA.copy()

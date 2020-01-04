@@ -17,7 +17,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
-Module implementing graphical user interface
+Module implementing window "Main"
 '''
 
 import logging
@@ -25,160 +25,22 @@ import pathlib
 import webbrowser
 from typing import Iterable, Optional, Set
 
-from PyQt5 import QtCore, QtWidgets, uic, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
 from doppelganger import config, core, processing, signals, widgets
+from doppelganger.aboutwindow import AboutWindow
+from doppelganger.preferenceswindow import PreferencesWindow
 
-UI = str(pathlib.Path('doppelganger') / 'gui.ui')
-ABOUT_UI = str(pathlib.Path('doppelganger') / 'about.ui')
-PREFERENCES_UI = str(pathlib.Path('doppelganger') / 'preferences.ui')
-
-gui_logger = logging.getLogger('main.gui')
+gui_logger = logging.getLogger('main.mainwindow')
 
 
-class AboutForm(QtWidgets.QMainWindow):
-    """'Help' -> 'About' form"""
-
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
-        uic.loadUi(ABOUT_UI, self)
-
-    def closeEvent(self, event) -> None:
-        '''Function called on close event'''
-
-        super().closeEvent(event)
-        self.deleteLater()
-
-
-class PreferencesForm(QtWidgets.QMainWindow):
-    """'Options' -> 'Preferences...' form"""
-
-    def __init__(self, parent=None) -> None:
-        super().__init__(parent)
-        uic.loadUi(PREFERENCES_UI, self)
-        self.sortComboBox.addItems(
-            [
-                'Similarity rate',  # in 'config.p' - 0
-                'Filesize',         # in 'config.p' - 1
-                'Width and Height', # in 'config.p' - 2
-                'Path'              # in 'config.p' - 3
-            ]
-        )
-        self.sizeFormatComboBox.addItems(
-            [
-                'Bytes (B)',        # in 'config.p' - 'B'
-                'KiloBytes (KB)',   # in 'config.p' - 'KB'
-                'MegaBytes (MB)',   # in 'config.p' - 'MB'
-            ]
-        )
-        self.sizeSpinBox.setMinimum(100)
-        self.sizeSpinBox.setMaximum(4000)
-
-        self._update_form(parent.conf)
-
-        self._setWidgetEvents()
-
-    def closeEvent(self, event) -> None:
-        '''Function called on close event'''
-
-        super().closeEvent(event)
-        self.deleteLater()
-
-    def _setWidgetEvents(self) -> None:
-        '''Link events and functions called on the events'''
-
-        self.saveBtn.clicked.connect(self.saveBtn_click)
-        self.cancelBtn.clicked.connect(self.cancelBtn_click)
-
-    def _encode_size_format(self, size_format: core.SizeFormat) -> int:
-        sf = {'B': 0,
-              'KB': 1,
-              'MB': 2}
-        return sf[size_format]
-
-    def _decode_size_format(self, index: int) -> core.SizeFormat:
-        sf = {0: 'B',
-              1: 'KB',
-              2: 'MB'}
-        return sf[index]
-
-    def _update_form(self, data: config.ConfigData) -> None:
-        '''Update the form with new preferences
-
-        :param data: new preferences data
-        '''
-
-        self.sizeSpinBox.setValue(data['size'])
-        self.sortComboBox.setCurrentIndex(data['sort'])
-        self.sizeFormatComboBox.setCurrentIndex(
-            self._encode_size_format(data['size_format'])
-        )
-
-        if data['show_similarity']:
-            self.similarityBox.setChecked(True)
-        if data['show_size']:
-            self.sizeBox.setChecked(True)
-        if data['show_path']:
-            self.pathBox.setChecked(True)
-        if data['delete_dirs']:
-            self.deldirsBox.setChecked(True)
-        if data['subfolders']:
-            self.subfoldersBox.setChecked(True)
-        if data['close_confirmation']:
-            self.closeBox.setChecked(True)
-
-    def _gather_prefs(self) -> config.ConfigData:
-        '''Gather checked/unchecked/filled by a user options
-        and form a config dictionary
-
-        :return: dictionary with programme's preferences
-        '''
-
-        data = {
-            'size': self.sizeSpinBox.value(),
-            'show_similarity': self.similarityBox.isChecked(),
-            'show_size': self.sizeBox.isChecked(),
-            'show_path': self.pathBox.isChecked(),
-            'sort': self.sortComboBox.currentIndex(),
-            'delete_dirs': self.deldirsBox.isChecked(),
-            'size_format': self._decode_size_format(
-                self.sizeFormatComboBox.currentIndex()
-            ),
-            'subfolders': self.subfoldersBox.isChecked(),
-            'close_confirmation': self.closeBox.isChecked(),
-        }
-        return data
-
-    def saveBtn_click(self) -> None:
-        '''Function called on pressing button "Save"'''
-
-        data = self._gather_prefs()
-        try:
-            config.Config(data).save()
-        except OSError:
-            msg_box = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning,
-                'Error',
-                ("Cannot save preferences into file 'config.p'. "
-                 "For more details, see 'errors.log'")
-            )
-            msg_box.exec()
-        else:
-            self.parent().conf = data
-            self.deleteLater()
-
-    def cancelBtn_click(self) -> None:
-        '''Function called on pressing button "Cancel"'''
-
-        self.deleteLater()
-
-
-class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
+class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
     '''Main GUI class'''
 
     def __init__(self) -> None:
         super().__init__()
-        uic.loadUi(UI, self)
+        MAIN_UI = pathlib.Path('doppelganger/resources/ui/mainwindow.ui')
+        uic.loadUi(str(MAIN_UI), self)
         self.scrollAreaLayout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
         self.signals = signals.Signals()
@@ -262,7 +124,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
 
         preferencesAction = QtWidgets.QAction('Preferences...', fileMenu)
         preferencesAction.setObjectName('preferencesAction')
-        preferencesAction.triggered.connect(self.openPreferencesForm)
+        preferencesAction.triggered.connect(self.openPreferencesWindow)
         fileMenu.addAction(preferencesAction)
 
         separator2 = QtWidgets.QAction('', fileMenu)
@@ -338,7 +200,7 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
 
         aboutAction = QtWidgets.QAction('About', helpMenu)
         aboutAction.setObjectName('aboutAction')
-        aboutAction.triggered.connect(self.openAboutForm)
+        aboutAction.triggered.connect(self.openAboutWindow)
         helpMenu.addAction(aboutAction)
 
     def _call_on_selected_widgets(self, dst: Optional[core.FolderPath] = None) -> None:
@@ -388,24 +250,30 @@ class MainForm(QtWidgets.QMainWindow, QtCore.QObject):
             if confirm == QtWidgets.QMessageBox.Cancel:
                 event.ignore()
 
-    def openAboutForm(self) -> None:
-        """Open 'Help' -> 'About' form"""
+    def openAboutWindow(self) -> None:
+        """Open 'Help' -> 'About'"""
 
-        about = self.findChildren(AboutForm, options=QtCore.Qt.FindDirectChildrenOnly)
+        about = self.findChildren(
+            AboutWindow,
+            options=QtCore.Qt.FindDirectChildrenOnly
+        )
         if about:
             about[0].activateWindow()
         else:
-            about = AboutForm(self)
+            about = AboutWindow(self)
             about.show()
 
-    def openPreferencesForm(self) -> None:
+    def openPreferencesWindow(self) -> None:
         """Open 'Options' -> 'Preferences...' form"""
 
-        preferences = self.findChildren(PreferencesForm, options=QtCore.Qt.FindDirectChildrenOnly)
+        preferences = self.findChildren(
+            PreferencesWindow,
+            options=QtCore.Qt.FindDirectChildrenOnly
+        )
         if preferences:
             preferences[0].activateWindow()
         else:
-            preferences = PreferencesForm(self)
+            preferences = PreferencesWindow(self)
             preferences.show()
 
     def openFolderNameDialog(self) -> core.FolderPath:

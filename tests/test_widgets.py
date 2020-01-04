@@ -156,7 +156,7 @@ class TestThumbnailWidget(TestCase):
     def test_QByteArray_to_QPixmap_returns_error_image_if_thumbnail_is_None(self, mock_qp):
         widgets.ThumbnailWidget._QByteArray_to_QPixmap(None, 666)
 
-        mock_qp.assert_called_once_with(widgets.IMAGE_ERROR)
+        mock_qp.assert_called_once_with(widgets.IMG_ERROR)
 
     def test_QByteArray_to_QPixmap_returns_QPixmap_obj_if_thumbnail_is_None(self):
         qp = widgets.ThumbnailWidget._QByteArray_to_QPixmap(None, 666)
@@ -177,7 +177,7 @@ class TestThumbnailWidget(TestCase):
         ):
         widgets.ThumbnailWidget._QByteArray_to_QPixmap('thumbnail', 666)
 
-        mock_qp.assert_called_with(widgets.IMAGE_ERROR)
+        mock_qp.assert_called_with(widgets.IMG_ERROR)
 
     @mock.patch('doppelganger.widgets.QtGui.QPixmap.isNull', return_value=True)
     @mock.patch('doppelganger.widgets.QtGui.QPixmap.loadFromData')

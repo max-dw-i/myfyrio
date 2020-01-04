@@ -30,7 +30,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from doppelganger import config, core, signals
 
-IMAGE_ERROR = str(pathlib.Path('doppelganger') / 'resources' / 'image_error.png')
+IMG_ERROR = str(pathlib.Path('doppelganger/resources/images/image_error.png'))
 SIZE = 200
 
 widgets_logger = logging.getLogger('main.widgets')
@@ -155,14 +155,14 @@ class ThumbnailWidget(QtWidgets.QLabel):
 
         # Pixmap can read BMP, GIF, JPG, JPEG, PNG, PBM, PGM, PPM, XBM, XPM
         if thumbnail is None:
-            return QtGui.QPixmap(IMAGE_ERROR).scaled(size, size)
+            return QtGui.QPixmap(IMG_ERROR).scaled(size, size)
 
         pixmap = QtGui.QPixmap()
         pixmap.loadFromData(thumbnail)
 
         if pixmap.isNull():
             widgets_logger.error('Something happened while converting QByteArray into QPixmap')
-            return QtGui.QPixmap(IMAGE_ERROR).scaled(size, size)
+            return QtGui.QPixmap(IMG_ERROR).scaled(size, size)
 
         return pixmap
 

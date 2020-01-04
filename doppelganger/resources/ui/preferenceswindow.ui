@@ -22,7 +22,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -273,7 +273,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QCheckBox" name="subfoldersBox_2">
+            <widget class="QCheckBox" name="subfoldersBox">
              <property name="text">
               <string>Recursive search (include subfolders)</string>
              </property>

@@ -1,4 +1,4 @@
-'''Copyright 2019 Maxim Shpak <maxim.shpak@posteo.uk>
+'''Copyright 2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
 This file is part of Doppelgänger.
 
@@ -14,26 +14,27 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+
+-------------------------------------------------------------------------------
+
+Module implementing window "About"
 '''
 
-import logging
-import logging.handlers
-import sys
+import pathlib
 
-from PyQt5.QtWidgets import QApplication
+from PyQt5 import QtWidgets, uic
 
-import doppelganger.mainwindow as mw
 
-if __name__ == '__main__':
-    logger = logging.getLogger('main')
-    logger.setLevel(logging.WARNING)
-    rh = logging.handlers.RotatingFileHandler('errors.log', maxBytes=1024**2, backupCount=1)
-    FORMAT = '{asctime} - {name} - {levelname} - {message}'
-    formatter = logging.Formatter(fmt=FORMAT, style='{')
-    rh.setFormatter(formatter)
-    logger.addHandler(rh)
+class AboutWindow(QtWidgets.QMainWindow):
+    """'Help' -> 'About' form"""
 
-    app = QApplication(sys.argv)
-    ex = mw.MainWindow()
-    ex.show()
-    sys.exit(app.exec_())
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        ABOUT_UI = pathlib.Path('doppelganger/resources/ui/aboutwindow.ui')
+        uic.loadUi(str(ABOUT_UI), self)
+
+    def closeEvent(self, event) -> None:
+        '''Function called on close event'''
+
+        super().closeEvent(event)
+        self.deleteLater()

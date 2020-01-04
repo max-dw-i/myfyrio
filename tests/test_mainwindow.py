@@ -21,7 +21,8 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
 
-from doppelganger import config, core, gui, widgets
+from doppelganger import (aboutwindow, config, core, mainwindow,
+                          preferenceswindow, widgets)
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -39,156 +40,21 @@ if app is None:
 # pylint: disable=unused-argument,missing-class-docstring,protected-access
 
 
-class TestAboutForm(TestCase):
-
-    @mock.patch('doppelganger.gui.uic.loadUi')
-    def test_init(self, mock_ui):
-        form = gui.AboutForm()
-
-        mock_ui.assert_called_once_with(gui.ABOUT_UI, form)
-
-    @mock.patch('doppelganger.gui.AboutForm.deleteLater')
-    @mock.patch('PyQt5.QtWidgets.QMainWindow.closeEvent')
-    def test_closeEvent(self, mock_close, mock_delete):
-        form = gui.AboutForm()
-        form.close()
-
-        self.assertTrue(mock_close.called)
-        self.assertTrue(mock_delete.called)
-
-
-class TestPreferencesForm(TestCase):
-
-    class P(QtWidgets.QWidget):
-        conf = {'delete_dirs': True,
-                'show_path': True,
-                'show_similarity': True,
-                'show_size': True,
-                'size_format': 'MB',
-                'size': 666,
-                'sort': 1,
-                'subfolders': True,
-                'close_confirmation': True}
-
-    def setUp(self):
-        self.p = self.P()
-        self.form = gui.PreferencesForm(parent=self.p)
-
-    def clear_form(self):
-        self.form.sizeSpinBox.setValue(333)
-        self.form.sortComboBox.setCurrentIndex(0)
-        self.form.similarityBox.setChecked(False)
-        self.form.sizeBox.setChecked(False)
-        self.form.pathBox.setChecked(False)
-        self.form.deldirsBox.setChecked(False)
-        self.form.sizeFormatComboBox.setCurrentIndex(0)
-        self.form.subfoldersBox.setChecked(False)
-        self.form.closeBox.setChecked(False)
-
-    @mock.patch('doppelganger.gui.PreferencesForm._setWidgetEvents')
-    @mock.patch('doppelganger.gui.PreferencesForm._update_form')
-    @mock.patch('PyQt5.QtWidgets.QComboBox.addItems')
-    def test_init(self, mock_combobox, mock_update, mock_events):
-        f = gui.PreferencesForm(self.p)
-
-        sort = ['Similarity rate',
-                'Filesize',
-                'Width and Height',
-                'Path']
-
-        size_format = ['Bytes (B)',
-                       'KiloBytes (KB)',
-                       'MegaBytes (MB)']
-
-        mock_combobox.assert_any_call(sort)
-        mock_combobox.assert_any_call(size_format)
-        self.assertEqual(f.sizeSpinBox.minimum(), 100)
-        self.assertEqual(f.sizeSpinBox.maximum(), 4000)
-        mock_update.assert_called_once()
-        mock_events.assert_called_once()
-
-    @mock.patch('doppelganger.gui.PreferencesForm.deleteLater')
-    @mock.patch('PyQt5.QtWidgets.QMainWindow.closeEvent')
-    def test_closeEvent(self, mock_close, mock_delete):
-        self.form.close()
-
-        self.assertTrue(mock_close.called)
-        self.assertTrue(mock_delete.called)
-
-    def test_update_form(self):
-        self.clear_form()
-        data = self.p.conf
-
-        self.form._update_form(data)
-
-        self.assertEqual(data['size'], self.form.sizeSpinBox.value())
-        self.assertEqual(data['sort'], self.form.sortComboBox.currentIndex())
-        self.assertEqual(data['show_similarity'], self.form.similarityBox.isChecked())
-        self.assertEqual(data['show_size'], self.form.sizeBox.isChecked())
-        self.assertEqual(data['show_path'], self.form.pathBox.isChecked())
-        self.assertEqual(data['delete_dirs'], self.form.deldirsBox.isChecked())
-        self.assertEqual(data['subfolders'], self.form.subfoldersBox.isChecked())
-        self.assertEqual(data['close_confirmation'], self.form.closeBox.isChecked())
-
-    def test_gather_prefs(self):
-        self.clear_form()
-        data = {'delete_dirs': False,
-                'show_path': False,
-                'show_similarity': False,
-                'show_size': False,
-                'size': 333,
-                'sort': 0,
-                'size_format': 'B',
-                'subfolders': False,
-                'close_confirmation': False}
-
-        gathered_data = self.form._gather_prefs()
-
-        self.assertDictEqual(data, gathered_data)
-
-    @mock.patch('PyQt5.QtWidgets.QMainWindow.deleteLater')
-    @mock.patch('doppelganger.config.Config.save')
-    @mock.patch('doppelganger.gui.PreferencesForm._gather_prefs', return_value={})
-    def test_saveBtn_click(self, mock_prefs, mock_save, mock_del):
-        QtTest.QTest.mouseClick(self.form.saveBtn, QtCore.Qt.LeftButton)
-
-        mock_prefs.assert_called_once()
-        mock_save.assert_called_once()
-        mock_del.assert_called_once()
-        self.assertDictEqual(self.p.conf, {})
-
-    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
-    @mock.patch('doppelganger.config.Config.save', side_effect=OSError)
-    @mock.patch('doppelganger.gui.PreferencesForm._gather_prefs', return_value={})
-    def test_saveBtn_click_if_raise_OSError(self, mock_prefs, mock_save, mock_exec):
-        QtTest.QTest.mouseClick(self.form.saveBtn, QtCore.Qt.LeftButton)
-
-        mock_prefs.assert_called_once()
-        mock_save.assert_called_once()
-        mock_exec.assert_called_once()
-
-    @mock.patch('PyQt5.QtWidgets.QMainWindow.deleteLater')
-    def test_cancelBtn_click(self, mock_del):
-        QtTest.QTest.mouseClick(self.form.cancelBtn, QtCore.Qt.LeftButton)
-
-        mock_del.assert_called_once()
-
-
 class TestMainForm(TestCase):
 
     def setUp(self):
         self.conf = config.Config.DEFAULT_CONFIG_DATA.copy()
-        with mock.patch('doppelganger.gui.MainForm._load_prefs') as mock_load:
+        with mock.patch('doppelganger.mainwindow.MainWindow._load_prefs') as mock_load:
             mock_load.return_value = self.conf
 
-            self.form = gui.MainForm()
+            self.form = mainwindow.MainWindow()
 
-    @mock.patch('doppelganger.gui.MainForm._load_prefs')
-    @mock.patch('doppelganger.gui.MainForm._setMenubar')
-    @mock.patch('doppelganger.gui.QtWidgets.QRadioButton.click')
-    @mock.patch('doppelganger.gui.MainForm._setWidgetEvents')
+    @mock.patch('doppelganger.mainwindow.MainWindow._load_prefs')
+    @mock.patch('doppelganger.mainwindow.MainWindow._setMenubar')
+    @mock.patch('doppelganger.mainwindow.QtWidgets.QRadioButton.click')
+    @mock.patch('doppelganger.mainwindow.MainWindow._setWidgetEvents')
     def test_init(self, mock_events, mock_button, mock_menubar, mock_load):
-        form = gui.MainForm()
+        form = mainwindow.MainWindow()
         scroll_area_align = form.scrollAreaLayout.layout().alignment()
         self.assertEqual(scroll_area_align, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
@@ -206,21 +72,21 @@ class TestMainForm(TestCase):
         mock_exec.assert_called_once()
         self.assertDictEqual(conf, self.conf)
 
-    @mock.patch('doppelganger.gui.AboutForm')
-    @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[])
+    """@mock.patch('doppelganger.aboutwindow.AboutWindow')
+    @mock.patch('doppelganger.mainwindow.MainWindow.findChildren', return_value=[])
     def test_help_menu_calls_openAboutForm(self, mock_form, mock_init):
         aboutAction = self.form.findChild(QtWidgets.QAction, 'aboutAction')
         aboutAction.trigger()
 
         self.assertTrue(mock_init.called)
 
-    @mock.patch('doppelganger.gui.PreferencesForm')
-    @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[])
+    @mock.patch('doppelganger.preferenceswindow.PreferencesWindow')
+    @mock.patch('doppelganger.mainwindow.MainWindow.findChildren', return_value=[])
     def test_options_menu_calls_openPreferencesForm(self, mock_form, mock_init):
         preferencesAction = self.form.findChild(QtWidgets.QAction, 'preferencesAction')
         preferencesAction.trigger()
 
-        self.assertTrue(mock_init.called)
+        self.assertTrue(mock_init.called)"""
 
     def test_add_folder_menu_calls_add_folder_func(self):
         pass
@@ -264,7 +130,7 @@ class TestMainForm(TestCase):
         )
         w = self.form.findChild(widgets.DuplicateWidget)
         w.selected = True
-        with self.assertLogs('main.gui', 'ERROR'):
+        with self.assertLogs('main.mainwindow', 'ERROR'):
             self.form._call_on_selected_widgets()
 
         mock_delete.assert_called_once()
@@ -318,45 +184,45 @@ class TestMainForm(TestCase):
 
         mock_ign.assert_called_once()
 
-    @mock.patch('doppelganger.gui.AboutForm')
-    @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[])
-    def test_openAboutForm_init_AboutForm(self, mock_form, mock_init):
-        self.form.openAboutForm()
+    """@mock.patch('doppelganger.aboutwindow.AboutWindow')
+    @mock.patch('doppelganger.mainwindow.MainWindow.findChildren', return_value=[])
+    def test_openAboutWindow_init_AboutForm(self, mock_form, mock_init):
+        self.form.openAboutWindow()
 
-        self.assertTrue(mock_init.called)
+        self.assertTrue(mock_init.called)"""
 
-    @mock.patch('doppelganger.gui.AboutForm.show')
-    @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[])
-    def test_openAboutForm_show_AboutForm(self, mock_form, mock_show):
-        self.form.openAboutForm()
+    @mock.patch('doppelganger.aboutwindow.AboutWindow.show')
+    @mock.patch('doppelganger.mainwindow.MainWindow.findChildren', return_value=[])
+    def test_openAboutWindow_show_AboutForm(self, mock_form, mock_show):
+        self.form.openAboutWindow()
 
         self.assertTrue(mock_show.called)
 
-    @mock.patch('doppelganger.gui.AboutForm.activateWindow')
-    def test_openAboutForm_opened(self, mock_activate):
-        gui.AboutForm(self.form)
-        self.form.openAboutForm()
+    @mock.patch('doppelganger.aboutwindow.AboutWindow.activateWindow')
+    def test_openAboutWindow_opened(self, mock_activate):
+        aboutwindow.AboutWindow(self.form)
+        self.form.openAboutWindow()
 
         self.assertTrue(mock_activate.called)
 
-    @mock.patch('doppelganger.gui.PreferencesForm')
-    @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[])
-    def test_openPreferencesForm_init_PreferencesForm(self, mock_form, mock_init):
-        self.form.openPreferencesForm()
+    """@mock.patch('doppelganger.preferenceswindow.PreferencesWindow')
+    @mock.patch('doppelganger.mainwindow.MainWindow.findChildren', return_value=[])
+    def test_openPreferencesWindow_init_PreferencesWindow(self, mock_form, mock_init):
+        self.form.openPreferencesWindow()
 
-        self.assertTrue(mock_init.called)
+        self.assertTrue(mock_init.called)"""
 
-    @mock.patch('doppelganger.gui.PreferencesForm.show')
-    @mock.patch('doppelganger.gui.MainForm.findChildren', return_value=[])
-    def test_openPreferencesForm_show_PreferencesForm(self, mock_form, mock_show):
-        self.form.openPreferencesForm()
+    @mock.patch('doppelganger.preferenceswindow.PreferencesWindow.show')
+    @mock.patch('doppelganger.mainwindow.MainWindow.findChildren', return_value=[])
+    def test_openPreferencesWindow_show_PreferencesWindow(self, mock_form, mock_show):
+        self.form.openPreferencesWindow()
 
         self.assertTrue(mock_show.called)
 
-    @mock.patch('doppelganger.gui.PreferencesForm.activateWindow')
-    def test_openPreferencesForm_opened(self, mock_activate):
-        gui.PreferencesForm(self.form)
-        self.form.openPreferencesForm()
+    @mock.patch('doppelganger.preferenceswindow.PreferencesWindow.activateWindow')
+    def test_openPreferencesWindow_opened(self, mock_activate):
+        preferenceswindow.PreferencesWindow(self.form)
+        self.form.openPreferencesWindow()
 
         self.assertTrue(mock_activate.called)
 
@@ -366,7 +232,7 @@ class TestMainForm(TestCase):
 
         self.assertTrue(mock_dialog.called)
 
-    @mock.patch('doppelganger.gui.webbrowser.open')
+    @mock.patch('doppelganger.mainwindow.webbrowser.open')
     def test_openDocs(self, mock_open):
         self.form.openDocs()
 
@@ -459,7 +325,7 @@ class TestMainForm(TestCase):
 
         self.assertTrue(w.selected)
 
-    @mock.patch('doppelganger.gui.MainForm.hasSelectedWidgets', return_value=True)
+    @mock.patch('doppelganger.mainwindow.MainWindow.hasSelectedWidgets', return_value=True)
     def test_switchButtons_called_when_signal_emitted(self, mock_has):
         self.form.moveBtn.setEnabled(False)
         self.form.deleteBtn.setEnabled(False)
@@ -472,7 +338,7 @@ class TestMainForm(TestCase):
         self.assertTrue(self.form.deleteBtn.isEnabled())
         self.assertTrue(self.form.unselectBtn.isEnabled())
 
-    @mock.patch('doppelganger.gui.MainForm.hasSelectedWidgets', return_value=True)
+    @mock.patch('doppelganger.mainwindow.MainWindow.hasSelectedWidgets', return_value=True)
     def test_switchButtons_if_hasSelectedWidgets_True(self, mock_has):
         self.form.moveBtn.setEnabled(False)
         self.form.deleteBtn.setEnabled(False)
@@ -483,7 +349,7 @@ class TestMainForm(TestCase):
         self.assertTrue(self.form.deleteBtn.isEnabled())
         self.assertTrue(self.form.unselectBtn.isEnabled())
 
-    @mock.patch('doppelganger.gui.MainForm.hasSelectedWidgets', return_value=False)
+    @mock.patch('doppelganger.mainwindow.MainWindow.hasSelectedWidgets', return_value=False)
     def test_switch_buttons_if_hasSelectedWidgets_False(self, mock_has):
         self.form.moveBtn.setEnabled(True)
         self.form.deleteBtn.setEnabled(True)
@@ -494,14 +360,14 @@ class TestMainForm(TestCase):
         self.assertFalse(self.form.deleteBtn.isEnabled())
         self.assertFalse(self.form.unselectBtn.isEnabled())
 
-    @mock.patch('doppelganger.gui.MainForm.openFolderNameDialog', return_value='path')
+    @mock.patch('doppelganger.mainwindow.MainWindow.openFolderNameDialog', return_value='path')
     def test_add_folder(self, mock_dialog):
         self.form.add_folder()
         result = self.form.pathListWidget.item(0).data(QtCore.Qt.DisplayRole)
 
         self.assertEqual(result, 'path')
 
-    @mock.patch('doppelganger.gui.MainForm.openFolderNameDialog')
+    @mock.patch('doppelganger.mainwindow.MainWindow.openFolderNameDialog')
     def test_add_folder_enable_buttons(self, mock_dialog):
         self.form.add_folder()
 
@@ -522,26 +388,26 @@ class TestMainForm(TestCase):
         self.assertFalse(self.form.delFolderBtn.isEnabled())
         self.assertFalse(self.form.startBtn.isEnabled())
 
-    @mock.patch('doppelganger.gui.MainForm.switchButtons')
-    @mock.patch('doppelganger.gui.MainForm._call_on_selected_widgets')
+    @mock.patch('doppelganger.mainwindow.MainWindow.switchButtons')
+    @mock.patch('doppelganger.mainwindow.MainWindow._call_on_selected_widgets')
     def test_delete_images(self, mock_call, mock_switch):
         self.form.delete_images()
 
         self.assertTrue(mock_call.called)
         self.assertTrue(mock_switch.called)
 
-    @mock.patch('doppelganger.gui.MainForm.switchButtons')
-    @mock.patch('doppelganger.gui.MainForm._call_on_selected_widgets')
-    @mock.patch('doppelganger.gui.MainForm.openFolderNameDialog', return_value='new_dst')
+    @mock.patch('doppelganger.mainwindow.MainWindow.switchButtons')
+    @mock.patch('doppelganger.mainwindow.MainWindow._call_on_selected_widgets')
+    @mock.patch('doppelganger.mainwindow.MainWindow.openFolderNameDialog', return_value='new_dst')
     def test_move_images(self, mock_dialog, mock_call, mock_switch):
         self.form.move_images()
 
         mock_call.assert_called_once_with('new_dst')
         self.assertTrue(mock_switch.called)
 
-    @mock.patch('doppelganger.gui.MainForm.switchButtons')
-    @mock.patch('doppelganger.gui.MainForm._call_on_selected_widgets')
-    @mock.patch('doppelganger.gui.MainForm.openFolderNameDialog', return_value='')
+    @mock.patch('doppelganger.mainwindow.MainWindow.switchButtons')
+    @mock.patch('doppelganger.mainwindow.MainWindow._call_on_selected_widgets')
+    @mock.patch('doppelganger.mainwindow.MainWindow.openFolderNameDialog', return_value='')
     def test_move_images_doesnt_call_if_new_dest_empty(self, mock_dialog, mock_call, mock_switch):
         self.form.move_images()
 
@@ -609,21 +475,21 @@ class TestMainForm(TestCase):
 
         self.assertEqual(self.form.sensitivity, 20)
 
-    @mock.patch('doppelganger.gui.MainForm.add_folder')
+    @mock.patch('doppelganger.mainwindow.MainWindow.add_folder')
     def test_addFolderBtn_click(self, mock_folder):
         QtTest.QTest.mouseClick(self.form.addFolderBtn, QtCore.Qt.LeftButton)
 
         mock_folder.assert_called_once()
 
-    @mock.patch('doppelganger.gui.MainForm.del_folder')
+    @mock.patch('doppelganger.mainwindow.MainWindow.del_folder')
     def test_delFolderBtn_click(self, mock_folder):
         self.form.delFolderBtn.setEnabled(True)
         QtTest.QTest.mouseClick(self.form.delFolderBtn, QtCore.Qt.LeftButton)
 
         mock_folder.assert_called_once()
 
-    @mock.patch('doppelganger.gui.MainForm.clearMainForm')
-    @mock.patch('doppelganger.gui.MainForm.start_processing')
+    @mock.patch('doppelganger.mainwindow.MainWindow.clearMainForm')
+    @mock.patch('doppelganger.mainwindow.MainWindow.start_processing')
     def test_startBtn_click_calls_clearMainForm(self, mock_processing, mock_clear):
         self.form.startBtn.setEnabled(True)
         self.form.stopBtn.setEnabled(False)
@@ -635,8 +501,8 @@ class TestMainForm(TestCase):
         self.assertTrue(self.form.stopBtn.isEnabled())
         self.assertFalse(self.form.autoSelectBtn.isEnabled())
 
-    @mock.patch('doppelganger.gui.MainForm.start_processing')
-    @mock.patch('doppelganger.gui.MainForm.getFolders', return_value=[])
+    @mock.patch('doppelganger.mainwindow.MainWindow.start_processing')
+    @mock.patch('doppelganger.mainwindow.MainWindow.getFolders', return_value=[])
     def test_startBtn_click_calls_start_processing(self, mock_folders, mock_processing):
         self.form.startBtn.setEnabled(True)
         QtTest.QTest.mouseClick(self.form.startBtn, QtCore.Qt.LeftButton)
@@ -666,7 +532,7 @@ class TestMainForm(TestCase):
 
         self.assertFalse(self.form.delFolderBtn.isEnabled())
 
-    @mock.patch('doppelganger.gui.MainForm.move_images')
+    @mock.patch('doppelganger.mainwindow.MainWindow.move_images')
     def test_moveBtn_click_calls_move_images(self, mock_move):
         self.form.moveBtn.setEnabled(True)
         QtTest.QTest.mouseClick(self.form.moveBtn, QtCore.Qt.LeftButton)
@@ -680,7 +546,7 @@ class TestMainForm(TestCase):
 
         self.assertTrue(mock_msgbox.called)
 
-    @mock.patch('doppelganger.gui.MainForm.delete_images')
+    @mock.patch('doppelganger.mainwindow.MainWindow.delete_images')
     @mock.patch('PyQt5.QtWidgets.QMessageBox.question', return_value=QtWidgets.QMessageBox.Yes)
     def test_deleteBtn_click_calls_delete_images(self, mock_msgbox, mock_del):
         self.form.deleteBtn.setEnabled(True)
@@ -688,14 +554,14 @@ class TestMainForm(TestCase):
 
         self.assertTrue(mock_del.called)
 
-    @mock.patch('doppelganger.gui.MainForm.auto_select')
+    @mock.patch('doppelganger.mainwindow.MainWindow.auto_select')
     def test_autoSelectBtn_click_calls_auto_select(self, mock_auto):
         self.form.autoSelectBtn.setEnabled(True)
         QtTest.QTest.mouseClick(self.form.autoSelectBtn, QtCore.Qt.LeftButton)
 
         self.assertTrue(mock_auto.called)
 
-    @mock.patch('doppelganger.gui.MainForm.unselect')
+    @mock.patch('doppelganger.mainwindow.MainWindow.unselect')
     def test_unselectBtn_click_calls_unselect(self, mock_un):
         self.form.unselectBtn.setEnabled(True)
         QtTest.QTest.mouseClick(self.form.unselectBtn, QtCore.Qt.LeftButton)
