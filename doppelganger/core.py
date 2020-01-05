@@ -1,4 +1,4 @@
-'''Copyright 2019 Maxim Shpak <maxim.shpak@posteo.uk>
+'''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
 This file is part of Doppelgänger.
 
@@ -23,23 +23,24 @@ permission notice:
 
     Copyright (c) 2019 Maxim Shpak <maxim.shpak@posteo.uk>
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files
+    (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to permit
+    persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
+        The above copyright notice and this permission notice shall be
+        included in all copies or substantial portions of the Software.
 
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
     AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE.
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
 
 -------------------------------------------------------------------------------
 
@@ -102,7 +103,8 @@ def hamming(image1: HashedImage, image2: HashedImage) -> Distance:
 
     return dhash.get_num_bits_different(image1.hash, image2.hash)
 
-def image_grouping(images: Collection[HashedImage], sensitivity: Sensitivity) -> List[Group]:
+def image_grouping(images: Collection[HashedImage],
+                   sensitivity: Sensitivity) -> List[Group]:
     '''Find similar images and group them
 
     :param images: images to process,
@@ -118,7 +120,8 @@ def image_grouping(images: Collection[HashedImage], sensitivity: Sensitivity) ->
         return []
 
     image_groups: List[Group] = []
-    checked: Dict[HashedImage, int] = {} # {<class Image> obj: index of the image group}
+    # {<Image> obj: index of the image group}
+    checked: Dict[HashedImage, int] = {}
     try:
         bkt = pybktree.BKTree(hamming, images)
     except TypeError:
@@ -138,7 +141,8 @@ def image_grouping(images: Collection[HashedImage], sensitivity: Sensitivity) ->
 
         closest = closests[1][1]
 
-        # If 'image' is in a group already, its closest image goes to the same group
+        # If 'image' is in a group already, its closest image
+        # goes to the same group
         if image in checked and closest not in checked:
             group_num = checked[image]
             image_groups[group_num].append(closest)
@@ -159,7 +163,7 @@ def image_grouping(images: Collection[HashedImage], sensitivity: Sensitivity) ->
 
     return [sorted(g, key=lambda x: x.difference) for g in image_groups]
 
-def load_cache() -> Dict[ImagePath, Hash]:
+def load_cache() -> Cache:
     '''Load the cache with earlier calculated hashes
 
     :return: dictionary with pairs 'image path: hash',
@@ -175,8 +179,10 @@ def load_cache() -> Dict[ImagePath, Hash]:
         raise EOFError('The cache file might be corrupted (or empty)')
     return cached_hashes
 
-def check_cache(paths: Iterable[ImagePath],
-                cached_hashes: Dict[ImagePath, Hash]) -> Tuple[List[HashedImage], List[NoneImage]]:
+def check_cache(
+        paths: Iterable[ImagePath],
+        cached_hashes: Cache
+    ) -> Tuple[List[HashedImage], List[NoneImage]]:
     '''Check which images are cached and which ones are not
 
     :param paths: full paths of images,
@@ -205,7 +211,7 @@ def hashes_calculating(images: Iterable[NoneImage]) -> List[HashedImage]:
         calculated_images = p.map(Image.dhash, images)
     return calculated_images
 
-def caching(images: Iterable[HashedImage], cached_hashes: Dict[ImagePath, Hash]) -> None:
+def caching(images: Iterable[HashedImage], cached_hashes: Cache) -> None:
     '''Add new hashes to the cache and save them on the disk
 
     :param images: images to process,
@@ -292,10 +298,10 @@ class Image():
                 self.width, self.height = image.size
         return self.width, self.height
 
-    def filesize(self, size_format: SizeFormat = 'KB') -> FileSize:
+    def filesize(self, size_format: SizeFormat = 1) -> FileSize:
         '''Return the file size of the image
 
-        :param size_format: bytes - 'B', KiloBytes - 'KB', MegaBytes - 'MB',
+        :param size_format: bytes - 0, KiloBytes - 1, MegaBytes - 2,
         :return: file size in bytes, kilobytes or megabytes, rounded
                  to the first decimal place,
         :raise OSError: any problem while opening the image,
@@ -310,11 +316,11 @@ class Image():
             else:
                 self.size = image_size
 
-        if size_format == 'B':
+        if size_format == 0:
             return self.size
-        if size_format == 'KB':
+        if size_format == 1:
             return round(self.size / 1024, 1)
-        if size_format == 'MB':
+        if size_format == 2:
             return round(self.size / (1024**2), 1)
 
         raise ValueError('Wrong size format')
@@ -386,9 +392,10 @@ Suffix = str # '.jpg', '.png', etc. (with a dot)
 Width = int # Width of a image
 Height = int # Height of a image
 FileSize = Union[int, float] # Size of a file
-SizeFormat = str # Units of file size (one of {'B', 'KB', 'MB'})
+SizeFormat = int # Units of file size (one of {0, 1, 2})
 NoneImage = Image # Image whose hash is None
 HashedImage = Image # Image whose hash is not None
+Cache = Dict[ImagePath, Hash] # Cache containing image hashes
 Group = List[HashedImage] # Group of similar images
 
 T = TypeVar('T')
@@ -404,7 +411,8 @@ if __name__ == '__main__':
 
     msg = "Type the folder's path you want to find duplicate images in\n"
     folders = input(msg)
-    msg = 'Type the searching sensitivity (a value between 0 and 50 is recommended)\n'
+    msg = ('Type the searching sensitivity (a value '
+           'between 0 and 50 is recommended)\n')
     sensitivity = input(msg)
     print('------------------------')
 

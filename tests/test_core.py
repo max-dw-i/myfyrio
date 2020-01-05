@@ -1,4 +1,4 @@
-'''Copyright 2019 Maxim Shpak <maxim.shpak@posteo.uk>
+'''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
 This file is part of Doppelgänger.
 
@@ -23,23 +23,24 @@ permission notice:
 
     Copyright (c) 2019 Maxim Shpak <maxim.shpak@posteo.uk>
 
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
+    Permission is hereby granted, free of charge, to any person obtaining
+    a copy of this software and associated documentation files
+    (the "Software"), to deal in the Software without restriction, including
+    without limitation the rights to use, copy, modify, merge, publish,
+    distribute, sublicense, and/or sell copies of the Software, and to permit
+    persons to whom the Software is furnished to do so, subject to
+    the following conditions:
 
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
+        The above copyright notice and this permission notice shall be
+        included in all copies or substantial portions of the Software.
 
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
     AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE.
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
 '''
 
 import os
@@ -114,7 +115,7 @@ class TestImageClass(TestCase):
 
     def test_filesize_return_saved_value(self):
         self.image.size = 444
-        filesize = self.image.filesize(size_format='B')
+        filesize = self.image.filesize(size_format=0)
 
         self.assertEqual(filesize, self.image.size)
 
@@ -126,23 +127,23 @@ class TestImageClass(TestCase):
     @mock.patch(CORE + 'os.path.getsize')
     def test_filesize_raise_ValueError_if_pass_wrong_format(self, mock_size):
         with self.assertRaises(ValueError):
-            self.image.filesize(size_format='Kg')
+            self.image.filesize(size_format=13)
 
     @mock.patch(CORE + 'os.path.getsize', return_value=1024)
     def test_filesize_return_if_Bytes_format(self, mock_size):
-        filesize = self.image.filesize(size_format='B')
+        filesize = self.image.filesize(size_format=0)
 
         self.assertEqual(filesize, 1024)
 
     @mock.patch(CORE + 'os.path.getsize', return_value=1024)
     def test_filesize_return_if_KiloBytes_format(self, mock_size):
-        filesize = self.image.filesize(size_format='KB')
+        filesize = self.image.filesize(size_format=1)
 
         self.assertAlmostEqual(filesize, 1)
 
     @mock.patch(CORE + 'os.path.getsize', return_value=1048576)
     def test_filesize_return_if_MegaBytes_format(self, mock_size):
-        filesize = self.image.filesize(size_format='MB')
+        filesize = self.image.filesize(size_format=2)
 
         self.assertAlmostEqual(filesize, 1)
 
@@ -276,19 +277,19 @@ class TestCacheFunctions(TestCase):
         cls.cache = {filename: 666 for filename in cls.cached}
 
     @mock.patch(CORE + 'open', side_effect=FileNotFoundError)
-    def test_load_cache_return_empty_dict_if_FileNotFoundError(self, mock_cache):
+    def test_load_cache_return_empty_dict_if_FileNotFoundError(self, mock_opn):
         loaded = core.load_cache()
 
         self.assertDictEqual(loaded, {})
 
     @mock.patch(CORE + 'pickle.load', side_effect=EOFError)
-    def test_load_cache_raise_EOFError_if_EOFError(self, mock_cache):
+    def test_load_cache_raise_EOFError_if_EOFError(self, mock_load):
         with self.assertRaises(EOFError):
             core.load_cache()
 
     @mock.patch(CORE + 'pickle.load')
-    def test_load_cache_return(self, mock_cache):
-        mock_cache.return_value = self.cache
+    def test_load_cache_return(self, mock_load):
+        mock_load.return_value = self.cache
         loaded = core.load_cache()
 
         self.assertDictEqual(loaded, self.cache)
@@ -378,7 +379,7 @@ class TestImageGroupingFunction(TestCase):
         # Create 'corrupted' images (cannot be open without errors)
         cls.corrupted = cls.image_factory(3, 'corrupted.png', None)
 
-    def test_image_grouping_return_empty_list_if_pass_zero_or_one_len_list(self):
+    def test_image_grouping_return_empty_list_if_pass_0_or_1_len_list(self):
         images = []
         image_groups = core.image_grouping(images, 0)
 
