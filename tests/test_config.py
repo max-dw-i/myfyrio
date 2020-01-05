@@ -1,4 +1,4 @@
-'''Copyright 2019 Maxim Shpak <maxim.shpak@posteo.uk>
+'''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
 This file is part of Doppelgänger.
 
@@ -17,99 +17,105 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 
-import logging
 import pickle
 from unittest import TestCase, mock
 
-from PyQt5 import QtWidgets
-
 from doppelganger import config
-
-# Configure a logger for testing purposes
-logger = logging.getLogger('main')
-logger.setLevel(logging.WARNING)
-if not logger.handlers:
-    nh = logging.NullHandler()
-    logger.addHandler(nh)
-
-# Check if there's QApplication instance already
-app = QtWidgets.QApplication.instance()
-if app is None:
-    app = QtWidgets.QApplication([])
-
 
 # pylint: disable=unused-argument,missing-class-docstring
 
 
 class TestConfig(TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        cls.DEFAULT_CONFIG_DATA = config.Config.DEFAULT_CONFIG_DATA.copy()
-
     def setUp(self):
         self.c = config.Config()
 
-    def test_init_with_data_arg(self):
-        data = {'test_par': 'test_val'}
-        c = config.Config(data)
+    def test_init_with_config_data_passed(self):
+        conf_data = {'test_param': 'test_value'}
+        c = config.Config(conf_data)
 
-        self.assertDictEqual(data, c.data)
+        self.assertDictEqual(conf_data, c.data)
 
-    def test_init_default_data_arg(self):
-        self.assertDictEqual(self.DEFAULT_CONFIG_DATA, self.c.data)
+    @mock.patch('doppelganger.config.Config.default')
+    def test_init_without_config_data_passed(self, mock_def):
+        config.Config()
 
-    @mock.patch('doppelganger.config.pickle.dump')
-    @mock.patch('doppelganger.config.open')
-    def test_save(self, mock_open, mock_dump):
-        self.c.save()
+        mock_def.assert_called_once_with()
+
+    def test_default(self):
+        DEFAULT_CONFIG = {
+            'size': 200,
+            'show_similarity': True,
+            'show_size': True,
+            'show_path': True,
+            'sort': 0,
+            'delete_dirs': False,
+            'size_format': 1,
+            'subfolders': True,
+            'close_confirmation': False,
+        }
+
+        self.assertEqual(self.c.data, DEFAULT_CONFIG)
+
+    @mock.patch('pickle.dump')
+    def test_save_into_config_p(self, mock_dump):
+        with mock.patch('builtins.open', mock.mock_open()) as mock_open:
+            self.c.save()
+
+        mock_open.assert_called_once_with('config.p', 'wb')
+
+    @mock.patch('pickle.dump')
+    def test_save_dump_config_data(self, mock_dump):
+        with mock.patch('builtins.open', mock.mock_open()):
+            self.c.save()
+
+        data = mock_dump.call_args[0][0]
 
         mock_dump.assert_called_once()
+        self.assertDictEqual(data, self.c.data)
 
-    @mock.patch('doppelganger.config.pickle.dump')
-    @mock.patch('doppelganger.config.open', side_effect=OSError)
-    def test_save_if_OSError(self, mock_open, mock_dump):
+    @mock.patch('builtins.open', side_effect=OSError)
+    def test_save_raise_OSError_if_open_raise_OSError(self, mock_open):
         with self.assertRaises(OSError):
-            with self.assertLogs('main.config', 'ERROR'):
-                self.c.save()
+            self.c.save()
 
-    @mock.patch('doppelganger.config.pickle.load', return_value='test')
-    @mock.patch('doppelganger.config.open')
-    def test_load(self, mock_open, mock_dump):
+    @mock.patch('pickle.load')
+    def test_load_from_config_p(self, mock_load):
+        with mock.patch('builtins.open', mock.mock_open()) as mock_open:
+            self.c.load()
+
+        mock_open.assert_called_once_with('config.p', 'rb')
+
+    @mock.patch('pickle.load', return_value='test')
+    @mock.patch('builtins.open')
+    def test_load_assign_loaded_conf_to_attr_data(self, mock_open, mock_load):
         self.c.load()
 
         self.assertEqual('test', self.c.data)
 
-    @mock.patch('doppelganger.config.pickle.load')
-    @mock.patch('doppelganger.config.open', side_effect=FileNotFoundError)
-    def test_load_if_FileNotFoundError(self, mock_open, mock_dump):
+    @mock.patch('doppelganger.config.Config.default')
+    @mock.patch('builtins.open', side_effect=FileNotFoundError)
+    def test_load_assign_default_conf_if_FileNotFoundError(
+            self, mock_open, mock_def
+        ):
         self.c.load()
 
-        self.assertEqual(self.c.DEFAULT_CONFIG_DATA, self.c.data)
+        mock_def.assert_called_once_with()
 
-    @mock.patch('doppelganger.config.pickle.load')
-    @mock.patch('doppelganger.config.open', side_effect=EOFError)
+    @mock.patch('pickle.load')
+    @mock.patch('builtins.open', side_effect=EOFError)
     def test_load_if_EOFError(self, mock_open, mock_dump):
         with self.assertRaises(OSError):
-            with self.assertLogs('main.config', 'ERROR'):
-                self.c.load()
+            self.c.load()
 
-        self.assertEqual(self.DEFAULT_CONFIG_DATA, self.c.data)
-
-    @mock.patch('doppelganger.config.pickle.load')
-    @mock.patch('doppelganger.config.open', side_effect=OSError)
+    @mock.patch('pickle.load')
+    @mock.patch('builtins.open', side_effect=OSError)
     def test_load_if_OSError(self, mock_open, mock_dump):
         with self.assertRaises(OSError):
-            with self.assertLogs('main.config', 'ERROR'):
-                self.c.load()
+            self.c.load()
 
-        self.assertEqual(self.DEFAULT_CONFIG_DATA, self.c.data)
-
-    @mock.patch('doppelganger.config.pickle.load', side_effect=pickle.UnpicklingError)
-    @mock.patch('doppelganger.config.open')
+    @mock.patch('pickle.load', side_effect=pickle.UnpicklingError)
+    @mock.patch('builtins.open')
     def test_load_if_UnpicklingError(self, mock_open, mock_dump):
         with self.assertRaises(OSError):
-            with self.assertLogs('main.config', 'ERROR'):
-                self.c.load()
-
-        self.assertEqual(self.DEFAULT_CONFIG_DATA, self.c.data)
+            self.c.load()
