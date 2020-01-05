@@ -20,133 +20,158 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 Module implementing window "Preferences"
 '''
 
+from __future__ import annotations
+
+import logging
 import pathlib
+from typing import List, Union
 
 from PyQt5 import QtWidgets, uic
 
-from doppelganger import config, core
+from doppelganger import config
+
+pref_logger = logging.getLogger('main.preferences')
+
+
+def load_config() -> config.ConfigData:
+    '''Load and return config with the preferences
+
+    :return: dict with the loaded preferences
+    '''
+
+    c = config.Config()
+    try:
+        c.load()
+    except OSError as e:
+        msg_box = QtWidgets.QMessageBox(
+            QtWidgets.QMessageBox.Warning,
+            'Errors',
+            ('Cannot load preferences from file "config.p". Default '
+             'preferences will be loaded. For more details, '
+             'see "errors.log"')
+        )
+        msg_box.exec()
+
+        pref_logger.error(e)
+
+        c.default()
+
+    return c.data
+
+def save_config(conf: config.ConfigData) -> None:
+    '''Save config with the preferences
+
+    :param conf: dict with config data
+    '''
+
+    c = config.Config(conf)
+    try:
+        c.save()
+    except OSError as e:
+        msg_box = QtWidgets.QMessageBox(
+            QtWidgets.QMessageBox.Warning,
+            'Error',
+            ("Cannot save preferences into file 'config.p'. "
+             "For more details, see 'errors.log'")
+        )
+        msg_box.exec()
+
+        pref_logger.error(e)
+
+def setVal(widget: Widget, val: Value) -> None:
+    '''Set value of widget
+
+    :param widget: widget to set,
+    :param val: value to set
+    '''
+
+    if isinstance(widget, QtWidgets.QSpinBox):
+        widget.setValue(val)
+    if isinstance(widget, QtWidgets.QComboBox):
+        widget.setCurrentIndex(val)
+    if isinstance(widget, QtWidgets.QCheckBox):
+        widget.setChecked(val)
+
+def val(widget: Widget) -> Value:
+    '''Get value of widget
+
+    :param widget: widget whose value to get,
+    :return: value of widget
+    '''
+
+    if isinstance(widget, QtWidgets.QSpinBox):
+        v = widget.value()
+    if isinstance(widget, QtWidgets.QComboBox):
+        v = widget.currentIndex()
+    if isinstance(widget, QtWidgets.QCheckBox):
+        v = widget.isChecked()
+
+    return v
 
 
 class PreferencesWindow(QtWidgets.QMainWindow):
-    """'Options' -> 'Preferences...' form"""
+    '''Implementing window "Preferences"'''
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
+
         pref_ui_path = 'doppelganger/resources/ui/preferenceswindow.ui'
         PREFERENCES_UI = pathlib.Path(pref_ui_path)
         uic.loadUi(str(PREFERENCES_UI), self)
-        self.sortComboBox.addItems(
-            [
-                'Similarity rate',  # in 'config.p' - 0
-                'Filesize',         # in 'config.p' - 1
-                'Width and Height', # in 'config.p' - 2
-                'Path'              # in 'config.p' - 3
-            ]
-        )
-        self.sizeFormatComboBox.addItems(
-            [
-                'Bytes (B)',        # in 'config.p' - 'B'
-                'KiloBytes (KB)',   # in 'config.p' - 'KB'
-                'MegaBytes (MB)',   # in 'config.p' - 'MB'
-            ]
-        )
-        self.sizeSpinBox.setMinimum(100)
-        self.sizeSpinBox.setMaximum(4000)
 
-        self._update_form(parent.conf)
+        self.widgets = self._gather_widgets()
 
-        self._setWidgetEvents()
-
-    def closeEvent(self, event) -> None:
-        '''Function called on close event'''
-
-        super().closeEvent(event)
-        self.deleteLater()
-
-    def _setWidgetEvents(self) -> None:
-        '''Link events and functions called on the events'''
+        self.conf = load_config()
+        self.update_prefs(self.conf)
 
         self.saveBtn.clicked.connect(self.saveBtn_click)
         self.cancelBtn.clicked.connect(self.cancelBtn_click)
 
-    def _encode_size_format(self, size_format: core.SizeFormat) -> int:
-        sf = {'B': 0,
-              'KB': 1,
-              'MB': 2}
-        return sf[size_format]
+        sizeHint = self.sizeHint()
+        self.setMaximumSize(sizeHint)
+        self.resize(sizeHint)
 
-    def _decode_size_format(self, index: int) -> core.SizeFormat:
-        sf = {0: 'B',
-              1: 'KB',
-              2: 'MB'}
-        return sf[index]
+    def _gather_widgets(self) -> List[Widget]:
+        widgets = []
+        widget_types = [QtWidgets.QComboBox, QtWidgets.QCheckBox,
+                        QtWidgets.QSpinBox]
 
-    def _update_form(self, data: config.ConfigData) -> None:
+        for w_type in widget_types:
+            w_found = self.findChildren(w_type)
+            for w in w_found: # rewrite when every is enabled
+                if w.isEnabled():
+                    widgets.append(w)
+        return widgets
+
+    def update_prefs(self, conf: config.ConfigData) -> None:
         '''Update the form with new preferences
 
-        :param data: new preferences data
+        :param conf: new preferences
         '''
 
-        self.sizeSpinBox.setValue(data['size'])
-        self.sortComboBox.setCurrentIndex(data['sort'])
-        self.sizeFormatComboBox.setCurrentIndex(
-            self._encode_size_format(data['size_format'])
-        )
+        for w in self.widgets:
+            setVal(w, conf[w.property('conf_param')])
 
-        if data['show_similarity']:
-            self.similarityBox.setChecked(True)
-        if data['show_size']:
-            self.sizeBox.setChecked(True)
-        if data['show_path']:
-            self.pathBox.setChecked(True)
-        if data['delete_dirs']:
-            self.deldirsBox.setChecked(True)
-        if data['subfolders']:
-            self.subfoldersBox.setChecked(True)
-        if data['close_confirmation']:
-            self.closeBox.setChecked(True)
-
-    def _gather_prefs(self) -> config.ConfigData:
+    def gather_prefs(self) -> config.ConfigData:
         '''Gather checked/unchecked/filled by a user options
         and form a config dictionary
 
-        :return: dictionary with programme's preferences
+        :return: dict with preferences of the programme
         '''
 
-        data = {
-            'size': self.sizeSpinBox.value(),
-            'show_similarity': self.similarityBox.isChecked(),
-            'show_size': self.sizeBox.isChecked(),
-            'show_path': self.pathBox.isChecked(),
-            'sort': self.sortComboBox.currentIndex(),
-            'delete_dirs': self.deldirsBox.isChecked(),
-            'size_format': self._decode_size_format(
-                self.sizeFormatComboBox.currentIndex()
-            ),
-            'subfolders': self.subfoldersBox.isChecked(),
-            'close_confirmation': self.closeBox.isChecked(),
-        }
-        return data
+        return {w.property('conf_param'): val(w) for w in self.widgets}
 
     def saveBtn_click(self) -> None:
-        '''Function called on pressing button "Save"'''
-
-        data = self._gather_prefs()
-        try:
-            config.Config(data).save()
-        except OSError:
-            msg_box = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning,
-                'Error',
-                ("Cannot save preferences into file 'config.p'. "
-                 "For more details, see 'errors.log'")
-            )
-            msg_box.exec()
-        else:
-            self.parent().conf = data
-            self.deleteLater()
+        self.conf = self.gather_prefs()
+        save_config(self.conf)
+        self.close()
 
     def cancelBtn_click(self) -> None:
-        '''Function called on pressing button "Cancel"'''
+        self.close()
 
-        self.deleteLater()
+
+#################################Types##################################
+Widget = Union[QtWidgets.QSpinBox, QtWidgets.QComboBox,
+               QtWidgets.QCheckBox] # widget changing preferences
+Value = Union[int, str]             # value of widget
+########################################################################

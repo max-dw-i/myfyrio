@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>preferencesForm</class>
- <widget class="QMainWindow" name="preferencesForm">
+ <class>preferencesWindow</class>
+ <widget class="QMainWindow" name="preferencesWindow">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -13,21 +13,17 @@
   <property name="windowTitle">
    <string>Preferences</string>
   </property>
-  <property name="windowIcon">
-   <iconset>
-    <normaloff>resources/icon.png</normaloff>resources/icon.png</iconset>
-  </property>
-  <widget class="QWidget" name="centralwidget">
+  <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout_3">
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
       </property>
-      <widget class="QWidget" name="thumbnailsTab">
+      <widget class="QWidget" name="imageTab">
        <attribute name="title">
         <string>Image</string>
        </attribute>
@@ -36,42 +32,76 @@
          <widget class="QWidget" name="sizeWidget" native="true">
           <layout class="QHBoxLayout" name="horizontalLayout">
            <item>
-            <widget class="QLabel" name="sizeLabel">
+            <widget class="QLabel" name="thumbSizeLbl">
              <property name="text">
               <string>Thumbnail size, px (the biggest side)</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QSpinBox" name="sizeSpinBox"/>
+            <widget class="QSpinBox" name="thumbSizeSpn">
+             <property name="alignment">
+              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+             </property>
+             <property name="minimum">
+              <number>100</number>
+             </property>
+             <property name="maximum">
+              <number>4000</number>
+             </property>
+             <property name="value">
+              <number>100</number>
+             </property>
+             <property name="conf_param" stdset="0">
+              <string>size</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
         </item>
         <item>
-         <widget class="QGroupBox" name="infoBox">
+         <widget class="QGroupBox" name="infoGrp">
           <property name="title">
            <string>Image Info</string>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_4">
            <item>
-            <widget class="QCheckBox" name="similarityBox">
+            <widget class="QCheckBox" name="similarityChk">
              <property name="text">
               <string>Show similarity rate</string>
              </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="sizeBox">
-             <property name="text">
-              <string>Show image size</string>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+             <property name="conf_param" stdset="0">
+              <string>show_similarity</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QCheckBox" name="pathBox">
+            <widget class="QCheckBox" name="sizeChk">
+             <property name="text">
+              <string>Show image size</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+             <property name="conf_param" stdset="0">
+              <string>show_size</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="pathChk">
              <property name="text">
               <string>Show image path</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+             <property name="conf_param" stdset="0">
+              <string>show_path</string>
              </property>
             </widget>
            </item>
@@ -79,14 +109,39 @@
             <widget class="QWidget" name="sizeFormatWidget" native="true">
              <layout class="QHBoxLayout" name="horizontalLayout_4">
               <item>
-               <widget class="QLabel" name="sizeFormatLabel">
+               <widget class="QLabel" name="sizeFormatLbl">
                 <property name="text">
                  <string>Image size format</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QComboBox" name="sizeFormatComboBox"/>
+               <widget class="QComboBox" name="sizeFormatCombo">
+                <property name="currentIndex">
+                 <number>1</number>
+                </property>
+                <property name="sizeAdjustPolicy">
+                 <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+                </property>
+                <property name="conf_param" stdset="0">
+                 <string>size_format</string>
+                </property>
+                <item>
+                 <property name="text">
+                  <string>Bytes (B)</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>KiloBytes (KB)</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>MegaBytes (MB)</string>
+                 </property>
+                </item>
+               </widget>
               </item>
              </layout>
             </widget>
@@ -98,14 +153,14 @@
          <widget class="QWidget" name="sortWidget" native="true">
           <layout class="QHBoxLayout" name="horizontalLayout_2">
            <item alignment="Qt::AlignLeft">
-            <widget class="QLabel" name="sortLabel">
+            <widget class="QLabel" name="sortLbl">
              <property name="text">
               <string>Sort images by</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QComboBox" name="sortComboBox">
+            <widget class="QComboBox" name="sortCombo">
              <property name="minimumSize">
               <size>
                <width>0</width>
@@ -113,8 +168,31 @@
               </size>
              </property>
              <property name="currentText">
-              <string/>
+              <string>Similarity rate</string>
              </property>
+             <property name="conf_param" stdset="0">
+              <string>sort</string>
+             </property>
+             <item>
+              <property name="text">
+               <string>Similarity rate</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Filesize</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Width and Height</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Path</string>
+              </property>
+             </item>
             </widget>
            </item>
           </layout>
@@ -128,10 +206,10 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_11">
         <item alignment="Qt::AlignTop">
-         <widget class="QWidget" name="widget" native="true">
+         <widget class="QWidget" name="searchWidget" native="true">
           <layout class="QVBoxLayout" name="verticalLayout_5">
            <item>
-            <widget class="QGroupBox" name="dimsBox_2">
+            <widget class="QGroupBox" name="dimsGrp">
              <property name="enabled">
               <bool>false</bool>
              </property>
@@ -146,10 +224,10 @@
              </property>
              <layout class="QHBoxLayout" name="horizontalLayout_10">
               <item>
-               <widget class="QWidget" name="widget_7" native="true">
+               <widget class="QWidget" name="minSizeWidget" native="true">
                 <layout class="QVBoxLayout" name="verticalLayout_8">
                  <item>
-                  <widget class="QWidget" name="widget_8" native="true">
+                  <widget class="QWidget" name="minWidthWidget" native="true">
                    <layout class="QHBoxLayout" name="horizontalLayout_11">
                     <property name="leftMargin">
                      <number>0</number>
@@ -164,20 +242,24 @@
                      <number>0</number>
                     </property>
                     <item>
-                     <widget class="QLabel" name="minWLabel_2">
+                     <widget class="QLabel" name="minWidthLbl">
                       <property name="text">
                        <string>Min Width</string>
                       </property>
                      </widget>
                     </item>
                     <item>
-                     <widget class="QSpinBox" name="minWSpinBox_2"/>
+                     <widget class="QSpinBox" name="minWidthSpn">
+                      <property name="conf_param" stdset="0">
+                       <string>min_width</string>
+                      </property>
+                     </widget>
                     </item>
                    </layout>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QWidget" name="widget_9" native="true">
+                  <widget class="QWidget" name="minHeightWidget" native="true">
                    <layout class="QHBoxLayout" name="horizontalLayout_12">
                     <property name="leftMargin">
                      <number>0</number>
@@ -192,14 +274,18 @@
                      <number>0</number>
                     </property>
                     <item>
-                     <widget class="QLabel" name="minHLabel_2">
+                     <widget class="QLabel" name="minHeightLbl">
                       <property name="text">
                        <string>Min Height</string>
                       </property>
                      </widget>
                     </item>
                     <item>
-                     <widget class="QSpinBox" name="minHSpinBox_2"/>
+                     <widget class="QSpinBox" name="minHeightSpn">
+                      <property name="conf_param" stdset="0">
+                       <string>min_height</string>
+                      </property>
+                     </widget>
                     </item>
                    </layout>
                   </widget>
@@ -208,10 +294,10 @@
                </widget>
               </item>
               <item>
-               <widget class="QWidget" name="widget_10" native="true">
+               <widget class="QWidget" name="maxSizeWidget" native="true">
                 <layout class="QVBoxLayout" name="verticalLayout_9">
                  <item>
-                  <widget class="QWidget" name="widget_11" native="true">
+                  <widget class="QWidget" name="maxWidthWidget" native="true">
                    <layout class="QHBoxLayout" name="horizontalLayout_13">
                     <property name="leftMargin">
                      <number>0</number>
@@ -226,20 +312,24 @@
                      <number>0</number>
                     </property>
                     <item>
-                     <widget class="QLabel" name="maxWLabel_3">
+                     <widget class="QLabel" name="maxWidthLbl">
                       <property name="text">
                        <string>Max Width</string>
                       </property>
                      </widget>
                     </item>
                     <item>
-                     <widget class="QSpinBox" name="maxWSpinBox_3"/>
+                     <widget class="QSpinBox" name="maxWidthSpn">
+                      <property name="conf_param" stdset="0">
+                       <string>max_width</string>
+                      </property>
+                     </widget>
                     </item>
                    </layout>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QWidget" name="widget_12" native="true">
+                  <widget class="QWidget" name="maxHeightWidget" native="true">
                    <layout class="QHBoxLayout" name="horizontalLayout_14">
                     <property name="leftMargin">
                      <number>0</number>
@@ -254,14 +344,18 @@
                      <number>0</number>
                     </property>
                     <item>
-                     <widget class="QLabel" name="maxHLabel_3">
+                     <widget class="QLabel" name="maxHeightLbl">
                       <property name="text">
                        <string>Max Height</string>
                       </property>
                      </widget>
                     </item>
                     <item>
-                     <widget class="QSpinBox" name="maxHSpinBox_3"/>
+                     <widget class="QSpinBox" name="maxHeightSpn">
+                      <property name="conf_param" stdset="0">
+                       <string>max_height</string>
+                      </property>
+                     </widget>
                     </item>
                    </layout>
                   </widget>
@@ -273,19 +367,28 @@
             </widget>
            </item>
            <item>
-            <widget class="QCheckBox" name="subfoldersBox">
+            <widget class="QCheckBox" name="subfoldersChk">
              <property name="text">
               <string>Recursive search (include subfolders)</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+             <property name="conf_param" stdset="0">
+              <string>subfolders</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QCheckBox" name="betweenDirsBox_2">
+            <widget class="QCheckBox" name="betweenDirsChk">
              <property name="enabled">
               <bool>false</bool>
              </property>
              <property name="text">
               <string>Only between chosen folders</string>
+             </property>
+             <property name="conf_param" stdset="0">
+              <string>between_dirs</string>
              </property>
             </widget>
            </item>
@@ -300,19 +403,25 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item alignment="Qt::AlignTop">
-         <widget class="QWidget" name="widget_2" native="true">
+         <widget class="QWidget" name="miscWidget" native="true">
           <layout class="QVBoxLayout" name="verticalLayout_6">
            <item>
-            <widget class="QCheckBox" name="deldirsBox">
+            <widget class="QCheckBox" name="deldirsChk">
              <property name="text">
               <string>Delete folders if they are empty after deleting/moving images</string>
+             </property>
+             <property name="conf_param" stdset="0">
+              <string>delete_dirs</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QCheckBox" name="closeBox">
+            <widget class="QCheckBox" name="closeChk">
              <property name="text">
               <string>Ask confirmation when a user closes the programme</string>
+             </property>
+             <property name="conf_param" stdset="0">
+              <string>close_confirmation</string>
              </property>
             </widget>
            </item>
