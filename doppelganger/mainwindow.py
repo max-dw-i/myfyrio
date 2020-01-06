@@ -48,34 +48,13 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
 
         self.threadpool = QtCore.QThreadPool()
         self._setWidgetEvents()
-        self.conf = self._load_prefs()
         self.sensitivity = 0
         self.veryHighRb.click()
 
         self._setMenubar()
 
         self.aboutWindow = AboutWindow(self)
-
-    def _load_prefs(self) -> config.ConfigData:
-        '''Load preferences
-
-        :return: dict with the loaded preferences
-        '''
-
-        c = config.Config()
-        try:
-            c.load()
-        except OSError:
-            msg_box = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning,
-                'Errors',
-                ("Cannot load preferences from file 'config.p'. Default "
-                 "preferences will be loaded. For more details, "
-                 "see 'errors.log'")
-            )
-            msg_box.exec()
-
-        return c.data
+        self.preferencesWindow = PreferencesWindow(self)
 
     def _setWidgetEvents(self) -> None:
         '''Link events and functions called on the events'''
@@ -230,7 +209,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
                     )
                     msgBox.exec()
                 else:
-                    if self.conf['delete_dirs']:
+                    if self.preferencesWindow.conf['delete_dirs']:
                         selected_widget.image.del_parent_dir()
             # If we select all (or except one) the images in a group,
             if len(group_widget) - len(selected_widgets) <= 1:
@@ -242,7 +221,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
     def closeEvent(self, event) -> None:
         '''Called on programme close event'''
 
-        if self.conf['close_confirmation']:
+        if self.preferencesWindow.conf['close_confirmation']:
             confirm = QtWidgets.QMessageBox.question(
                 self,
                 'Closing confirmation',
@@ -260,17 +239,10 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
             self.aboutWindow.show()
 
     def openPreferencesWindow(self) -> None:
-        """Open 'Options' -> 'Preferences...' form"""
-
-        preferences = self.findChildren(
-            PreferencesWindow,
-            options=QtCore.Qt.FindDirectChildrenOnly
-        )
-        if preferences:
-            preferences[0].activateWindow()
+        if self.preferencesWindow.isVisible():
+            self.preferencesWindow.activateWindow()
         else:
-            preferences = PreferencesWindow(self)
-            preferences.show()
+            self.preferencesWindow.show()
 
     def openFolderNameDialog(self) -> core.FolderPath:
         '''Open file dialog and return the full path of a folder'''
@@ -340,7 +312,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         else:
             for group in image_groups:
                 self.scrollAreaLayout.addWidget(
-                    widgets.ImageGroupWidget(group, self.conf, self.scrollArea)
+                    widgets.ImageGroupWidget(group, self.preferencesWindow.conf, self.scrollArea)
                 )
 
             for widget in self.findChildren(widgets.DuplicateWidget):
@@ -463,11 +435,10 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         '''Set up image processing and run it
 
         :param folders: folders to process,
-        :param conf: dict with preferences data
         '''
 
         proc = processing.ImageProcessing(self.signals, folders,
-                                          self.sensitivity, self.conf)
+                                          self.sensitivity, self.preferencesWindow.conf)
 
         proc.signals.update_info.connect(self.updateLabel)
         proc.signals.update_progressbar.connect(self.progressBar.setValue)

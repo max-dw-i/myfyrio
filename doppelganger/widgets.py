@@ -119,7 +119,7 @@ class ImageInfoWidget(QtWidgets.QWidget):
 
     @staticmethod
     def _get_image_size(dimensions: Tuple[core.Width, core.Height],
-                        filesize: core.FileSize, size_format: str) -> str:
+                        filesize: core.FileSize, size_format: int) -> str:
         '''Return info about image dimensions and file size
 
         :param dimensions: image dimensions,
@@ -129,8 +129,11 @@ class ImageInfoWidget(QtWidgets.QWidget):
         '''
 
         width, height = dimensions[0], dimensions[1]
+        units = {0: 'B',
+                 1: 'KB',
+                 2: 'MB'}[size_format]
 
-        return f'{width}x{height}, {filesize} {size_format}'
+        return f'{width}x{height}, {filesize} {units}'
 
 
 class ThumbnailWidget(QtWidgets.QLabel):

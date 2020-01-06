@@ -42,17 +42,23 @@ if app is None:
 class TestMainForm(TestCase):
 
     def setUp(self):
-        self.conf = config.Config.DEFAULT_CONFIG_DATA.copy()
-        with mock.patch('doppelganger.mainwindow.MainWindow._load_prefs') as mock_load:
-            mock_load.return_value = self.conf
+        self.conf = {
+            'size': 200,
+            'show_similarity': True,
+            'show_size': True,
+            'show_path': True,
+            'sort': 0,
+            'delete_dirs': False,
+            'size_format': 1,
+            'subfolders': True,
+            'close_confirmation': False,
+        }
+        self.form = mainwindow.MainWindow()
 
-            self.form = mainwindow.MainWindow()
-
-    @mock.patch('doppelganger.mainwindow.MainWindow._load_prefs')
     @mock.patch('doppelganger.mainwindow.MainWindow._setMenubar')
     @mock.patch('doppelganger.mainwindow.QtWidgets.QRadioButton.click')
     @mock.patch('doppelganger.mainwindow.MainWindow._setWidgetEvents')
-    def test_init(self, mock_events, mock_button, mock_menubar, mock_load):
+    def test_init(self, mock_events, mock_button, mock_menubar):
         form = mainwindow.MainWindow()
         scroll_area_align = form.scrollAreaLayout.layout().alignment()
         self.assertEqual(scroll_area_align, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
@@ -61,15 +67,6 @@ class TestMainForm(TestCase):
         self.assertTrue(mock_events.called)
         self.assertTrue(mock_button.called)
         self.assertTrue(mock_menubar.called)
-        self.assertTrue(mock_load.called)
-
-    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
-    @mock.patch('doppelganger.config.Config.load', side_effect=OSError)
-    def test_load_prefs_if_raise_OSError(self, mock_conf, mock_exec):
-        conf = self.form._load_prefs()
-
-        mock_exec.assert_called_once()
-        self.assertDictEqual(conf, self.conf)
 
     """@mock.patch('doppelganger.aboutwindow.AboutWindow')
     @mock.patch('doppelganger.mainwindow.MainWindow.findChildren', return_value=[])
@@ -110,7 +107,7 @@ class TestMainForm(TestCase):
     def test_call_on_selected_widgets_move_raises_OSError(self, mock_move, mock_box):
         image_group = [core.Image('img1.png')]
         self.form.scrollAreaLayout.addWidget(
-            widgets.ImageGroupWidget(image_group, self.form.conf)
+            widgets.ImageGroupWidget(image_group, self.form.preferencesWindow.conf)
         )
         w = self.form.findChild(widgets.DuplicateWidget)
         w.selected = True
@@ -125,7 +122,7 @@ class TestMainForm(TestCase):
     def test_call_on_selected_widgets_delete_raises_OSError(self, mock_delete, mock_box):
         image_group = [core.Image('img1.png')]
         self.form.scrollAreaLayout.addWidget(
-            widgets.ImageGroupWidget(image_group, self.form.conf)
+            widgets.ImageGroupWidget(image_group, self.form.preferencesWindow.conf)
         )
         w = self.form.findChild(widgets.DuplicateWidget)
         w.selected = True
@@ -140,11 +137,11 @@ class TestMainForm(TestCase):
     def test_call_on_selected_widgets_delete_empty_dir(self, mock_delete, mock_dir):
         image_group = [core.Image('img1.png')]
         self.form.scrollAreaLayout.addWidget(
-            widgets.ImageGroupWidget(image_group, self.form.conf)
+            widgets.ImageGroupWidget(image_group, self.form.preferencesWindow.conf)
         )
         w = self.form.findChild(widgets.DuplicateWidget)
         w.selected = True
-        self.form.conf['delete_dirs'] = True
+        self.form.preferencesWindow.conf['delete_dirs'] = True
 
         self.form._call_on_selected_widgets()
 
@@ -155,11 +152,11 @@ class TestMainForm(TestCase):
     def test_call_on_selected_widgets_not_delete_empty_dir(self, mock_delete, mock_dir):
         image_group = [core.Image('img1.png')]
         self.form.scrollAreaLayout.addWidget(
-            widgets.ImageGroupWidget(image_group, self.form.conf)
+            widgets.ImageGroupWidget(image_group, self.form.preferencesWindow.conf)
         )
         w = self.form.findChild(widgets.DuplicateWidget)
         w.selected = True
-        self.form.conf['delete_dirs'] = False
+        self.form.preferencesWindow.conf['delete_dirs'] = False
 
         self.form._call_on_selected_widgets()
 
@@ -169,7 +166,7 @@ class TestMainForm(TestCase):
     def test_call_on_selected_widgets_deleteLater_on_ImageGroupWidget(self, mock_later):
         image_group = [core.Image('img1.png')]
         self.form.scrollAreaLayout.addWidget(
-            widgets.ImageGroupWidget(image_group, self.form.conf)
+            widgets.ImageGroupWidget(image_group, self.form.preferencesWindow.conf)
         )
         self.form._call_on_selected_widgets()
 
@@ -178,7 +175,7 @@ class TestMainForm(TestCase):
     @mock.patch('PyQt5.QtCore.QEvent.ignore')
     @mock.patch('PyQt5.QtWidgets.QMessageBox.question', return_value=QtWidgets.QMessageBox.Cancel)
     def test_closeEvent(self, mock_q, mock_ign):
-        self.conf['close_confirmation'] = True
+        self.form.preferencesWindow.conf['close_confirmation'] = True
         self.form.close()
 
         mock_ign.assert_called_once()
@@ -203,20 +200,6 @@ class TestMainForm(TestCase):
         self.form.openPreferencesWindow()
 
         self.assertTrue(mock_init.called)"""
-
-    @mock.patch('doppelganger.preferenceswindow.PreferencesWindow.show')
-    @mock.patch('doppelganger.mainwindow.MainWindow.findChildren', return_value=[])
-    def test_openPreferencesWindow_show_PreferencesWindow(self, mock_form, mock_show):
-        self.form.openPreferencesWindow()
-
-        self.assertTrue(mock_show.called)
-
-    @mock.patch('doppelganger.preferenceswindow.PreferencesWindow.activateWindow')
-    def test_openPreferencesWindow_opened(self, mock_activate):
-        preferenceswindow.PreferencesWindow(self.form)
-        self.form.openPreferencesWindow()
-
-        self.assertTrue(mock_activate.called)
 
     @mock.patch('PyQt5.QtWidgets.QFileDialog.getExistingDirectory')
     def test_openFolderNameDialog(self, mock_dialog):
@@ -302,7 +285,7 @@ class TestMainForm(TestCase):
 
     def test_hasSelectedWidgets_False(self):
         self.form.scrollAreaLayout.addWidget(
-            widgets.ImageGroupWidget([core.Image('image.png')], self.form.conf)
+            widgets.ImageGroupWidget([core.Image('image.png')], self.form.preferencesWindow.conf)
         )
         w = self.form.findChild(widgets.DuplicateWidget)
 
@@ -310,7 +293,7 @@ class TestMainForm(TestCase):
 
     def test_hasSelectedWidgets_True(self):
         self.form.scrollAreaLayout.addWidget(
-            widgets.ImageGroupWidget([core.Image('image.png')], self.form.conf)
+            widgets.ImageGroupWidget([core.Image('image.png')], self.form.preferencesWindow.conf)
         )
         w = self.form.findChild(widgets.DuplicateWidget)
         w.selected = True

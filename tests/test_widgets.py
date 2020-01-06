@@ -96,7 +96,17 @@ class TestImageInfoWidget(TestCase):
 
     @mock.patch('doppelganger.widgets.QtCore.QFileInfo.canonicalFilePath', return_value='path')
     def test_init(self, mock_path):
-        CONF = config.Config.DEFAULT_CONFIG_DATA.copy()
+        CONF = {
+            'size': 200,
+            'show_similarity': True,
+            'show_size': True,
+            'show_path': True,
+            'sort': 0,
+            'delete_dirs': False,
+            'size_format': 1,
+            'subfolders': True,
+            'close_confirmation': False,
+        }
         path, difference, dimensions, filesize = 'path', 0, (1, 2), 3
         w = widgets.ImageInfoWidget(path, difference, dimensions, filesize, CONF)
 
@@ -133,7 +143,7 @@ class TestImageInfoWidget(TestCase):
         self.assertIsNone(image_path_label)
 
     def test_get_image_size(self):
-        result = widgets.ImageInfoWidget._get_image_size((1, 2), 3, 'KB')
+        result = widgets.ImageInfoWidget._get_image_size((1, 2), 3, 1)
         expected = '1x2, 3 KB'
 
         self.assertEqual(result, expected)
@@ -219,7 +229,17 @@ class TestThumbnailWidget(TestCase):
 class TestDuplicateWidget(TestCase):
 
     def setUp(self):
-        self.CONF = config.Config.DEFAULT_CONFIG_DATA.copy()
+        self.CONF = {
+            'size': 200,
+            'show_similarity': True,
+            'show_size': True,
+            'show_path': True,
+            'sort': 0,
+            'delete_dirs': False,
+            'size_format': 1,
+            'subfolders': True,
+            'close_confirmation': False,
+        }
         self.path, self.difference = 'image.png', 1
         self.image = core.Image(self.path, difference=self.difference)
         self.w = widgets.DuplicateWidget(self.image, self.CONF)
@@ -405,7 +425,17 @@ class TestDuplicateWidget(TestCase):
 class TestImageGroupWidget(TestCase):
 
     def setUp(self):
-        self.CONF = config.Config.DEFAULT_CONFIG_DATA.copy()
+        self.CONF = {
+            'size': 200,
+            'show_similarity': True,
+            'show_size': True,
+            'show_path': True,
+            'sort': 0,
+            'delete_dirs': False,
+            'size_format': 1,
+            'subfolders': True,
+            'close_confirmation': False,
+        }
         self.w = widgets.ImageGroupWidget([core.Image('image.png')], self.CONF)
 
     def test_widget_alignment(self):

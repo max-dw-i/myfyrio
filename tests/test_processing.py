@@ -253,7 +253,17 @@ class TestImageProcessingClass(TestCase):
         cls.mw = mainwindow.MainWindow()
 
     def setUp(self):
-        self.CONF = config.Config.DEFAULT_CONFIG_DATA.copy()
+        self.CONF = {
+            'size': 200,
+            'show_similarity': True,
+            'show_size': True,
+            'show_path': True,
+            'sort': 0,
+            'delete_dirs': False,
+            'size_format': 1,
+            'subfolders': True,
+            'close_confirmation': False,
+        }
         self.im_pr = processing.ImageProcessing(self.mw.signals, [], 0, self.CONF)
 
     def test_attributes_initial_values(self):
