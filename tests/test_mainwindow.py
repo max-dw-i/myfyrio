@@ -249,13 +249,6 @@ class TestMainForm(TestCase):
 
         self.assertEqual(self.form.processProg.value(), 0)
 
-    def test_getFolders(self):
-        self.form.pathsList.addItem('item')
-        expected = {'item'}
-        result = self.form.getFolders()
-
-        self.assertSetEqual(result, expected)
-
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
     def test_render_empty_image_groups(self, mock_msgbox):
         self.form.render([])
@@ -334,34 +327,6 @@ class TestMainForm(TestCase):
         self.assertFalse(self.form.moveBtn.isEnabled())
         self.assertFalse(self.form.deleteBtn.isEnabled())
         self.assertFalse(self.form.unselectBtn.isEnabled())
-
-    @mock.patch('doppelganger.mainwindow.MainWindow.openFolderNameDialog', return_value='path')
-    def test_add_folder(self, mock_dialog):
-        self.form.add_folder()
-        result = self.form.pathsList.item(0).data(QtCore.Qt.DisplayRole)
-
-        self.assertEqual(result, 'path')
-
-    @mock.patch('doppelganger.mainwindow.MainWindow.openFolderNameDialog')
-    def test_add_folder_enable_buttons(self, mock_dialog):
-        self.form.add_folder()
-
-        self.assertTrue(self.form.delFolderBtn.isEnabled())
-        self.assertTrue(self.form.startBtn.isEnabled())
-
-    def test_del_folder(self):
-        self.form.pathsList.addItem('item')
-        self.form.pathsList.item(0).setSelected(True)
-        self.form.del_folder()
-
-        self.assertEqual(self.form.pathsList.count(), 0)
-
-    @mock.patch('PyQt5.QtWidgets.QListWidget.count', return_value=0)
-    def test_del_folder_disables_buttons(self, mock_folder):
-        self.form.del_folder()
-
-        self.assertFalse(self.form.delFolderBtn.isEnabled())
-        self.assertFalse(self.form.startBtn.isEnabled())
 
     @mock.patch('doppelganger.mainwindow.MainWindow.switchButtons')
     @mock.patch('doppelganger.mainwindow.MainWindow._call_on_selected_widgets')
@@ -450,19 +415,6 @@ class TestMainForm(TestCase):
 
         self.assertEqual(self.form.sensitivity, 20)
 
-    @mock.patch('doppelganger.mainwindow.MainWindow.add_folder')
-    def test_addFolderBtn_click(self, mock_folder):
-        QtTest.QTest.mouseClick(self.form.addFolderBtn, QtCore.Qt.LeftButton)
-
-        mock_folder.assert_called_once()
-
-    @mock.patch('doppelganger.mainwindow.MainWindow.del_folder')
-    def test_delFolderBtn_click(self, mock_folder):
-        self.form.delFolderBtn.setEnabled(True)
-        QtTest.QTest.mouseClick(self.form.delFolderBtn, QtCore.Qt.LeftButton)
-
-        mock_folder.assert_called_once()
-
     @mock.patch('doppelganger.mainwindow.MainWindow.clearMainForm')
     @mock.patch('doppelganger.mainwindow.MainWindow.start_processing')
     def test_startBtn_click_calls_clearMainForm(self, mock_processing, mock_clear):
@@ -477,7 +429,7 @@ class TestMainForm(TestCase):
         self.assertFalse(self.form.autoSelectBtn.isEnabled())
 
     @mock.patch('doppelganger.mainwindow.MainWindow.start_processing')
-    @mock.patch('doppelganger.mainwindow.MainWindow.getFolders', return_value=[])
+    @mock.patch('doppelganger.pathsgroupbox.PathsGroupBox.paths', return_value=[])
     def test_startBtn_click_calls_start_processing(self, mock_folders, mock_processing):
         self.form.startBtn.setEnabled(True)
         QtTest.QTest.mouseClick(self.form.startBtn, QtCore.Qt.LeftButton)

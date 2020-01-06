@@ -23,11 +23,11 @@ Module implementing window "Main"
 import logging
 import pathlib
 import webbrowser
-from typing import Iterable, Optional, Set
+from typing import Iterable, Optional
 
 from PyQt5 import QtCore, QtWidgets, uic
 
-from doppelganger import core, processing, signals, widgets
+from doppelganger import core, processing, signals, widgets, pathsgroupbox
 from doppelganger.aboutwindow import AboutWindow
 from doppelganger.preferenceswindow import PreferencesWindow
 
@@ -39,6 +39,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
 
     def __init__(self) -> None:
         super().__init__()
+
         MAIN_UI = pathlib.Path('doppelganger/resources/ui/mainwindow.ui')
         uic.loadUi(str(MAIN_UI), self)
         self.scrollAreaLayout.setAlignment(QtCore.Qt.AlignTop
@@ -51,6 +52,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.sensitivity = 0
         self.veryHighRbtn.click()
 
+        self._setPathsList()
         self._setMenubar()
 
         self.aboutWindow = AboutWindow(self)
@@ -58,9 +60,6 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
 
     def _setWidgetEvents(self) -> None:
         '''Link events and functions called on the events'''
-
-        self.addFolderBtn.clicked.connect(self.addFolderBtn_click)
-        self.delFolderBtn.clicked.connect(self.delFolderBtn_click)
 
         self.startBtn.clicked.connect(self.startBtn_click)
         self.stopBtn.clicked.connect(self.stopBtn_click)
@@ -75,11 +74,23 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.lowRbtn.clicked.connect(self.lowRb_click)
         self.veryLowRbtn.clicked.connect(self.veryLowRb_click)
 
+    def _setPathsList(self) -> None:
+        self.pathsGrp = pathsgroupbox.PathsGroupBox(self.bottomWidget)
+        self.horizontalLayout_3.insertWidget(0, self.pathsGrp)
+
+        self.pathsList = self.pathsGrp.pathsList
+        self.addFolderBtn = self.pathsGrp.addFolderBtn
+        self.delFolderBtn = self.pathsGrp.delFolderBtn
+
+        self.pathsList.itemSelectionChanged.connect(self.enableDelFolderAction)
+        self.addFolderBtn.clicked.connect(self.enableStartBtn)
+        self.delFolderBtn.clicked.connect(self.enableStartBtn)
+
     def _setMenubar(self) -> None:
         """Initialise the menus of 'menubar'"""
 
-        self.addFolderAction.triggered.connect(self.add_folder)
-        self.removeFolderAction.triggered.connect(self.del_folder)
+        self.addFolderAction.triggered.connect(self.pathsGrp.addPath)
+        self.delFolderAction.triggered.connect(self.pathsGrp.delPath)
         self.preferencesAction.triggered.connect(self.openPreferencesWindow)
         self.exitAction.triggered.connect(self.close)
         self.moveAction.triggered.connect(self.moveBtn_click)
@@ -89,6 +100,18 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.docsAction.triggered.connect(self.openDocs)
         self.homePageAction.triggered.connect(self.openDocs)
         self.aboutAction.triggered.connect(self.openAboutWindow)
+
+    def enableDelFolderAction(self) -> None:
+        if self.pathsList.selectedItems():
+            self.delFolderAction.setEnabled(True)
+        else:
+            self.delFolderAction.setEnabled(False)
+
+    def enableStartBtn(self) -> None:
+        if self.pathsList.count():
+            self.startBtn.setEnabled(True)
+        else:
+            self.startBtn.setEnabled(False)
 
     def _call_on_selected_widgets(self, dst: Optional[core.FolderPath] = None) -> None:
         '''Call 'move' or 'delete' on selected widgets
@@ -150,7 +173,10 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
             self.preferencesWindow.show()
 
     def openFolderNameDialog(self) -> core.FolderPath:
-        '''Open file dialog and return the full path of a folder'''
+        '''Open file dialog and return the full path of a folder
+
+        :return: folder path
+        '''
 
         folder_path = QtWidgets.QFileDialog.getExistingDirectory(
             self,
@@ -191,15 +217,6 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
             self.updateLabel(label, str(0))
 
         self.processProg.setValue(0)
-
-    def getFolders(self) -> Set[core.FolderPath]:
-        '''Get all the folders the user added to 'pathsList'
-
-        :returns: folders the user wants to process
-        '''
-
-        return {self.pathsList.item(i).data(QtCore.Qt.DisplayRole)
-                for i in range(self.pathsList.count())}
 
     def render(self, image_groups: Iterable[core.Group]) -> None:
         '''Add 'ImageGroupWidget' to 'scrollArea'
@@ -273,30 +290,6 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
             self.moveAction.setEnabled(False)
             self.deleteAction.setEnabled(False)
             self.unselectAction.setEnabled(False)
-
-    def add_folder(self):
-        '''Add folder for searching duplicate images'''
-
-        folder_path = self.openFolderNameDialog()
-        if folder_path:
-            folder_path_item = QtWidgets.QListWidgetItem()
-            folder_path_item.setData(QtCore.Qt.DisplayRole, folder_path)
-            self.pathsList.addItem(folder_path_item)
-            self.delFolderBtn.setEnabled(True)
-            self.startBtn.setEnabled(True)
-            self.removeFolderAction.setEnabled(True)
-
-    def del_folder(self):
-        '''Delete folder from searching duplicate images'''
-
-        item_list = self.pathsList.selectedItems()
-        for item in item_list:
-            self.pathsList.takeItem(self.pathsList.row(item))
-
-        if not self.pathsList.count():
-            self.delFolderBtn.setEnabled(False)
-            self.startBtn.setEnabled(False)
-            self.removeFolderAction.setEnabled(False)
 
     def delete_images(self) -> None:
         """Delete selected images and corresponding 'DuplicateWidget's"""
@@ -379,16 +372,6 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
 
         self.sensitivity = 20
 
-    def addFolderBtn_click(self) -> None:
-        """Function called on 'Add Path' button click event"""
-
-        self.add_folder()
-
-    def delFolderBtn_click(self) -> None:
-        """Function called on 'Delete Path' button click event"""
-
-        self.del_folder()
-
     def startBtn_click(self) -> None:
         """Function called on 'Start' button click event"""
 
@@ -398,8 +381,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.autoSelectBtn.setEnabled(False)
         self.autoSelectAction.setEnabled(False)
 
-        folders = self.getFolders()
-        self.start_processing(folders)
+        self.start_processing(self.pathsGrp.paths())
 
     def stopBtn_click(self) -> None:
         """Function called on 'Stop' button click event"""
