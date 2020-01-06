@@ -32,7 +32,7 @@
   <property name="locale">
    <locale language="English" country="UnitedStates"/>
   </property>
-  <widget class="QWidget" name="centralwidget">
+  <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0">
     <property name="sizeConstraint">
      <enum>QLayout::SetDefaultConstraint</enum>
@@ -93,7 +93,7 @@
      </widget>
     </item>
     <item alignment="Qt::AlignHCenter">
-     <widget class="QWidget" name="widget_3" native="true">
+     <widget class="QWidget" name="bottomWidget" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
         <horstretch>0</horstretch>
@@ -129,7 +129,7 @@
         <number>0</number>
        </property>
        <item>
-        <widget class="QGroupBox" name="groupBox">
+        <widget class="QGroupBox" name="pathsGrp">
          <property name="enabled">
           <bool>true</bool>
          </property>
@@ -162,7 +162,7 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_4">
           <item>
-           <widget class="QListWidget" name="pathListWidget">
+           <widget class="QListWidget" name="pathsList">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
               <horstretch>0</horstretch>
@@ -184,7 +184,7 @@
            </widget>
           </item>
           <item alignment="Qt::AlignLeft">
-           <widget class="QWidget" name="widget" native="true">
+           <widget class="QWidget" name="pathsBtnsWidget" native="true">
             <layout class="QHBoxLayout" name="horizontalLayout_2">
              <property name="topMargin">
               <number>9</number>
@@ -261,7 +261,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QGroupBox" name="groupBox_2">
+        <widget class="QGroupBox" name="processGrp">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
            <horstretch>0</horstretch>
@@ -288,7 +288,7 @@
            <number>9</number>
           </property>
           <item>
-           <widget class="QWidget" name="widget_5" native="true">
+           <widget class="QWidget" name="processLblsWidget" native="true">
             <layout class="QVBoxLayout" name="verticalLayout_7">
              <property name="leftMargin">
               <number>0</number>
@@ -303,7 +303,7 @@
               <number>30</number>
              </property>
              <item>
-              <widget class="QLabel" name="loadedPicLabel">
+              <widget class="QLabel" name="loadedPicLbl">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -322,21 +322,21 @@
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="foundInCacheLabel">
+              <widget class="QLabel" name="foundInCacheLbl">
                <property name="text">
                 <string>Images found in cache ... 0</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="remainingPicLabel">
+              <widget class="QLabel" name="remainingPicLbl">
                <property name="text">
                 <string>Not cached images left ... 0</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="dupGroupLabel">
+              <widget class="QLabel" name="dupGroupLbl">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -355,14 +355,14 @@
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="duplicatesLabel">
+              <widget class="QLabel" name="duplicatesLbl">
                <property name="text">
                 <string>Duplicate images ... 0</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QLabel" name="thumbnailsLabel">
+              <widget class="QLabel" name="thumbnailsLbl">
                <property name="text">
                 <string>Thumbnails to make left ... 0</string>
                </property>
@@ -372,7 +372,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QProgressBar" name="progressBar">
+           <widget class="QProgressBar" name="processProg">
             <property name="value">
              <number>0</number>
             </property>
@@ -382,7 +382,7 @@
            </widget>
           </item>
           <item alignment="Qt::AlignBottom">
-           <widget class="QWidget" name="widget_2" native="true">
+           <widget class="QWidget" name="processBtnsWidget" native="true">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
@@ -480,7 +480,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QWidget" name="widget_4" native="true">
+        <widget class="QWidget" name="sensNActWidget" native="true">
          <layout class="QVBoxLayout" name="verticalLayout_2">
           <property name="leftMargin">
            <number>0</number>
@@ -495,7 +495,7 @@
            <number>0</number>
           </property>
           <item alignment="Qt::AlignHCenter">
-           <widget class="QGroupBox" name="groupBox_3">
+           <widget class="QGroupBox" name="sensGrp">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
@@ -522,7 +522,7 @@
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_6">
              <item>
-              <widget class="QRadioButton" name="veryHighRb">
+              <widget class="QRadioButton" name="veryHighRbtn">
                <property name="text">
                 <string>Very High</string>
                </property>
@@ -532,7 +532,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QRadioButton" name="highRb">
+              <widget class="QRadioButton" name="highRbtn">
                <property name="text">
                 <string>High</string>
                </property>
@@ -542,7 +542,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QRadioButton" name="mediumRb">
+              <widget class="QRadioButton" name="mediumRbtn">
                <property name="enabled">
                 <bool>true</bool>
                </property>
@@ -555,7 +555,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QRadioButton" name="lowRb">
+              <widget class="QRadioButton" name="lowRbtn">
                <property name="enabled">
                 <bool>true</bool>
                </property>
@@ -568,7 +568,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QRadioButton" name="veryLowRb">
+              <widget class="QRadioButton" name="veryLowRbtn">
                <property name="text">
                 <string>Very Low</string>
                </property>
@@ -578,7 +578,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QGroupBox" name="groupBox_4">
+           <widget class="QGroupBox" name="actionsGrp">
             <property name="sizePolicy">
              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
               <horstretch>0</horstretch>
@@ -611,7 +611,7 @@
               <number>9</number>
              </property>
              <item>
-              <widget class="QWidget" name="widget_6" native="true">
+              <widget class="QWidget" name="moveBtnsWidget" native="true">
                <layout class="QHBoxLayout" name="horizontalLayout_4">
                 <property name="leftMargin">
                  <number>0</number>
@@ -701,7 +701,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QWidget" name="widget_7" native="true">
+              <widget class="QWidget" name="selectBtnsWidget" native="true">
                <layout class="QHBoxLayout" name="horizontalLayout_5">
                 <property name="leftMargin">
                  <number>0</number>

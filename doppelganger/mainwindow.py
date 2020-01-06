@@ -25,9 +25,9 @@ import pathlib
 import webbrowser
 from typing import Iterable, Optional, Set
 
-from PyQt5 import QtCore, QtGui, QtWidgets, uic
+from PyQt5 import QtCore, QtWidgets, uic
 
-from doppelganger import config, core, processing, signals, widgets
+from doppelganger import core, processing, signals, widgets
 from doppelganger.aboutwindow import AboutWindow
 from doppelganger.preferenceswindow import PreferencesWindow
 
@@ -49,7 +49,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.threadpool = QtCore.QThreadPool()
         self._setWidgetEvents()
         self.sensitivity = 0
-        self.veryHighRb.click()
+        self.veryHighRbtn.click()
 
         self._setMenubar()
 
@@ -69,11 +69,11 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.autoSelectBtn.clicked.connect(self.autoSelectBtn_click)
         self.unselectBtn.clicked.connect(self.unselectBtn_click)
 
-        self.veryHighRb.clicked.connect(self.veryHighRb_click)
-        self.highRb.clicked.connect(self.highRb_click)
-        self.mediumRb.clicked.connect(self.mediumRb_click)
-        self.lowRb.clicked.connect(self.lowRb_click)
-        self.veryLowRb.clicked.connect(self.veryLowRb_click)
+        self.veryHighRbtn.clicked.connect(self.veryHighRb_click)
+        self.highRbtn.clicked.connect(self.highRb_click)
+        self.mediumRbtn.clicked.connect(self.mediumRb_click)
+        self.lowRbtn.clicked.connect(self.lowRb_click)
+        self.veryLowRbtn.clicked.connect(self.veryLowRb_click)
 
     def _setMenubar(self) -> None:
         """Initialise the menus of 'menubar'"""
@@ -190,16 +190,16 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
                       'found_in_cache', 'loaded_images', 'duplicates']:
             self.updateLabel(label, str(0))
 
-        self.progressBar.setValue(0)
+        self.processProg.setValue(0)
 
     def getFolders(self) -> Set[core.FolderPath]:
-        '''Get all the folders the user added to 'pathListWidget'
+        '''Get all the folders the user added to 'pathsList'
 
         :returns: folders the user wants to process
         '''
 
-        return {self.pathListWidget.item(i).data(QtCore.Qt.DisplayRole)
-                for i in range(self.pathListWidget.count())}
+        return {self.pathsList.item(i).data(QtCore.Qt.DisplayRole)
+                for i in range(self.pathsList.count())}
 
     def render(self, image_groups: Iterable[core.Group]) -> None:
         '''Add 'ImageGroupWidget' to 'scrollArea'
@@ -232,12 +232,12 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         :param text: new text of :label:
         '''
 
-        labels = {'thumbnails': self.thumbnailsLabel,
-                  'image_groups': self.dupGroupLabel,
-                  'remaining_images': self.remainingPicLabel,
-                  'found_in_cache': self.foundInCacheLabel,
-                  'loaded_images': self.loadedPicLabel,
-                  'duplicates': self.duplicatesLabel}
+        labels = {'thumbnails': self.thumbnailsLbl,
+                  'image_groups': self.dupGroupLbl,
+                  'remaining_images': self.remainingPicLbl,
+                  'found_in_cache': self.foundInCacheLbl,
+                  'loaded_images': self.loadedPicLbl,
+                  'duplicates': self.duplicatesLbl}
 
         label_to_change = labels[label]
         label_text = label_to_change.text().split(' ')
@@ -281,7 +281,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         if folder_path:
             folder_path_item = QtWidgets.QListWidgetItem()
             folder_path_item.setData(QtCore.Qt.DisplayRole, folder_path)
-            self.pathListWidget.addItem(folder_path_item)
+            self.pathsList.addItem(folder_path_item)
             self.delFolderBtn.setEnabled(True)
             self.startBtn.setEnabled(True)
             self.removeFolderAction.setEnabled(True)
@@ -289,11 +289,11 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
     def del_folder(self):
         '''Delete folder from searching duplicate images'''
 
-        item_list = self.pathListWidget.selectedItems()
+        item_list = self.pathsList.selectedItems()
         for item in item_list:
-            self.pathListWidget.takeItem(self.pathListWidget.row(item))
+            self.pathsList.takeItem(self.pathsList.row(item))
 
-        if not self.pathListWidget.count():
+        if not self.pathsList.count():
             self.delFolderBtn.setEnabled(False)
             self.startBtn.setEnabled(False)
             self.removeFolderAction.setEnabled(False)
@@ -330,7 +330,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
     def processing_finished(self) -> None:
         '''Called when image processing is finished'''
 
-        self.progressBar.setValue(100)
+        self.processProg.setValue(100)
         self.startBtn.setEnabled(True)
         self.stopBtn.setEnabled(False)
         self.autoSelectBtn.setEnabled(True)
@@ -346,7 +346,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
                                           self.sensitivity, self.preferencesWindow.conf)
 
         proc.signals.update_info.connect(self.updateLabel)
-        proc.signals.update_progressbar.connect(self.progressBar.setValue)
+        proc.signals.update_progressbar.connect(self.processProg.setValue)
         proc.signals.result.connect(self.render)
         proc.signals.error.connect(self.showErrMsg)
         proc.signals.finished.connect(self.processing_finished)
@@ -354,49 +354,41 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         worker = processing.Worker(proc.run)
         self.threadpool.start(worker)
 
-    @QtCore.pyqtSlot()
     def veryHighRb_click(self) -> None:
         """Function called on 'High' radio button click event"""
 
         self.sensitivity = 0
 
-    @QtCore.pyqtSlot()
     def highRb_click(self) -> None:
         """Function called on 'High' radio button click event"""
 
         self.sensitivity = 5
 
-    @QtCore.pyqtSlot()
     def mediumRb_click(self) -> None:
         """Function called on 'Medium' radio button click event"""
 
         self.sensitivity = 10
 
-    @QtCore.pyqtSlot()
     def lowRb_click(self) -> None:
         """Function called on 'Low' radio button click event"""
 
         self.sensitivity = 15
 
-    @QtCore.pyqtSlot()
     def veryLowRb_click(self) -> None:
         """Function called on 'High' radio button click event"""
 
         self.sensitivity = 20
 
-    @QtCore.pyqtSlot()
     def addFolderBtn_click(self) -> None:
         """Function called on 'Add Path' button click event"""
 
         self.add_folder()
 
-    @QtCore.pyqtSlot()
     def delFolderBtn_click(self) -> None:
         """Function called on 'Delete Path' button click event"""
 
         self.del_folder()
 
-    @QtCore.pyqtSlot()
     def startBtn_click(self) -> None:
         """Function called on 'Start' button click event"""
 
@@ -409,7 +401,6 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         folders = self.getFolders()
         self.start_processing(folders)
 
-    @QtCore.pyqtSlot()
     def stopBtn_click(self) -> None:
         """Function called on 'Stop' button click event"""
 
@@ -424,13 +415,11 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
 
         self.stopBtn.setEnabled(False)
 
-    @QtCore.pyqtSlot()
     def moveBtn_click(self) -> None:
         """Function called on 'Move' button click event"""
 
         self.move_images()
 
-    @QtCore.pyqtSlot()
     def deleteBtn_click(self) -> None:
         """Function called on 'Delete' button click event"""
 

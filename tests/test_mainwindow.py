@@ -228,9 +228,9 @@ class TestMainForm(TestCase):
         self.assertFalse(group_widgets)
 
     def test_clearMainForm_labels(self):
-        labels = (self.form.thumbnailsLabel, self.form.dupGroupLabel,
-                  self.form.remainingPicLabel, self.form.foundInCacheLabel,
-                  self.form.loadedPicLabel, self.form.duplicatesLabel)
+        labels = (self.form.thumbnailsLbl, self.form.dupGroupLbl,
+                  self.form.remainingPicLbl, self.form.foundInCacheLbl,
+                  self.form.loadedPicLbl, self.form.duplicatesLbl)
 
         for label in labels:
             t = label.text().split(' ')
@@ -244,13 +244,13 @@ class TestMainForm(TestCase):
             self.assertEqual(num, str(0))
 
     def test_clearMainForm_progress_bar(self):
-        self.form.progressBar.setValue(13)
+        self.form.processProg.setValue(13)
         self.form.clearMainForm()
 
-        self.assertEqual(self.form.progressBar.value(), 0)
+        self.assertEqual(self.form.processProg.value(), 0)
 
     def test_getFolders(self):
-        self.form.pathListWidget.addItem('item')
+        self.form.pathsList.addItem('item')
         expected = {'item'}
         result = self.form.getFolders()
 
@@ -271,12 +271,12 @@ class TestMainForm(TestCase):
         self.assertIsInstance(rendered_widgets[0], widgets.ImageGroupWidget)
 
     def test_updateLabel(self):
-        labels = {'thumbnails': self.form.thumbnailsLabel,
-                  'image_groups': self.form.dupGroupLabel,
-                  'remaining_images': self.form.remainingPicLabel,
-                  'found_in_cache': self.form.foundInCacheLabel,
-                  'loaded_images': self.form.loadedPicLabel,
-                  'duplicates': self.form.duplicatesLabel}
+        labels = {'thumbnails': self.form.thumbnailsLbl,
+                  'image_groups': self.form.dupGroupLbl,
+                  'remaining_images': self.form.remainingPicLbl,
+                  'found_in_cache': self.form.foundInCacheLbl,
+                  'loaded_images': self.form.loadedPicLbl,
+                  'duplicates': self.form.duplicatesLbl}
 
         for label in labels:
             prev_text = labels[label].text().split(' ')[:-1]
@@ -338,7 +338,7 @@ class TestMainForm(TestCase):
     @mock.patch('doppelganger.mainwindow.MainWindow.openFolderNameDialog', return_value='path')
     def test_add_folder(self, mock_dialog):
         self.form.add_folder()
-        result = self.form.pathListWidget.item(0).data(QtCore.Qt.DisplayRole)
+        result = self.form.pathsList.item(0).data(QtCore.Qt.DisplayRole)
 
         self.assertEqual(result, 'path')
 
@@ -350,11 +350,11 @@ class TestMainForm(TestCase):
         self.assertTrue(self.form.startBtn.isEnabled())
 
     def test_del_folder(self):
-        self.form.pathListWidget.addItem('item')
-        self.form.pathListWidget.item(0).setSelected(True)
+        self.form.pathsList.addItem('item')
+        self.form.pathsList.item(0).setSelected(True)
         self.form.del_folder()
 
-        self.assertEqual(self.form.pathListWidget.count(), 0)
+        self.assertEqual(self.form.pathsList.count(), 0)
 
     @mock.patch('PyQt5.QtWidgets.QListWidget.count', return_value=0)
     def test_del_folder_disables_buttons(self, mock_folder):
@@ -390,13 +390,13 @@ class TestMainForm(TestCase):
         self.assertFalse(mock_switch.called)
 
     def test_processing_finished(self):
-        self.form.progressBar.setValue(0)
+        self.form.processProg.setValue(0)
         self.form.startBtn.setEnabled(False)
         self.form.stopBtn.setEnabled(True)
         self.form.autoSelectBtn.setEnabled(False)
         self.form.processing_finished()
 
-        self.assertEqual(self.form.progressBar.value(), 100)
+        self.assertEqual(self.form.processProg.value(), 100)
         self.assertTrue(self.form.startBtn.isEnabled())
         self.assertFalse(self.form.stopBtn.isEnabled())
         self.assertTrue(self.form.autoSelectBtn.isEnabled())
@@ -418,35 +418,35 @@ class TestMainForm(TestCase):
     def test_veryHighRb_click(self):
         self.form.sensitivity = -5
         self.form.show() # some bug: if show() is not used, mouseClick() do nothing
-        QtTest.QTest.mouseClick(self.form.veryHighRb, QtCore.Qt.LeftButton)
+        QtTest.QTest.mouseClick(self.form.veryHighRbtn, QtCore.Qt.LeftButton)
 
         self.assertEqual(self.form.sensitivity, 0)
 
     def test_highRb_click(self):
         self.form.sensitivity = -5
         self.form.show() # some bug: if show() is not used, mouseClick() do nothing
-        QtTest.QTest.mouseClick(self.form.highRb, QtCore.Qt.LeftButton)
+        QtTest.QTest.mouseClick(self.form.highRbtn, QtCore.Qt.LeftButton)
 
         self.assertEqual(self.form.sensitivity, 5)
 
     def test_mediumRb_click(self):
         self.form.sensitivity = -5
         #self.form.show() # some bug: if show() is not used, mouseClick() do nothing
-        QtTest.QTest.mouseClick(self.form.mediumRb, QtCore.Qt.LeftButton)
+        QtTest.QTest.mouseClick(self.form.mediumRbtn, QtCore.Qt.LeftButton)
 
         self.assertEqual(self.form.sensitivity, 10)
 
     def test_lowRb_click(self):
         self.form.sensitivity = -5
         self.form.show() # some bug: if show() is not used, mouseClick() do nothing
-        QtTest.QTest.mouseClick(self.form.lowRb, QtCore.Qt.LeftButton)
+        QtTest.QTest.mouseClick(self.form.lowRbtn, QtCore.Qt.LeftButton)
 
         self.assertEqual(self.form.sensitivity, 15)
 
     def test_veryLowRb_click(self):
         self.form.sensitivity = -5
         self.form.show() # some bug: if show() is not used, mouseClick() do nothing
-        QtTest.QTest.mouseClick(self.form.veryLowRb, QtCore.Qt.LeftButton)
+        QtTest.QTest.mouseClick(self.form.veryLowRbtn, QtCore.Qt.LeftButton)
 
         self.assertEqual(self.form.sensitivity, 20)
 
