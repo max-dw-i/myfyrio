@@ -78,112 +78,17 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
     def _setMenubar(self) -> None:
         """Initialise the menus of 'menubar'"""
 
-        fileMenu = self.menubar.addMenu('File')
-        fileMenu.setObjectName('fileMenu')
-
-        addFolderAction = QtWidgets.QAction('Add folder...', fileMenu)
-        addFolderAction.setObjectName('addFolderAction')
-        addFolderAction.triggered.connect(self.add_folder)
-        addFolderAction.setShortcut(
-            QtGui.QKeySequence(QtCore.Qt.ControlModifier + QtCore.Qt.Key_A)
-        )
-        fileMenu.addAction(addFolderAction)
-
-        self.removeFolderAction = QtWidgets.QAction('Remove folder...',
-                                                    fileMenu)
-        self.removeFolderAction.setObjectName('removeFolderAction')
+        self.addFolderAction.triggered.connect(self.add_folder)
         self.removeFolderAction.triggered.connect(self.del_folder)
-        self.removeFolderAction.setShortcut(
-            QtGui.QKeySequence(QtCore.Qt.ControlModifier + QtCore.Qt.Key_R)
-        )
-        self.removeFolderAction.setEnabled(False)
-        fileMenu.addAction(self.removeFolderAction)
-
-        separator1 = QtWidgets.QAction('', fileMenu)
-        separator1.setObjectName('separator1')
-        separator1.setSeparator(True)
-        fileMenu.addAction(separator1)
-
-        preferencesAction = QtWidgets.QAction('Preferences...', fileMenu)
-        preferencesAction.setObjectName('preferencesAction')
-        preferencesAction.triggered.connect(self.openPreferencesWindow)
-        fileMenu.addAction(preferencesAction)
-
-        separator2 = QtWidgets.QAction('', fileMenu)
-        separator2.setObjectName('separator2')
-        separator2.setSeparator(True)
-        fileMenu.addAction(separator2)
-
-        closeProgAction = QtWidgets.QAction('Exit', fileMenu)
-        closeProgAction.setObjectName('exitAction')
-        closeProgAction.triggered.connect(self.close)
-        closeProgAction.setShortcut(
-            QtGui.QKeySequence(QtCore.Qt.ControlModifier + QtCore.Qt.Key_W)
-        )
-        fileMenu.addAction(closeProgAction)
-
-        editMenu = self.menubar.addMenu('Edit')
-        editMenu.setObjectName('editMenu')
-
-        self.moveAction = QtWidgets.QAction('Move images', editMenu)
-        self.moveAction.setObjectName('moveAction')
+        self.preferencesAction.triggered.connect(self.openPreferencesWindow)
+        self.exitAction.triggered.connect(self.close)
         self.moveAction.triggered.connect(self.moveBtn_click)
-        self.moveAction.setShortcut(
-            QtGui.QKeySequence(QtCore.Qt.ControlModifier + QtCore.Qt.Key_M)
-        )
-        self.moveAction.setEnabled(False)
-        editMenu.addAction(self.moveAction)
-
-        self.deleteAction = QtWidgets.QAction('Delete images', editMenu)
-        self.deleteAction.setObjectName('deleteAction')
         self.deleteAction.triggered.connect(self.deleteBtn_click)
-        self.deleteAction.setShortcut(
-            QtGui.QKeySequence(QtCore.Qt.ControlModifier + QtCore.Qt.Key_D)
-        )
-        self.deleteAction.setEnabled(False)
-        editMenu.addAction(self.deleteAction)
-
-        separator3 = QtWidgets.QAction('', editMenu)
-        separator3.setObjectName('separator3')
-        separator3.setSeparator(True)
-        editMenu.addAction(separator3)
-
-        self.autoSelectAction = QtWidgets.QAction('Auto select images',
-                                                  editMenu)
-        self.autoSelectAction.setObjectName('autoSelectAction')
         self.autoSelectAction.triggered.connect(self.auto_select)
-        self.autoSelectAction.setShortcut(
-            QtGui.QKeySequence(QtCore.Qt.ControlModifier + QtCore.Qt.Key_S)
-        )
-        self.autoSelectAction.setEnabled(False)
-        editMenu.addAction(self.autoSelectAction)
-
-        self.unselectAction = QtWidgets.QAction('Unselect images', editMenu)
-        self.unselectAction.setObjectName('unselectAction')
         self.unselectAction.triggered.connect(self.unselect)
-        self.unselectAction.setShortcut(
-            QtGui.QKeySequence(QtCore.Qt.ControlModifier + QtCore.Qt.Key_U)
-        )
-        self.unselectAction.setEnabled(False)
-        editMenu.addAction(self.unselectAction)
-
-        helpMenu = self.menubar.addMenu('Help')
-        helpMenu.setObjectName('helpMenu')
-
-        docsAction = QtWidgets.QAction('Documentation', helpMenu)
-        docsAction.setObjectName('docsAction')
-        docsAction.triggered.connect(self.openDocs)
-        helpMenu.addAction(docsAction)
-
-        homePageAction = QtWidgets.QAction('Home Page', helpMenu)
-        homePageAction.setObjectName('homePageAction')
-        homePageAction.triggered.connect(self.openDocs)
-        helpMenu.addAction(homePageAction)
-
-        aboutAction = QtWidgets.QAction('About', helpMenu)
-        aboutAction.setObjectName('aboutAction')
-        aboutAction.triggered.connect(self.openAboutWindow)
-        helpMenu.addAction(aboutAction)
+        self.docsAction.triggered.connect(self.openDocs)
+        self.homePageAction.triggered.connect(self.openDocs)
+        self.aboutAction.triggered.connect(self.openAboutWindow)
 
     def _call_on_selected_widgets(self, dst: Optional[core.FolderPath] = None) -> None:
         '''Call 'move' or 'delete' on selected widgets
