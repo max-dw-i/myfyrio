@@ -227,28 +227,6 @@ class TestMainForm(TestCase):
 
         self.assertFalse(group_widgets)
 
-    def test_clearMainForm_labels(self):
-        labels = (self.form.thumbnailsLbl, self.form.dupGroupLbl,
-                  self.form.remainingPicLbl, self.form.foundInCacheLbl,
-                  self.form.loadedPicLbl, self.form.duplicatesLbl)
-
-        for label in labels:
-            t = label.text().split(' ')
-            t[-1] = 'ugauga'
-            label.setText(' '.join(t))
-
-        self.form.clearMainForm()
-
-        for label in labels:
-            num = label.text().split(' ')[-1]
-            self.assertEqual(num, str(0))
-
-    def test_clearMainForm_progress_bar(self):
-        self.form.processProg.setValue(13)
-        self.form.clearMainForm()
-
-        self.assertEqual(self.form.processProg.value(), 0)
-
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
     def test_render_empty_image_groups(self, mock_msgbox):
         self.form.render([])
@@ -262,19 +240,6 @@ class TestMainForm(TestCase):
 
         self.assertEqual(len(rendered_widgets), len(image_groups))
         self.assertIsInstance(rendered_widgets[0], widgets.ImageGroupWidget)
-
-    def test_updateLabel(self):
-        labels = {'thumbnails': self.form.thumbnailsLbl,
-                  'image_groups': self.form.dupGroupLbl,
-                  'remaining_images': self.form.remainingPicLbl,
-                  'found_in_cache': self.form.foundInCacheLbl,
-                  'loaded_images': self.form.loadedPicLbl,
-                  'duplicates': self.form.duplicatesLbl}
-
-        for label in labels:
-            prev_text = labels[label].text().split(' ')[:-1]
-            self.form.updateLabel(label, 'text')
-            self.assertEqual(labels[label].text(), ' '.join(prev_text) + ' text')
 
     def test_hasSelectedWidgets_False(self):
         self.form.scrollAreaLayout.addWidget(
@@ -355,13 +320,13 @@ class TestMainForm(TestCase):
         self.assertFalse(mock_switch.called)
 
     def test_processing_finished(self):
-        self.form.processProg.setValue(0)
+        self.form.processingGrp.processProg.setValue(0)
         self.form.startBtn.setEnabled(False)
         self.form.stopBtn.setEnabled(True)
         self.form.autoSelectBtn.setEnabled(False)
         self.form.processing_finished()
 
-        self.assertEqual(self.form.processProg.value(), 100)
+        self.assertEqual(self.form.processingGrp.processProg.value(), 100)
         self.assertTrue(self.form.startBtn.isEnabled())
         self.assertFalse(self.form.stopBtn.isEnabled())
         self.assertTrue(self.form.autoSelectBtn.isEnabled())

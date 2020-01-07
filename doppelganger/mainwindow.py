@@ -27,7 +27,8 @@ from typing import Iterable, Optional
 
 from PyQt5 import QtCore, QtWidgets, uic
 
-from doppelganger import core, processing, signals, widgets, pathsgroupbox
+from doppelganger import (core, pathsgroupbox, processing, processinggroupbox,
+                          signals, widgets)
 from doppelganger.aboutwindow import AboutWindow
 from doppelganger.preferenceswindow import PreferencesWindow
 
@@ -52,7 +53,8 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.sensitivity = 0
         self.veryHighRbtn.click()
 
-        self._setPathsList()
+        self._setPathsGroupBox()
+        self._setProcessingGroupBox()
         self._setMenubar()
 
         self.aboutWindow = AboutWindow(self)
@@ -61,8 +63,6 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
     def _setWidgetEvents(self) -> None:
         '''Link events and functions called on the events'''
 
-        self.startBtn.clicked.connect(self.startBtn_click)
-        self.stopBtn.clicked.connect(self.stopBtn_click)
         self.moveBtn.clicked.connect(self.moveBtn_click)
         self.deleteBtn.clicked.connect(self.deleteBtn_click)
         self.autoSelectBtn.clicked.connect(self.autoSelectBtn_click)
@@ -74,7 +74,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.lowRbtn.clicked.connect(self.lowRb_click)
         self.veryLowRbtn.clicked.connect(self.veryLowRb_click)
 
-    def _setPathsList(self) -> None:
+    def _setPathsGroupBox(self) -> None:
         self.pathsGrp = pathsgroupbox.PathsGroupBox(self.bottomWidget)
         self.horizontalLayout_3.insertWidget(0, self.pathsGrp)
 
@@ -85,6 +85,18 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.pathsList.itemSelectionChanged.connect(self.enableDelFolderAction)
         self.addFolderBtn.clicked.connect(self.enableStartBtn)
         self.delFolderBtn.clicked.connect(self.enableStartBtn)
+
+    def _setProcessingGroupBox(self):
+        self.processingGrp = processinggroupbox.ProcessingGroupBox(
+            self.bottomWidget
+        )
+        self.horizontalLayout_3.insertWidget(1, self.processingGrp)
+
+        self.startBtn = self.processingGrp.startBtn
+        self.stopBtn = self.processingGrp.stopBtn
+
+        self.startBtn.clicked.connect(self.startBtnClick)
+        self.stopBtn.clicked.connect(self.stopBtnClick)
 
     def _setMenubar(self) -> None:
         """Initialise the menus of 'menubar'"""
@@ -112,6 +124,23 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
             self.startBtn.setEnabled(True)
         else:
             self.startBtn.setEnabled(False)
+
+    def startBtnClick(self) -> None:
+        self.clearMainForm()
+        self.autoSelectBtn.setEnabled(False)
+        self.autoSelectAction.setEnabled(False)
+
+        self.start_processing(self.pathsGrp.paths())
+
+    def stopBtnClick(self) -> None:
+        self.signals.interrupted.emit()
+
+        msgBox = QtWidgets.QMessageBox(
+            QtWidgets.QMessageBox.Information,
+            'Interruption request',
+            'The image processing has been stopped'
+        )
+        msgBox.exec()
 
     def _call_on_selected_widgets(self, dst: Optional[core.FolderPath] = None) -> None:
         '''Call 'move' or 'delete' on selected widgets
@@ -212,12 +241,6 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         for group_widget in self.findChildren(widgets.ImageGroupWidget):
             group_widget.deleteLater()
 
-        for label in ['thumbnails', 'image_groups', 'remaining_images',
-                      'found_in_cache', 'loaded_images', 'duplicates']:
-            self.updateLabel(label, str(0))
-
-        self.processProg.setValue(0)
-
     def render(self, image_groups: Iterable[core.Group]) -> None:
         '''Add 'ImageGroupWidget' to 'scrollArea'
 
@@ -239,27 +262,6 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
 
             for widget in self.findChildren(widgets.DuplicateWidget):
                 widget.signals.clicked.connect(self.switchButtons)
-
-    def updateLabel(self, label: str, text: str) -> None:
-        '''Update text of :label:
-
-        :param label: one of ('thumbnails', 'image_groups',
-                              'remaining_images', 'found_in_cache',
-                              'loaded_images', 'duplicates'),
-        :param text: new text of :label:
-        '''
-
-        labels = {'thumbnails': self.thumbnailsLbl,
-                  'image_groups': self.dupGroupLbl,
-                  'remaining_images': self.remainingPicLbl,
-                  'found_in_cache': self.foundInCacheLbl,
-                  'loaded_images': self.loadedPicLbl,
-                  'duplicates': self.duplicatesLbl}
-
-        label_to_change = labels[label]
-        label_text = label_to_change.text().split(' ')
-        label_text[-1] = text
-        label_to_change.setText(' '.join(label_text))
 
     def hasSelectedWidgets(self) -> bool:
         '''Check if there are selected 'DuplicateWidget' on the form
@@ -323,7 +325,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
     def processing_finished(self) -> None:
         '''Called when image processing is finished'''
 
-        self.processProg.setValue(100)
+        self.processingGrp.processProg.setValue(100)
         self.startBtn.setEnabled(True)
         self.stopBtn.setEnabled(False)
         self.autoSelectBtn.setEnabled(True)
@@ -338,8 +340,8 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         proc = processing.ImageProcessing(self.signals, folders,
                                           self.sensitivity, self.preferencesWindow.conf)
 
-        proc.signals.update_info.connect(self.updateLabel)
-        proc.signals.update_progressbar.connect(self.processProg.setValue)
+        proc.signals.update_info.connect(self.processingGrp.updateLabel)
+        proc.signals.update_progressbar.connect(self.processingGrp.processProg.setValue)
         proc.signals.result.connect(self.render)
         proc.signals.error.connect(self.showErrMsg)
         proc.signals.finished.connect(self.processing_finished)
@@ -371,31 +373,6 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         """Function called on 'High' radio button click event"""
 
         self.sensitivity = 20
-
-    def startBtn_click(self) -> None:
-        """Function called on 'Start' button click event"""
-
-        self.clearMainForm()
-        self.stopBtn.setEnabled(True)
-        self.startBtn.setEnabled(False)
-        self.autoSelectBtn.setEnabled(False)
-        self.autoSelectAction.setEnabled(False)
-
-        self.start_processing(self.pathsGrp.paths())
-
-    def stopBtn_click(self) -> None:
-        """Function called on 'Stop' button click event"""
-
-        self.signals.interrupted.emit()
-
-        msgBox = QtWidgets.QMessageBox(
-            QtWidgets.QMessageBox.Information,
-            'Interruption request',
-            'The image processing has been stopped'
-        )
-        msgBox.exec()
-
-        self.stopBtn.setEnabled(False)
 
     def moveBtn_click(self) -> None:
         """Function called on 'Move' button click event"""
