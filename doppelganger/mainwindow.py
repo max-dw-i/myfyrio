@@ -27,9 +27,9 @@ from typing import Iterable, Optional
 
 from PyQt5 import QtCore, QtWidgets, uic
 
-from doppelganger import (actionsgroupbox, core, pathsgroupbox, processing,
-                          processinggroupbox, sensitivitygroupbox, signals,
-                          widgets)
+from doppelganger import (actionsgroupbox, core, imageviewwidget,
+                          pathsgroupbox, processing, processinggroupbox,
+                          sensitivitygroupbox, signals, widgets)
 from doppelganger.aboutwindow import AboutWindow
 from doppelganger.preferenceswindow import PreferencesWindow
 
@@ -44,12 +44,11 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
 
         MAIN_UI = pathlib.Path('doppelganger/resources/ui/mainwindow.ui')
         uic.loadUi(str(MAIN_UI), self)
-        self.scrollAreaLayout.setAlignment(QtCore.Qt.AlignTop
-                                           | QtCore.Qt.AlignLeft)
 
         self.signals = signals.Signals()
 
         self.threadpool = QtCore.QThreadPool()
+        self._setImageViewWidget()
         self._setPathsGroupBox()
         self._setProcessingGroupBox()
         self._setSensitivityGroupBox()
@@ -58,6 +57,10 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
 
         self.aboutWindow = AboutWindow(self)
         self.preferencesWindow = PreferencesWindow(self)
+
+    def _setImageViewWidget(self) -> None:
+        self.imageViewWidget = imageviewwidget.ImageViewWidget(self.scrollArea)
+        self.scrollArea.setWidget(self.imageViewWidget)
 
     def _setPathsGroupBox(self) -> None:
         self.pathsGrp = pathsgroupbox.PathsGroupBox(self.bottomWidget)
@@ -156,9 +159,8 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         :param dst: if None, 'delete' is called, otherwise - 'move'
         '''
 
-        for group_widget in self.scrollAreaWidget.findChildren(
-            widgets.ImageGroupWidget
-        ):
+        groups = self.imageViewWidget.findChildren(widgets.ImageGroupWidget)
+        for group_widget in groups:
             selected_widgets = group_widget.getSelectedWidgets()
             for selected_widget in selected_widgets:
                 try:
@@ -251,44 +253,8 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         for group_widget in self.findChildren(widgets.ImageGroupWidget):
             group_widget.deleteLater()
 
-    def render(self, image_groups: Iterable[core.Group]) -> None:
-        '''Add 'ImageGroupWidget' to 'scrollArea'
-
-        :param image_groups: groups of similar images
-        '''
-
-        if not image_groups:
-            msg_box = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Information,
-                'No duplicate images found',
-                'No duplicate images have been found in the selected folders'
-            )
-            msg_box.exec()
-        else:
-            for group in image_groups:
-                self.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(
-                    group,
-                    self.preferencesWindow.conf,
-                    self.scrollArea
-                ))
-
-            for widget in self.findChildren(widgets.DuplicateWidget):
-                widget.signals.clicked.connect(self.switchButtons)
-
-    def hasSelectedWidgets(self) -> bool:
-        '''Check if there are selected 'DuplicateWidget' on the form
-
-        :return: True if there are any selected ones
-        '''
-
-        for group_widget in self.findChildren(widgets.ImageGroupWidget):
-            selected_widgets = group_widget.getSelectedWidgets()
-            if selected_widgets:
-                return True
-        return False
-
     def switchButtons(self):
-        if self.hasSelectedWidgets():
+        if self.imageViewWidget.hasSelectedWidgets():
             self.actionsGrp.setEnabled(True)
             self.moveAction.setEnabled(True)
             self.deleteAction.setEnabled(True)
@@ -327,6 +293,12 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         for w in duplicate_widgets:
             if w.selected:
                 w.click()
+
+    def render(self, image_groups: Iterable[core.Group]) -> None:
+        self.imageViewWidget.render(self.preferencesWindow.conf, image_groups)
+
+        for widget in self.findChildren(widgets.DuplicateWidget):
+            widget.signals.clicked.connect(self.switchButtons)
 
     def processing_finished(self) -> None:
         '''Called when image processing is finished'''
