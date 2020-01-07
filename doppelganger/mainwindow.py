@@ -29,7 +29,7 @@ from PyQt5 import QtCore, QtWidgets, uic
 
 from doppelganger import (actionsgroupbox, core, imageviewwidget,
                           pathsgroupbox, processing, processinggroupbox,
-                          sensitivitygroupbox, signals, widgets)
+                          sensitivitygroupbox, signals)
 from doppelganger.aboutwindow import AboutWindow
 from doppelganger.preferenceswindow import PreferencesWindow
 
@@ -169,7 +169,9 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         :param dst: if None, 'delete' is called, otherwise - 'move'
         '''
 
-        groups = self.imageViewWidget.findChildren(widgets.ImageGroupWidget)
+        groups = self.imageViewWidget.findChildren(
+            imageviewwidget.ImageGroupWidget
+        )
         for group_widget in groups:
             selected_widgets = group_widget.getSelectedWidgets()
             for selected_widget in selected_widgets:
@@ -260,7 +262,8 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
     def clearMainForm(self) -> None:
         '''Clear the form from the previous duplicate images and labels'''
 
-        for group_widget in self.findChildren(widgets.ImageGroupWidget):
+        groups = self.findChildren(imageviewwidget.ImageGroupWidget)
+        for group_widget in groups:
             group_widget.deleteLater()
 
     def switchButtons(self):
@@ -292,14 +295,14 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
     def auto_select(self) -> None:
         '''Automatic selection of DuplicateWidget's'''
 
-        group_widgets = self.findChildren(widgets.ImageGroupWidget)
+        group_widgets = self.findChildren(imageviewwidget.ImageGroupWidget)
         for group in group_widgets:
             group.auto_select()
 
     def unselect(self) -> None:
         '''Unselect all the selected DuplicateWidget's'''
 
-        duplicate_widgets = self.findChildren(widgets.DuplicateWidget)
+        duplicate_widgets = self.findChildren(imageviewwidget.DuplicateWidget)
         for w in duplicate_widgets:
             if w.selected:
                 w.click()
@@ -307,7 +310,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
     def render(self, image_groups: Iterable[core.Group]) -> None:
         self.imageViewWidget.render(self.preferencesWindow.conf, image_groups)
 
-        for widget in self.findChildren(widgets.DuplicateWidget):
+        for widget in self.findChildren(imageviewwidget.DuplicateWidget):
             widget.signals.clicked.connect(self.switchButtons)
 
     def processing_finished(self) -> None:

@@ -21,7 +21,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
 
-from doppelganger import config, core, mainwindow, preferenceswindow, widgets
+from doppelganger import core, imageviewwidget, mainwindow
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -90,13 +90,13 @@ class TestMainForm(TestCase):
         pass
 
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
-    @mock.patch('doppelganger.widgets.DuplicateWidget.move', side_effect=OSError)
+    @mock.patch('doppelganger.imageviewwidget.DuplicateWidget.move', side_effect=OSError)
     def test_call_on_selected_widgets_move_raises_OSError(self, mock_move, mock_box):
         image_group = [core.Image('img1.png')]
         self.form.imageViewWidget.layout.addWidget(
-            widgets.ImageGroupWidget(image_group, self.form.preferencesWindow.conf)
+            imageviewwidget.ImageGroupWidget(image_group, self.form.preferencesWindow.conf)
         )
-        w = self.form.findChild(widgets.DuplicateWidget)
+        w = self.form.findChild(imageviewwidget.DuplicateWidget)
         w.selected = True
         dst = 'new_dst'
         self.form._call_on_selected_widgets(dst)
@@ -105,13 +105,13 @@ class TestMainForm(TestCase):
         self.assertTrue(mock_box.called)
 
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
-    @mock.patch('doppelganger.widgets.DuplicateWidget.delete', side_effect=OSError)
+    @mock.patch('doppelganger.imageviewwidget.DuplicateWidget.delete', side_effect=OSError)
     def test_call_on_selected_widgets_delete_raises_OSError(self, mock_delete, mock_box):
         image_group = [core.Image('img1.png')]
         self.form.imageViewWidget.layout.addWidget(
-            widgets.ImageGroupWidget(image_group, self.form.preferencesWindow.conf)
+            imageviewwidget.ImageGroupWidget(image_group, self.form.preferencesWindow.conf)
         )
-        w = self.form.findChild(widgets.DuplicateWidget)
+        w = self.form.findChild(imageviewwidget.DuplicateWidget)
         w.selected = True
         with self.assertLogs('main.mainwindow', 'ERROR'):
             self.form._call_on_selected_widgets()
@@ -120,13 +120,13 @@ class TestMainForm(TestCase):
         self.assertTrue(mock_box.called)
 
     @mock.patch('doppelganger.core.Image.del_parent_dir')
-    @mock.patch('doppelganger.widgets.DuplicateWidget.delete')
+    @mock.patch('doppelganger.imageviewwidget.DuplicateWidget.delete')
     def test_call_on_selected_widgets_delete_empty_dir(self, mock_delete, mock_dir):
         image_group = [core.Image('img1.png')]
         self.form.imageViewWidget.layout.addWidget(
-            widgets.ImageGroupWidget(image_group, self.form.preferencesWindow.conf)
+            imageviewwidget.ImageGroupWidget(image_group, self.form.preferencesWindow.conf)
         )
-        w = self.form.findChild(widgets.DuplicateWidget)
+        w = self.form.findChild(imageviewwidget.DuplicateWidget)
         w.selected = True
         self.form.preferencesWindow.conf['delete_dirs'] = True
 
@@ -135,13 +135,13 @@ class TestMainForm(TestCase):
         self.assertTrue(mock_dir.called)
 
     @mock.patch('doppelganger.core.Image.del_parent_dir')
-    @mock.patch('doppelganger.widgets.DuplicateWidget.delete')
+    @mock.patch('doppelganger.imageviewwidget.DuplicateWidget.delete')
     def test_call_on_selected_widgets_not_delete_empty_dir(self, mock_delete, mock_dir):
         image_group = [core.Image('img1.png')]
         self.form.imageViewWidget.layout.addWidget(
-            widgets.ImageGroupWidget(image_group, self.form.preferencesWindow.conf)
+            imageviewwidget.ImageGroupWidget(image_group, self.form.preferencesWindow.conf)
         )
-        w = self.form.findChild(widgets.DuplicateWidget)
+        w = self.form.findChild(imageviewwidget.DuplicateWidget)
         w.selected = True
         self.form.preferencesWindow.conf['delete_dirs'] = False
 
@@ -149,11 +149,11 @@ class TestMainForm(TestCase):
 
         self.assertFalse(mock_dir.called)
 
-    @mock.patch('doppelganger.widgets.ImageGroupWidget.deleteLater')
+    @mock.patch('doppelganger.imageviewwidget.ImageGroupWidget.deleteLater')
     def test_call_on_selected_widgets_deleteLater_on_ImageGroupWidget(self, mock_later):
         image_group = [core.Image('img1.png')]
         self.form.imageViewWidget.layout.addWidget(
-            widgets.ImageGroupWidget(image_group, self.form.preferencesWindow.conf)
+            imageviewwidget.ImageGroupWidget(image_group, self.form.preferencesWindow.conf)
         )
         self.form._call_on_selected_widgets()
 
@@ -210,7 +210,7 @@ class TestMainForm(TestCase):
 
     def test_clearMainForm_no_group_widgets(self):
         self.form.clearMainForm()
-        group_widgets = self.form.findChildren(widgets.ImageGroupWidget)
+        group_widgets = self.form.findChildren(imageviewwidget.ImageGroupWidget)
 
         self.assertFalse(group_widgets)
 
@@ -220,7 +220,7 @@ class TestMainForm(TestCase):
         self.form.deleteBtn.setEnabled(False)
         self.form.unselectBtn.setEnabled(False)
         self.form.render([[core.Image('image.png', 0)]])
-        dw = self.form.findChild(widgets.DuplicateWidget)
+        dw = self.form.findChild(imageviewwidget.DuplicateWidget)
         dw.signals.clicked.emit()
 
         self.assertTrue(self.form.moveBtn.isEnabled())
