@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>965</width>
-    <height>746</height>
+    <width>670</width>
+    <height>468</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -68,8 +68,8 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>945</width>
-         <height>676</height>
+         <width>650</width>
+         <height>398</height>
         </rect>
        </property>
       </widget>
@@ -95,7 +95,7 @@
         <height>16777215</height>
        </size>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout_3">
+      <layout class="QHBoxLayout" name="horizontalLayout">
        <property name="spacing">
         <number>6</number>
        </property>
@@ -111,24 +111,6 @@
        <property name="bottomMargin">
         <number>0</number>
        </property>
-       <item alignment="Qt::AlignHCenter">
-        <widget class="QWidget" name="sensNActWidget" native="true">
-         <layout class="QVBoxLayout" name="verticalLayout_2">
-          <property name="leftMargin">
-           <number>0</number>
-          </property>
-          <property name="topMargin">
-           <number>0</number>
-          </property>
-          <property name="rightMargin">
-           <number>0</number>
-          </property>
-          <property name="bottomMargin">
-           <number>0</number>
-          </property>
-         </layout>
-        </widget>
-       </item>
       </layout>
      </widget>
     </item>
@@ -142,7 +124,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>965</width>
+     <width>670</width>
      <height>22</height>
     </rect>
    </property>

@@ -42,15 +42,23 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
     def __init__(self) -> None:
         super().__init__()
 
-        MAIN_UI = pathlib.Path('doppelganger/resources/ui/mainwindow.ui')
-        uic.loadUi(str(MAIN_UI), self)
+        UI = pathlib.Path('doppelganger/resources/ui/mainwindow.ui')
+        uic.loadUi(str(UI), self)
 
         self.signals = signals.Signals()
-
         self.threadpool = QtCore.QThreadPool()
+
         self._setImageViewWidget()
         self._setPathsGroupBox()
         self._setProcessingGroupBox()
+
+        self.sensitivityActionsWidget = QtWidgets.QWidget(self.bottomWidget)
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout(
+            self.sensitivityActionsWidget
+        )
+        self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
+        self.horizontalLayout.addWidget(self.sensitivityActionsWidget)
+
         self._setSensitivityGroupBox()
         self._setActionsGroupWidget()
         self._setMenubar()
@@ -64,7 +72,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
 
     def _setPathsGroupBox(self) -> None:
         self.pathsGrp = pathsgroupbox.PathsGroupBox(self.bottomWidget)
-        self.horizontalLayout_3.insertWidget(0, self.pathsGrp)
+        self.horizontalLayout.addWidget(self.pathsGrp)
 
         self.pathsList = self.pathsGrp.pathsList
         self.addFolderBtn = self.pathsGrp.addFolderBtn
@@ -78,7 +86,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.processingGrp = processinggroupbox.ProcessingGroupBox(
             self.bottomWidget
         )
-        self.horizontalLayout_3.insertWidget(1, self.processingGrp)
+        self.horizontalLayout.addWidget(self.processingGrp)
 
         self.startBtn = self.processingGrp.startBtn
         self.stopBtn = self.processingGrp.stopBtn
@@ -88,13 +96,15 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
 
     def _setSensitivityGroupBox(self) -> None:
         self.sensitivityGrp = sensitivitygroupbox.SensitivityGroupBox(
-            self.sensNActWidget
+            self.sensitivityActionsWidget
         )
-        self.verticalLayout_2.insertWidget(0, self.sensitivityGrp)
+        self.verticalLayout_2.addWidget(self.sensitivityGrp)
 
     def _setActionsGroupWidget(self) -> None:
-        self.actionsGrp = actionsgroupbox.ActionsGroupBox(self.sensNActWidget)
-        self.verticalLayout_2.insertWidget(1, self.actionsGrp)
+        self.actionsGrp = actionsgroupbox.ActionsGroupBox(
+            self.sensitivityActionsWidget
+        )
+        self.verticalLayout_2.addWidget(self.actionsGrp)
 
         self.moveBtn = self.actionsGrp.moveBtn
         self.deleteBtn = self.actionsGrp.deleteBtn
@@ -107,11 +117,11 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.unselectBtn.clicked.connect(self.unselectBtnClick)
 
     def _setMenubar(self) -> None:
-        """Initialise the menus of 'menubar'"""
-
         self.addFolderAction.triggered.connect(self.pathsGrp.addPath)
         self.delFolderAction.triggered.connect(self.pathsGrp.delPath)
-        self.preferencesAction.triggered.connect(self.openPreferencesWindow)
+        self.preferencesAction.triggered.connect(
+            self.openPreferencesWindow
+        )
         self.exitAction.triggered.connect(self.close)
         self.moveAction.triggered.connect(self.moveBtnClick)
         self.deleteAction.triggered.connect(self.deleteBtnClick)
