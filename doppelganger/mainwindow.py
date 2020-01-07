@@ -28,7 +28,7 @@ from typing import Iterable, Optional
 from PyQt5 import QtCore, QtWidgets, uic
 
 from doppelganger import (core, pathsgroupbox, processing, processinggroupbox,
-                          signals, widgets)
+                          sensitivitygroupbox, signals, widgets)
 from doppelganger.aboutwindow import AboutWindow
 from doppelganger.preferenceswindow import PreferencesWindow
 
@@ -50,11 +50,9 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
 
         self.threadpool = QtCore.QThreadPool()
         self._setWidgetEvents()
-        self.sensitivity = 0
-        self.veryHighRbtn.click()
-
         self._setPathsGroupBox()
         self._setProcessingGroupBox()
+        self._setSensitivityGroupBox()
         self._setMenubar()
 
         self.aboutWindow = AboutWindow(self)
@@ -68,12 +66,6 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.autoSelectBtn.clicked.connect(self.autoSelectBtn_click)
         self.unselectBtn.clicked.connect(self.unselectBtn_click)
 
-        self.veryHighRbtn.clicked.connect(self.veryHighRb_click)
-        self.highRbtn.clicked.connect(self.highRb_click)
-        self.mediumRbtn.clicked.connect(self.mediumRb_click)
-        self.lowRbtn.clicked.connect(self.lowRb_click)
-        self.veryLowRbtn.clicked.connect(self.veryLowRb_click)
-
     def _setPathsGroupBox(self) -> None:
         self.pathsGrp = pathsgroupbox.PathsGroupBox(self.bottomWidget)
         self.horizontalLayout_3.insertWidget(0, self.pathsGrp)
@@ -86,7 +78,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.addFolderBtn.clicked.connect(self.enableStartBtn)
         self.delFolderBtn.clicked.connect(self.enableStartBtn)
 
-    def _setProcessingGroupBox(self):
+    def _setProcessingGroupBox(self) -> None:
         self.processingGrp = processinggroupbox.ProcessingGroupBox(
             self.bottomWidget
         )
@@ -97,6 +89,12 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
 
         self.startBtn.clicked.connect(self.startBtnClick)
         self.stopBtn.clicked.connect(self.stopBtnClick)
+
+    def _setSensitivityGroupBox(self) -> None:
+        self.sensitivityGrp = sensitivitygroupbox.SensitivityGroupBox(
+            self.sensNActWidget
+        )
+        self.verticalLayout_2.insertWidget(0, self.sensitivityGrp)
 
     def _setMenubar(self) -> None:
         """Initialise the menus of 'menubar'"""
@@ -337,8 +335,12 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         :param folders: folders to process,
         '''
 
-        proc = processing.ImageProcessing(self.signals, folders,
-                                          self.sensitivity, self.preferencesWindow.conf)
+        proc = processing.ImageProcessing(
+            self.signals,
+            folders,
+            self.sensitivityGrp.sensitivity,
+            self.preferencesWindow.conf
+        )
 
         proc.signals.update_info.connect(self.processingGrp.updateLabel)
         proc.signals.update_progressbar.connect(self.processingGrp.processProg.setValue)
@@ -348,31 +350,6 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
 
         worker = processing.Worker(proc.run)
         self.threadpool.start(worker)
-
-    def veryHighRb_click(self) -> None:
-        """Function called on 'High' radio button click event"""
-
-        self.sensitivity = 0
-
-    def highRb_click(self) -> None:
-        """Function called on 'High' radio button click event"""
-
-        self.sensitivity = 5
-
-    def mediumRb_click(self) -> None:
-        """Function called on 'Medium' radio button click event"""
-
-        self.sensitivity = 10
-
-    def lowRb_click(self) -> None:
-        """Function called on 'Low' radio button click event"""
-
-        self.sensitivity = 15
-
-    def veryLowRb_click(self) -> None:
-        """Function called on 'High' radio button click event"""
-
-        self.sensitivity = 20
 
     def moveBtn_click(self) -> None:
         """Function called on 'Move' button click event"""

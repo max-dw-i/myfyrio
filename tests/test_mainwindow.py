@@ -56,16 +56,14 @@ class TestMainForm(TestCase):
         self.form = mainwindow.MainWindow()
 
     @mock.patch('doppelganger.mainwindow.MainWindow._setMenubar')
-    @mock.patch('doppelganger.mainwindow.QtWidgets.QRadioButton.click')
     @mock.patch('doppelganger.mainwindow.MainWindow._setWidgetEvents')
-    def test_init(self, mock_events, mock_button, mock_menubar):
+    def test_init(self, mock_events, mock_menubar):
         form = mainwindow.MainWindow()
         scroll_area_align = form.scrollAreaLayout.layout().alignment()
         self.assertEqual(scroll_area_align, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
         self.assertIsInstance(form.threadpool, QtCore.QThreadPool)
         self.assertTrue(mock_events.called)
-        self.assertTrue(mock_button.called)
         self.assertTrue(mock_menubar.called)
 
     """@mock.patch('doppelganger.aboutwindow.AboutWindow')
@@ -344,41 +342,6 @@ class TestMainForm(TestCase):
 
         self.assertTrue(mock_worker.called)
         self.assertTrue(mock_thread.called)
-
-    def test_veryHighRb_click(self):
-        self.form.sensitivity = -5
-        self.form.show() # some bug: if show() is not used, mouseClick() do nothing
-        QtTest.QTest.mouseClick(self.form.veryHighRbtn, QtCore.Qt.LeftButton)
-
-        self.assertEqual(self.form.sensitivity, 0)
-
-    def test_highRb_click(self):
-        self.form.sensitivity = -5
-        self.form.show() # some bug: if show() is not used, mouseClick() do nothing
-        QtTest.QTest.mouseClick(self.form.highRbtn, QtCore.Qt.LeftButton)
-
-        self.assertEqual(self.form.sensitivity, 5)
-
-    def test_mediumRb_click(self):
-        self.form.sensitivity = -5
-        #self.form.show() # some bug: if show() is not used, mouseClick() do nothing
-        QtTest.QTest.mouseClick(self.form.mediumRbtn, QtCore.Qt.LeftButton)
-
-        self.assertEqual(self.form.sensitivity, 10)
-
-    def test_lowRb_click(self):
-        self.form.sensitivity = -5
-        self.form.show() # some bug: if show() is not used, mouseClick() do nothing
-        QtTest.QTest.mouseClick(self.form.lowRbtn, QtCore.Qt.LeftButton)
-
-        self.assertEqual(self.form.sensitivity, 15)
-
-    def test_veryLowRb_click(self):
-        self.form.sensitivity = -5
-        self.form.show() # some bug: if show() is not used, mouseClick() do nothing
-        QtTest.QTest.mouseClick(self.form.veryLowRbtn, QtCore.Qt.LeftButton)
-
-        self.assertEqual(self.form.sensitivity, 20)
 
     @mock.patch('doppelganger.mainwindow.MainWindow.clearMainForm')
     @mock.patch('doppelganger.mainwindow.MainWindow.start_processing')
