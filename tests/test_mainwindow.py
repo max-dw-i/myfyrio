@@ -56,14 +56,12 @@ class TestMainForm(TestCase):
         self.form = mainwindow.MainWindow()
 
     @mock.patch('doppelganger.mainwindow.MainWindow._setMenubar')
-    @mock.patch('doppelganger.mainwindow.MainWindow._setWidgetEvents')
-    def test_init(self, mock_events, mock_menubar):
+    def test_init(self, mock_menubar):
         form = mainwindow.MainWindow()
         scroll_area_align = form.scrollAreaLayout.layout().alignment()
         self.assertEqual(scroll_area_align, QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
         self.assertIsInstance(form.threadpool, QtCore.QThreadPool)
-        self.assertTrue(mock_events.called)
         self.assertTrue(mock_menubar.called)
 
     """@mock.patch('doppelganger.aboutwindow.AboutWindow')

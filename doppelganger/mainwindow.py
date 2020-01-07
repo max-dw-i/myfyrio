@@ -27,8 +27,9 @@ from typing import Iterable, Optional
 
 from PyQt5 import QtCore, QtWidgets, uic
 
-from doppelganger import (core, pathsgroupbox, processing, processinggroupbox,
-                          sensitivitygroupbox, signals, widgets)
+from doppelganger import (actionsgroupbox, core, pathsgroupbox, processing,
+                          processinggroupbox, sensitivitygroupbox, signals,
+                          widgets)
 from doppelganger.aboutwindow import AboutWindow
 from doppelganger.preferenceswindow import PreferencesWindow
 
@@ -49,22 +50,14 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.signals = signals.Signals()
 
         self.threadpool = QtCore.QThreadPool()
-        self._setWidgetEvents()
         self._setPathsGroupBox()
         self._setProcessingGroupBox()
         self._setSensitivityGroupBox()
+        self._setActionsGroupWidget()
         self._setMenubar()
 
         self.aboutWindow = AboutWindow(self)
         self.preferencesWindow = PreferencesWindow(self)
-
-    def _setWidgetEvents(self) -> None:
-        '''Link events and functions called on the events'''
-
-        self.moveBtn.clicked.connect(self.moveBtn_click)
-        self.deleteBtn.clicked.connect(self.deleteBtn_click)
-        self.autoSelectBtn.clicked.connect(self.autoSelectBtn_click)
-        self.unselectBtn.clicked.connect(self.unselectBtn_click)
 
     def _setPathsGroupBox(self) -> None:
         self.pathsGrp = pathsgroupbox.PathsGroupBox(self.bottomWidget)
@@ -96,6 +89,20 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         )
         self.verticalLayout_2.insertWidget(0, self.sensitivityGrp)
 
+    def _setActionsGroupWidget(self) -> None:
+        self.actionsGrp = actionsgroupbox.ActionsGroupBox(self.sensNActWidget)
+        self.verticalLayout_2.insertWidget(1, self.actionsGrp)
+
+        self.moveBtn = self.actionsGrp.moveBtn
+        self.deleteBtn = self.actionsGrp.deleteBtn
+        self.autoSelectBtn = self.actionsGrp.autoSelectBtn
+        self.unselectBtn = self.actionsGrp.unselectBtn
+
+        self.moveBtn.clicked.connect(self.moveBtnClick)
+        self.deleteBtn.clicked.connect(self.deleteBtnClick)
+        self.autoSelectBtn.clicked.connect(self.autoSelectBtnClick)
+        self.unselectBtn.clicked.connect(self.unselectBtnClick)
+
     def _setMenubar(self) -> None:
         """Initialise the menus of 'menubar'"""
 
@@ -103,8 +110,8 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.delFolderAction.triggered.connect(self.pathsGrp.delPath)
         self.preferencesAction.triggered.connect(self.openPreferencesWindow)
         self.exitAction.triggered.connect(self.close)
-        self.moveAction.triggered.connect(self.moveBtn_click)
-        self.deleteAction.triggered.connect(self.deleteBtn_click)
+        self.moveAction.triggered.connect(self.moveBtnClick)
+        self.deleteAction.triggered.connect(self.deleteBtnClick)
         self.autoSelectAction.triggered.connect(self.auto_select)
         self.unselectAction.triggered.connect(self.unselect)
         self.docsAction.triggered.connect(self.openDocs)
@@ -140,13 +147,18 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         )
         msgBox.exec()
 
-    def _call_on_selected_widgets(self, dst: Optional[core.FolderPath] = None) -> None:
+    def _call_on_selected_widgets(
+            self,
+            dst: Optional[core.FolderPath] = None
+        ) -> None:
         '''Call 'move' or 'delete' on selected widgets
 
         :param dst: if None, 'delete' is called, otherwise - 'move'
         '''
 
-        for group_widget in self.scrollAreaWidget.findChildren(widgets.ImageGroupWidget):
+        for group_widget in self.scrollAreaWidget.findChildren(
+            widgets.ImageGroupWidget
+        ):
             selected_widgets = group_widget.getSelectedWidgets()
             for selected_widget in selected_widgets:
                 try:
@@ -254,9 +266,11 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
             msg_box.exec()
         else:
             for group in image_groups:
-                self.scrollAreaLayout.addWidget(
-                    widgets.ImageGroupWidget(group, self.preferencesWindow.conf, self.scrollArea)
-                )
+                self.scrollAreaLayout.addWidget(widgets.ImageGroupWidget(
+                    group,
+                    self.preferencesWindow.conf,
+                    self.scrollArea
+                ))
 
             for widget in self.findChildren(widgets.DuplicateWidget):
                 widget.signals.clicked.connect(self.switchButtons)
@@ -275,18 +289,12 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
 
     def switchButtons(self):
         if self.hasSelectedWidgets():
-            self.moveBtn.setEnabled(True)
-            self.deleteBtn.setEnabled(True)
-            self.unselectBtn.setEnabled(True)
-
+            self.actionsGrp.setEnabled(True)
             self.moveAction.setEnabled(True)
             self.deleteAction.setEnabled(True)
             self.unselectAction.setEnabled(True)
         else:
-            self.moveBtn.setEnabled(False)
-            self.deleteBtn.setEnabled(False)
-            self.unselectBtn.setEnabled(False)
-
+            self.actionsGrp.setEnabled(False)
             self.moveAction.setEnabled(False)
             self.deleteAction.setEnabled(False)
             self.unselectAction.setEnabled(False)
@@ -343,7 +351,9 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         )
 
         proc.signals.update_info.connect(self.processingGrp.updateLabel)
-        proc.signals.update_progressbar.connect(self.processingGrp.processProg.setValue)
+        proc.signals.update_progressbar.connect(
+            self.processingGrp.processProg.setValue
+        )
         proc.signals.result.connect(self.render)
         proc.signals.error.connect(self.showErrMsg)
         proc.signals.finished.connect(self.processing_finished)
@@ -351,12 +361,12 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         worker = processing.Worker(proc.run)
         self.threadpool.start(worker)
 
-    def moveBtn_click(self) -> None:
+    def moveBtnClick(self) -> None:
         """Function called on 'Move' button click event"""
 
         self.move_images()
 
-    def deleteBtn_click(self) -> None:
+    def deleteBtnClick(self) -> None:
         """Function called on 'Delete' button click event"""
 
         confirm = QtWidgets.QMessageBox.question(
@@ -369,12 +379,12 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         if confirm == QtWidgets.QMessageBox.Yes:
             self.delete_images()
 
-    def autoSelectBtn_click(self) -> None:
+    def autoSelectBtnClick(self) -> None:
         """Function called on 'Auto Select' button click event"""
 
         self.auto_select()
 
-    def unselectBtn_click(self) -> None:
+    def unselectBtnClick(self) -> None:
         """Function called on 'Unselect' button click event"""
 
         self.unselect()
