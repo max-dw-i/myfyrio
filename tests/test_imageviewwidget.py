@@ -522,3 +522,64 @@ class TestImageViewWidget(TestCase):
         w.selected = True
 
         self.assertTrue(w.selected)
+
+    def test_clear(self):
+        self.w.clear()
+        group_widgets = self.w.findChildren(imageviewwidget.ImageGroupWidget)
+
+        self.assertFalse(group_widgets)
+
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
+    @mock.patch('doppelganger.imageviewwidget.DuplicateWidget.delete', side_effect=OSError)
+    def test_call_on_selected_widgets_delete_raises_OSError(self, mock_delete, mock_box):
+        image_group = [core.Image('img1.png')]
+        self.w.layout.addWidget(
+            imageviewwidget.ImageGroupWidget(image_group, self.conf)
+        )
+        w = self.w.findChild(imageviewwidget.DuplicateWidget)
+        w.selected = True
+        with self.assertLogs('main.widgets', 'ERROR'):
+            self.w.call_on_selected_widgets(self.conf)
+
+        mock_delete.assert_called_once()
+        self.assertTrue(mock_box.called)
+
+    @mock.patch('doppelganger.core.Image.del_parent_dir')
+    @mock.patch('doppelganger.imageviewwidget.DuplicateWidget.delete')
+    def test_call_on_selected_widgets_delete_empty_dir(self, mock_delete, mock_dir):
+        image_group = [core.Image('img1.png')]
+        self.w.layout.addWidget(
+            imageviewwidget.ImageGroupWidget(image_group, self.conf)
+        )
+        w = self.w.findChild(imageviewwidget.DuplicateWidget)
+        w.selected = True
+        self.conf['delete_dirs'] = True
+
+        self.w.call_on_selected_widgets(self.conf)
+
+        self.assertTrue(mock_dir.called)
+
+    @mock.patch('doppelganger.core.Image.del_parent_dir')
+    @mock.patch('doppelganger.imageviewwidget.DuplicateWidget.delete')
+    def test_call_on_selected_widgets_not_delete_empty_dir(self, mock_delete, mock_dir):
+        image_group = [core.Image('img1.png')]
+        self.w.layout.addWidget(
+            imageviewwidget.ImageGroupWidget(image_group, self.conf)
+        )
+        w = self.w.findChild(imageviewwidget.DuplicateWidget)
+        w.selected = True
+        self.conf['delete_dirs'] = False
+
+        self.w.call_on_selected_widgets(self.conf)
+
+        self.assertFalse(mock_dir.called)
+
+    @mock.patch('doppelganger.imageviewwidget.ImageGroupWidget.deleteLater')
+    def test_call_on_selected_widgets_deleteLater_on_ImageGroupWidget(self, mock_later):
+        image_group = [core.Image('img1.png')]
+        self.w.layout.addWidget(
+            imageviewwidget.ImageGroupWidget(image_group, self.conf)
+        )
+        self.w.call_on_selected_widgets(self.conf)
+
+        mock_later.assert_called_once()

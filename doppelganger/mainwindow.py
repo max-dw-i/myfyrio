@@ -23,7 +23,7 @@ Module implementing window "Main"
 import logging
 import pathlib
 import webbrowser
-from typing import Iterable, Optional
+from typing import Iterable
 
 from PyQt5 import QtCore, QtWidgets, uic
 
@@ -36,6 +36,21 @@ from doppelganger.preferenceswindow import PreferencesWindow
 gui_logger = logging.getLogger('main.mainwindow')
 
 
+def showErrMsg(msg: str) -> None:
+    '''Show up when there've been some errors while running
+    the programme
+
+    :param msg: error message
+    '''
+
+    msg_box = QtWidgets.QMessageBox(
+        QtWidgets.QMessageBox.Warning,
+        'Errors',
+        (f"{msg}. For more details, see 'errors.log'")
+    )
+    msg_box.exec()
+
+
 class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
     '''Main GUI class'''
 
@@ -44,6 +59,9 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
 
         UI = pathlib.Path('doppelganger/resources/ui/mainwindow.ui')
         uic.loadUi(str(UI), self)
+
+        self.aboutWindow = AboutWindow(self)
+        self.preferencesWindow = PreferencesWindow(self)
 
         self.signals = signals.Signals()
         self.threadpool = QtCore.QThreadPool()
@@ -63,9 +81,6 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self._setActionsGroupWidget()
         self._setMenubar()
 
-        self.aboutWindow = AboutWindow(self)
-        self.preferencesWindow = PreferencesWindow(self)
-
     def _setImageViewWidget(self) -> None:
         self.imageViewWidget = imageviewwidget.ImageViewWidget(self.scrollArea)
         self.scrollArea.setWidget(self.imageViewWidget)
@@ -78,9 +93,9 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.addFolderBtn = self.pathsGrp.addFolderBtn
         self.delFolderBtn = self.pathsGrp.delFolderBtn
 
-        self.pathsList.itemSelectionChanged.connect(self.enableDelFolderAction)
-        self.addFolderBtn.clicked.connect(self.enableStartBtn)
-        self.delFolderBtn.clicked.connect(self.enableStartBtn)
+        self.pathsList.itemSelectionChanged.connect(self.setDelFolderActionEnabled)
+        self.addFolderBtn.clicked.connect(self.setStartBtnEnabled)
+        self.delFolderBtn.clicked.connect(self.setStartBtnEnabled)
 
     def _setProcessingGroupBox(self) -> None:
         self.processingGrp = processinggroupbox.ProcessingGroupBox(
@@ -91,8 +106,8 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.startBtn = self.processingGrp.startBtn
         self.stopBtn = self.processingGrp.stopBtn
 
-        self.startBtn.clicked.connect(self.startBtnClick)
-        self.stopBtn.clicked.connect(self.stopBtnClick)
+        self.startBtn.clicked.connect(self.startProcessing)
+        self.stopBtn.clicked.connect(self.stopProcessing)
 
     def _setSensitivityGroupBox(self) -> None:
         self.sensitivityGrp = sensitivitygroupbox.SensitivityGroupBox(
@@ -111,46 +126,73 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         self.autoSelectBtn = self.actionsGrp.autoSelectBtn
         self.unselectBtn = self.actionsGrp.unselectBtn
 
-        self.moveBtn.clicked.connect(self.moveBtnClick)
-        self.deleteBtn.clicked.connect(self.deleteBtnClick)
-        self.autoSelectBtn.clicked.connect(self.autoSelectBtnClick)
-        self.unselectBtn.clicked.connect(self.unselectBtnClick)
+        self.moveBtn.clicked.connect(self.moveImages)
+        self.deleteBtn.clicked.connect(self.deleteImages)
+        self.autoSelectBtn.clicked.connect(self.imageViewWidget.autoSelect)
+        self.unselectBtn.clicked.connect(self.imageViewWidget.unselect)
 
     def _setMenubar(self) -> None:
+        preferencesWindow = QtCore.QVariant(self.preferencesWindow)
+        self.preferencesAction.setData(preferencesWindow)
+
+        aboutWindow = QtCore.QVariant(self.aboutWindow)
+        self.aboutAction.setData(aboutWindow)
+
         self.addFolderAction.triggered.connect(self.pathsGrp.addPath)
         self.delFolderAction.triggered.connect(self.pathsGrp.delPath)
         self.preferencesAction.triggered.connect(
-            self.openPreferencesWindow
+            self.openWindow
         )
         self.exitAction.triggered.connect(self.close)
-        self.moveAction.triggered.connect(self.moveBtnClick)
-        self.deleteAction.triggered.connect(self.deleteBtnClick)
-        self.autoSelectAction.triggered.connect(self.auto_select)
-        self.unselectAction.triggered.connect(self.unselect)
+        self.moveAction.triggered.connect(self.moveImages)
+        self.deleteAction.triggered.connect(self.deleteImages)
+        self.autoSelectAction.triggered.connect(
+            self.imageViewWidget.autoSelect
+        )
+        self.unselectAction.triggered.connect(self.imageViewWidget.unselect)
         self.docsAction.triggered.connect(self.openDocs)
         self.homePageAction.triggered.connect(self.openDocs)
-        self.aboutAction.triggered.connect(self.openAboutWindow)
+        self.aboutAction.triggered.connect(self.openWindow)
 
-    def enableDelFolderAction(self) -> None:
+    def setDelFolderActionEnabled(self) -> None:
         if self.pathsList.selectedItems():
             self.delFolderAction.setEnabled(True)
         else:
             self.delFolderAction.setEnabled(False)
 
-    def enableStartBtn(self) -> None:
+    def setStartBtnEnabled(self) -> None:
         if self.pathsList.count():
             self.startBtn.setEnabled(True)
         else:
             self.startBtn.setEnabled(False)
 
-    def startBtnClick(self) -> None:
-        self.clearMainForm()
-        self.autoSelectBtn.setEnabled(False)
-        self.autoSelectAction.setEnabled(False)
+    def _setImageProcessingObj(self) -> processing.ImageProcessing:
+        p = processing.ImageProcessing(
+            self.signals,
+            self.pathsGrp.paths(),
+            self.sensitivityGrp.sensitivity,
+            self.preferencesWindow.conf
+        )
 
-        self.start_processing(self.pathsGrp.paths())
+        p.signals.update_info.connect(self.processingGrp.updateLabel)
+        p.signals.update_progressbar.connect(
+            self.processingGrp.processProg.setValue
+        )
+        p.signals.result.connect(self.render)
+        p.signals.error.connect(showErrMsg)
+        p.signals.finished.connect(self.processing_finished)
 
-    def stopBtnClick(self) -> None:
+        return p
+
+    def startProcessing(self) -> None:
+        self.imageViewWidget.clear()
+        self._setAutoSelectMenuActionNBtnEnabled(False)
+
+        processing_obj = self._setImageProcessingObj()
+        worker = processing.Worker(processing_obj.run)
+        self.threadpool.start(worker)
+
+    def stopProcessing(self) -> None:
         self.signals.interrupted.emit()
 
         msgBox = QtWidgets.QMessageBox(
@@ -160,48 +202,7 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         )
         msgBox.exec()
 
-    def _call_on_selected_widgets(
-            self,
-            dst: Optional[core.FolderPath] = None
-        ) -> None:
-        '''Call 'move' or 'delete' on selected widgets
-
-        :param dst: if None, 'delete' is called, otherwise - 'move'
-        '''
-
-        groups = self.imageViewWidget.findChildren(
-            imageviewwidget.ImageGroupWidget
-        )
-        for group_widget in groups:
-            selected_widgets = group_widget.getSelectedWidgets()
-            for selected_widget in selected_widgets:
-                try:
-                    if dst:
-                        selected_widget.move(dst)
-                    else:
-                        selected_widget.delete()
-                except OSError as e:
-                    gui_logger.error(e)
-                    msgBox = QtWidgets.QMessageBox(
-                        QtWidgets.QMessageBox.Warning,
-                        'Removing/Moving image',
-                        ('Error occured while removing/moving '
-                         f'image {selected_widget.image.path}')
-                    )
-                    msgBox.exec()
-                else:
-                    if self.preferencesWindow.conf['delete_dirs']:
-                        selected_widget.image.del_parent_dir()
-            # If we select all (or except one) the images in a group,
-            if len(group_widget) - len(selected_widgets) <= 1:
-                # and all the selected images were processed correctly (so
-                # there are no selected images anymore), delete the whole group
-                if not group_widget.getSelectedWidgets():
-                    group_widget.deleteLater()
-
     def closeEvent(self, event) -> None:
-        '''Called on programme close event'''
-
         if self.preferencesWindow.conf['close_confirmation']:
             confirm = QtWidgets.QMessageBox.question(
                 self,
@@ -213,31 +214,12 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
             if confirm == QtWidgets.QMessageBox.Cancel:
                 event.ignore()
 
-    def openAboutWindow(self) -> None:
-        if self.aboutWindow.isVisible():
-            self.aboutWindow.activateWindow()
+    def openWindow(self) -> None:
+        window = self.sender().data()
+        if window.isVisible():
+            window.activateWindow()
         else:
-            self.aboutWindow.show()
-
-    def openPreferencesWindow(self) -> None:
-        if self.preferencesWindow.isVisible():
-            self.preferencesWindow.activateWindow()
-        else:
-            self.preferencesWindow.show()
-
-    def openFolderNameDialog(self) -> core.FolderPath:
-        '''Open file dialog and return the full path of a folder
-
-        :return: folder path
-        '''
-
-        folder_path = QtWidgets.QFileDialog.getExistingDirectory(
-            self,
-            'Open Folder',
-            '',
-            QtWidgets.QFileDialog.ShowDirsOnly
-        )
-        return folder_path
+            window.show()
 
     def openDocs(self) -> None:
         '''Open URL with the docs'''
@@ -245,114 +227,21 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         docs_url = 'https://github.com/oratosquilla-oratoria/doppelganger'
         webbrowser.open(docs_url)
 
-    def showErrMsg(self, msg: str) -> None:
-        '''Show up when there've been some errors while running
-        the programme
+    def _setImageMenuBarActionsEnabled(self, enable: bool) -> None:
+        self.moveAction.setEnabled(enable)
+        self.deleteAction.setEnabled(enable)
+        self.unselectAction.setEnabled(enable)
 
-        :param msg: error message
-        '''
-
-        msg_box = QtWidgets.QMessageBox(
-            QtWidgets.QMessageBox.Warning,
-            'Errors',
-            (f"{msg}. For more details, see 'errors.log'")
-        )
-        msg_box.exec()
-
-    def clearMainForm(self) -> None:
-        '''Clear the form from the previous duplicate images and labels'''
-
-        groups = self.findChildren(imageviewwidget.ImageGroupWidget)
-        for group_widget in groups:
-            group_widget.deleteLater()
-
-    def switchButtons(self):
+    def _setImageActionsEnabled(self):
         if self.imageViewWidget.hasSelectedWidgets():
             self.actionsGrp.setEnabled(True)
-            self.moveAction.setEnabled(True)
-            self.deleteAction.setEnabled(True)
-            self.unselectAction.setEnabled(True)
+            self._setImageMenuBarActionsEnabled(True)
         else:
             self.actionsGrp.setEnabled(False)
-            self.moveAction.setEnabled(False)
-            self.deleteAction.setEnabled(False)
-            self.unselectAction.setEnabled(False)
+            self._setImageMenuBarActionsEnabled(False)
 
-    def delete_images(self) -> None:
+    def deleteImages(self) -> None:
         """Delete selected images and corresponding 'DuplicateWidget's"""
-
-        self._call_on_selected_widgets()
-        self.switchButtons()
-
-    def move_images(self) -> None:
-        """Move selected images and delete corresponding 'DuplicateWidget's"""
-
-        new_dst = self.openFolderNameDialog()
-        if new_dst:
-            self._call_on_selected_widgets(new_dst)
-            self.switchButtons()
-
-    def auto_select(self) -> None:
-        '''Automatic selection of DuplicateWidget's'''
-
-        group_widgets = self.findChildren(imageviewwidget.ImageGroupWidget)
-        for group in group_widgets:
-            group.auto_select()
-
-    def unselect(self) -> None:
-        '''Unselect all the selected DuplicateWidget's'''
-
-        duplicate_widgets = self.findChildren(imageviewwidget.DuplicateWidget)
-        for w in duplicate_widgets:
-            if w.selected:
-                w.click()
-
-    def render(self, image_groups: Iterable[core.Group]) -> None:
-        self.imageViewWidget.render(self.preferencesWindow.conf, image_groups)
-
-        for widget in self.findChildren(imageviewwidget.DuplicateWidget):
-            widget.signals.clicked.connect(self.switchButtons)
-
-    def processing_finished(self) -> None:
-        '''Called when image processing is finished'''
-
-        self.processingGrp.processProg.setValue(100)
-        self.startBtn.setEnabled(True)
-        self.stopBtn.setEnabled(False)
-        self.autoSelectBtn.setEnabled(True)
-        self.autoSelectAction.setEnabled(True)
-
-    def start_processing(self, folders: Iterable[core.FolderPath]) -> None:
-        '''Set up image processing and run it
-
-        :param folders: folders to process,
-        '''
-
-        proc = processing.ImageProcessing(
-            self.signals,
-            folders,
-            self.sensitivityGrp.sensitivity,
-            self.preferencesWindow.conf
-        )
-
-        proc.signals.update_info.connect(self.processingGrp.updateLabel)
-        proc.signals.update_progressbar.connect(
-            self.processingGrp.processProg.setValue
-        )
-        proc.signals.result.connect(self.render)
-        proc.signals.error.connect(self.showErrMsg)
-        proc.signals.finished.connect(self.processing_finished)
-
-        worker = processing.Worker(proc.run)
-        self.threadpool.start(worker)
-
-    def moveBtnClick(self) -> None:
-        """Function called on 'Move' button click event"""
-
-        self.move_images()
-
-    def deleteBtnClick(self) -> None:
-        """Function called on 'Delete' button click event"""
 
         confirm = QtWidgets.QMessageBox.question(
             self,
@@ -362,14 +251,39 @@ class MainWindow(QtWidgets.QMainWindow, QtCore.QObject):
         )
 
         if confirm == QtWidgets.QMessageBox.Yes:
-            self.delete_images()
+            self.imageViewWidget.call_on_selected_widgets(
+                self.preferencesWindow.conf
+            )
+            self._setImageActionsEnabled()
 
-    def autoSelectBtnClick(self) -> None:
-        """Function called on 'Auto Select' button click event"""
+    def moveImages(self) -> None:
+        """Move selected images and delete corresponding 'DuplicateWidget's"""
 
-        self.auto_select()
+        new_dst = QtWidgets.QFileDialog.getExistingDirectory(
+            self,
+            'Open Folder',
+            '',
+            QtWidgets.QFileDialog.ShowDirsOnly
+        )
+        if new_dst:
+            self.imageViewWidget.call_on_selected_widgets(
+                self.preferencesWindow.conf,
+                new_dst
+            )
+            self._setImageActionsEnabled()
 
-    def unselectBtnClick(self) -> None:
-        """Function called on 'Unselect' button click event"""
+    def render(self, image_groups: Iterable[core.Group]) -> None:
+        self.imageViewWidget.render(self.preferencesWindow.conf, image_groups)
 
-        self.unselect()
+        for widget in self.findChildren(imageviewwidget.DuplicateWidget):
+            widget.signals.clicked.connect(self._setImageActionsEnabled)
+
+    def _setAutoSelectMenuActionNBtnEnabled(self, enable: bool) -> None:
+        self.autoSelectBtn.setEnabled(enable)
+        self.autoSelectAction.setEnabled(enable)
+
+    def processing_finished(self) -> None:
+        '''Called when image processing is finished'''
+
+        self.processingGrp.stopProcessing()
+        self._setAutoSelectMenuActionNBtnEnabled(True)

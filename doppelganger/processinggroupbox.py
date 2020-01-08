@@ -75,3 +75,4 @@ class ProcessingGroupBox(QtWidgets.QGroupBox):
 
         self.startBtn.setEnabled(True)
         self.stopBtn.setEnabled(False)
+        self.processProg.setValue(100)

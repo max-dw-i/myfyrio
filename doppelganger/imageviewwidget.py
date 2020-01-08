@@ -25,7 +25,7 @@ import logging
 import pathlib
 import subprocess
 import sys
-from typing import Iterable, List, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -418,3 +418,63 @@ class ImageViewWidget(QtWidgets.QWidget):
             if selected_widgets:
                 return True
         return False
+
+    def clear(self) -> None:
+        '''Clear the widget from the previous duplicate images'''
+
+        groups = self.findChildren(ImageGroupWidget)
+        for group_widget in groups:
+            group_widget.deleteLater()
+
+    def call_on_selected_widgets(
+            self,
+            conf,
+            dst: Optional[core.FolderPath] = None
+        ) -> None:
+        '''Call 'move' or 'delete' on selected widgets
+
+        :param dst: if None, 'delete' is called, otherwise - 'move'
+        '''
+
+        groups = self.findChildren(ImageGroupWidget)
+        for group_widget in groups:
+            selected_widgets = group_widget.getSelectedWidgets()
+            for selected_widget in selected_widgets:
+                try:
+                    if dst:
+                        selected_widget.move(dst)
+                    else:
+                        selected_widget.delete()
+                except OSError as e:
+                    widgets_logger.error(e)
+                    msgBox = QtWidgets.QMessageBox(
+                        QtWidgets.QMessageBox.Warning,
+                        'Removing/Moving image',
+                        ('Error occured while removing/moving '
+                         f'image {selected_widget.image.path}')
+                    )
+                    msgBox.exec()
+                else:
+                    if conf['delete_dirs']:
+                        selected_widget.image.del_parent_dir()
+            # If we select all (or except one) the images in a group,
+            if len(group_widget) - len(selected_widgets) <= 1:
+                # and all the selected images were processed correctly (so
+                # there are no selected images anymore), delete the whole group
+                if not group_widget.getSelectedWidgets():
+                    group_widget.deleteLater()
+
+    def autoSelect(self) -> None:
+        '''Automatic selection of DuplicateWidget's'''
+
+        group_widgets = self.findChildren(ImageGroupWidget)
+        for group in group_widgets:
+            group.auto_select()
+
+    def unselect(self) -> None:
+        '''Unselect all the selected DuplicateWidget's'''
+
+        duplicate_widgets = self.findChildren(DuplicateWidget)
+        for w in duplicate_widgets:
+            if w.selected:
+                w.click()
