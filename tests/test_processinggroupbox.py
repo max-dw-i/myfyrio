@@ -169,4 +169,4 @@ class TestProcessingGroupBox(TestCase):
         self.w.processProg.setValue(13)
         self.w.stopProcessing()
 
-        self.assertFalse(self.w.processProg.value(), 100)
+        self.assertEqual(self.w.processProg.value(), 100)
