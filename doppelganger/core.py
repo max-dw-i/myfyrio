@@ -44,16 +44,16 @@ permission notice:
 
 -------------------------------------------------------------------------------
 
-This module provides core functions for processing images and find duplicates.
+This module provides core functions for processing images and find duplicates
 '''
 
 from __future__ import annotations
 
 import os
-import pathlib
 import pickle
 from functools import wraps
 from multiprocessing import Pool
+from pathlib import Path
 from typing import (Any, Callable, Collection, Dict, Iterable, List, Optional,
                     Set, Tuple, TypeVar, Union)
 
@@ -66,31 +66,34 @@ from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def find_images(folders: Iterable[FolderPath],
-                subfolders: bool = True) -> Set[ImagePath]:
+                recursive: bool = True) -> Set[ImagePath]:
     '''Find all the images in :folders:
 
     :param folders: paths of the folders,
-    :param subfolders: recursive search (include subfolders),
+    :param recursive: recursive search (include subfolders),
     :return: full paths of the images,
-    :raise ValueError: any of the folders does not exist
+    :raise FileNotFoundError: any of the folders does not exist
     '''
 
-    IMG_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.bmp'}
     paths = set()
-
-    if subfolders:
-        search = pathlib.Path.rglob
-    else:
-        search = pathlib.Path.glob
-
     for path in folders:
-        p = pathlib.Path(path)
+        p = Path(path)
         if not p.exists():
-            raise ValueError(f'{path} does not exist')
-        for ext in IMG_EXTENSIONS:
-            for filename in search(p, f'*{ext}'):
-                if filename.is_file():
-                    paths.add(str(filename))
+            raise FileNotFoundError(f'{path} does not exist')
+        paths.update(_search(p, recursive))
+    return paths
+
+def _search(path: Path, recursive: bool) -> Set[ImagePath]:
+    paths = set()
+    if recursive:
+        patterns = ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.bmp']
+    else:
+        patterns = ['*.png', '*.jpg', '*.jpeg', '*.bmp']
+
+    for pattern in patterns:
+        for filename in path.glob(pattern):
+            if filename.is_file():
+                paths.add(str(filename))
     return paths
 
 def hamming(image1: HashedImage, image2: HashedImage) -> Distance:
@@ -256,7 +259,7 @@ class Image():
         self.difference = difference
         self.hash = dhash
         self.thumbnail = thumbnail
-        self.suffix: Suffix = pathlib.Path(path).suffix # '.jpg', '.png', etc.
+        self.suffix: Suffix = Path(path).suffix # '.jpg', '.png', etc.
         self.size: FileSize = None
         self.width: Width = None
         self.height: Height = None
@@ -344,8 +347,8 @@ class Image():
                         :dst: exists, etc.
         '''
 
-        file_name = pathlib.Path(self.path).name
-        new_path = str(pathlib.Path(dst) / file_name)
+        file_name = Path(self.path).name
+        new_path = str(Path(dst) / file_name)
 
         try:
             os.rename(self.path, new_path)
@@ -361,7 +364,7 @@ class Image():
                                 the old file silently)
         '''
 
-        path = pathlib.Path(self.path)
+        path = Path(self.path)
         new_name = path.parent / name
         try:
             path.rename(new_name)
@@ -373,7 +376,7 @@ class Image():
     def del_parent_dir(self) -> None:
         '''Delete the parent directory if it is empty'''
 
-        parent_dir = pathlib.Path(self.path).parent
+        parent_dir = Path(self.path).parent
         if not list(parent_dir.glob('*')):
             parent_dir.rmdir()
 

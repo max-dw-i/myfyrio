@@ -43,10 +43,7 @@ permission notice:
     DEALINGS IN THE SOFTWARE.
 '''
 
-import os
 import pathlib
-import shutil
-import tempfile
 from unittest import TestCase, mock
 
 from doppelganger import core
@@ -55,6 +52,85 @@ CORE = 'doppelganger.core.'
 
 
 # pylint: disable=unused-argument,missing-class-docstring,protected-access
+
+
+class TestFindImagesFunction(TestCase):
+
+    def setUp(self):
+        self.mock_path = mock.Mock()
+
+    def test_return_empty_set_if_pass_empty_folders_list(self):
+        paths = core.find_images([])
+
+        self.assertSetEqual(paths, set())
+
+    def test_raise_FileNotFoundError(self):
+        self.mock_path.exists.return_value = False
+        with mock.patch(CORE+'Path', return_value=self.mock_path):
+            with self.assertRaises(FileNotFoundError):
+                core.find_images(['folder'])
+
+    def test_call_search_with_path_and_recursive_parameters(self):
+        self.mock_path.exists.return_value = True
+        recursive = True
+        with mock.patch(CORE+'Path', return_value=self.mock_path):
+            with mock.patch(CORE+'_search', return_value=set()) as mock_search:
+                core.find_images(['folder'], recursive=recursive)
+
+        mock_search.assert_called_once_with(self.mock_path, recursive)
+
+    def test_search_resulting_paths(self):
+        self.mock_path.exists.return_value = True
+        paths = {'path'}
+        with mock.patch(CORE+'Path', return_value=self.mock_path):
+            with mock.patch(CORE+'_search', return_value=paths):
+                res = core.find_images(['folder'])
+
+        self.assertSetEqual(res, paths)
+
+
+class TestSearchFunc(TestCase):
+
+    def setUp(self):
+        self.mock_path = mock.Mock()
+
+    def test_patterns_if_recursive_parameter_is_True(self):
+        self.mock_path.glob.return_value = []
+        core._search(self.mock_path, recursive=True)
+        calls = [mock.call('**/*.png'), mock.call('**/*.jpg'),
+                 mock.call('**/*.jpeg'), mock.call('**/*.bmp')]
+
+        self.mock_path.glob.assert_has_calls(calls)
+
+    def test_patterns_if_recursive_parameter_is_False(self):
+        self.mock_path.glob.return_value = []
+        core._search(self.mock_path, recursive=False)
+        calls = [mock.call('*.png'), mock.call('*.jpg'),
+                 mock.call('*.jpeg'), mock.call('*.bmp')]
+
+        self.mock_path.glob.assert_has_calls(calls)
+
+    def test_search_return_empty_set_if_glob_return_empty_list(self):
+        self.mock_path.glob.return_value = []
+        res = core._search(self.mock_path, True)
+
+        self.assertSetEqual(res, set())
+
+    def test_search_add_path_if_it_is_file(self):
+        returned_path = mock.Mock()
+        returned_path.is_file.return_value = True
+        self.mock_path.glob.return_value = [returned_path]
+        res = core._search(self.mock_path, True)
+
+        self.assertSetEqual(res, {str(returned_path)})
+
+    def test_search_add_path_if_it_is_not_file(self):
+        returned_path = mock.Mock()
+        returned_path.is_file.return_value = False
+        self.mock_path.glob.return_value = [returned_path]
+        res = core._search(self.mock_path, True)
+
+        self.assertSetEqual(res, set())
 
 
 class TestImageClass(TestCase):
@@ -177,7 +253,7 @@ class TestImageClass(TestCase):
 
     # Image.rename
 
-    @mock.patch(CORE + 'pathlib.Path.rename')
+    @mock.patch('pathlib.Path.rename')
     def test_rename(self, mock_rename):
         new_name = 'new_name'
         self.image.rename(new_name)
@@ -185,7 +261,7 @@ class TestImageClass(TestCase):
         self.assertTrue(mock_rename.called)
         self.assertEqual(new_name, self.image.path)
 
-    @mock.patch(CORE + 'pathlib.Path.rename', side_effect=FileExistsError)
+    @mock.patch('pathlib.Path.rename', side_effect=FileExistsError)
     def test_rename_raise_FileExistsError(self, mock_rename):
         new_name = 'new_name'
         with self.assertRaises(FileExistsError):
@@ -193,74 +269,19 @@ class TestImageClass(TestCase):
 
     # Image.del_parent_dir
 
-    @mock.patch(CORE + 'pathlib.Path.rmdir')
-    @mock.patch(CORE + 'pathlib.Path.glob', return_value=[])
+    @mock.patch('pathlib.Path.rmdir')
+    @mock.patch('pathlib.Path.glob', return_value=[])
     def test_del_parent_dir_true(self, mock_glob, mock_rm):
         self.image.del_parent_dir()
 
         self.assertTrue(mock_rm.called)
 
-    @mock.patch(CORE + 'pathlib.Path.rmdir')
-    @mock.patch(CORE + 'pathlib.Path.glob', return_value=['test_path'])
+    @mock.patch('pathlib.Path.rmdir')
+    @mock.patch('pathlib.Path.glob', return_value=['test_path'])
     def test_del_parent_dir_false(self, mock_glob, mock_rm):
         self.image.del_parent_dir()
 
         self.assertFalse(mock_rm.called)
-
-
-class TestFindImagesFunction(TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.test_dir = pathlib.Path(tempfile.mkdtemp())
-
-        # Sets with file names which suffixes are supported and not
-        cls.supported = [str(cls.test_dir / 'image.{}'.format(suffix))
-                         for suffix in ('.png', '.jpg', '.jpeg', '.bmp')]
-        cls.unsupported = [str(cls.test_dir / 'image.{}'.format(suffix))
-                           for suffix in ('.tiff', '.txt')]
-
-        # Create the files in the temporary directory
-        for filename in cls.supported + cls.unsupported:
-            with open(filename, 'w') as f:
-                f.write('Whatever...')
-
-        # Also create dirs and add them to 'unsupported'
-        for d in ('dir', 'dir.jpg'):
-            dirs = str(cls.test_dir / d)
-            cls.unsupported.append(dirs)
-            os.makedirs(dirs)
-
-        # Create a file in subfolder to test recursive search
-        cls.subfile = str(cls.test_dir / 'dir' / 'rec.png')
-        with open(cls.subfile, 'w') as f:
-            f.write('Recursive')
-
-    @classmethod
-    def tearDownClass(cls):
-        shutil.rmtree(cls.test_dir)
-
-    def test_find_images_return_empty_list_if_pass_empty_folders(self):
-        images = core.find_images([])
-
-        self.assertSequenceEqual(images, [])
-
-    def test_find_images_with_subfolders(self):
-        self.supported.append(self.subfile)
-        paths = set(core.find_images([self.test_dir], subfolders=True))
-        for path in paths:
-            self.assertIn(path, self.supported)
-            self.assertNotIn(path, self.unsupported)
-
-    def test_find_images_without_subfolders(self):
-        paths = set(core.find_images([self.test_dir], subfolders=False))
-
-        self.assertNotIn(self.subfile, paths)
-
-    @mock.patch(CORE + 'pathlib.Path.exists', return_value=False)
-    def test_find_images_raise_ValueError(self, mock_exists):
-        with self.assertRaises(ValueError):
-            core.find_images([self.test_dir])
 
 
 class TestCacheFunctions(TestCase):
