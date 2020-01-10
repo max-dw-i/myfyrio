@@ -133,6 +133,109 @@ class TestSearchFunc(TestCase):
         self.assertSetEqual(res, set())
 
 
+class TestImageGroupingFunc(TestCase):
+
+    def setUp(self):
+        self.mock_imgs = [mock.Mock() for i in range(2)]
+
+        self.mock_bk = mock.Mock()
+
+    def test_return_empty_list_if_no_images(self):
+        res = core.image_grouping([], 0)
+
+        self.assertListEqual(res, [])
+
+    def test_return_empty_list_if_one_image(self):
+        res = core.image_grouping(['image'], 0)
+
+        self.assertListEqual(res, [])
+
+    def test_BKTree_called_with_hamming_dist_and_images_args(self):
+        with mock.patch('pybktree.BKTree') as mock_tree:
+            core.image_grouping(self.mock_imgs, 0)
+
+        mock_tree.assert_called_once_with(core.hamming, self.mock_imgs)
+
+    def test_BKTree_raise_TypeError(self):
+        with mock.patch('pybktree.BKTree', side_effect=TypeError):
+            with self.assertRaises(TypeError):
+                core.image_grouping(self.mock_imgs, 0)
+
+    def test_find_called_with_image_and_sensitivity_args(self):
+        self.mock_bk.find.return_value = ['image']
+        sens = 0
+        with mock.patch('pybktree.BKTree', return_value=self.mock_bk):
+            core.image_grouping(self.mock_imgs, sens)
+
+        calls = [mock.call(self.mock_imgs[0], sens),
+                 mock.call(self.mock_imgs[1], sens)]
+        self.mock_bk.find.assert_has_calls(calls)
+
+    @mock.patch(CORE+'_new_group')
+    def test_loop_continue_if_there_is_one_closest_image(self, mock_group):
+        self.mock_bk.find.return_value = ['image']
+        with mock.patch('pybktree.BKTree', return_value=self.mock_bk):
+            core.image_grouping(self.mock_imgs, 0)
+
+        mock_group.assert_not_called()
+
+    @mock.patch(CORE+'_new_group')
+    def test_new_group_called_with_closests_and_checked_args(self, mock_group):
+        closests = ['img1', 'img2']
+        self.mock_bk.find.return_value = closests
+        with mock.patch('pybktree.BKTree', return_value=self.mock_bk):
+            core.image_grouping(self.mock_imgs, 0)
+
+        mock_group.assert_called_with(closests, set())
+
+    @mock.patch(CORE+'_new_group', return_value='image')
+    def test_new_group_func_return_added_to_new_group(self, mock_group):
+        self.mock_bk.find.return_value = ['img1', 'img2']
+        with mock.patch('pybktree.BKTree', return_value=self.mock_bk):
+            res = core.image_grouping(self.mock_imgs, 0)
+
+        # Since we have to do at least 2 iterations (or '_new_group'
+        # will not be called at all), we'll have 2 'image' in the list
+        self.assertListEqual(res, ['image', 'image'])
+
+    def test_loop_continue_if_image_was_checked(self):
+        closests = [(0, self.mock_imgs[0]), (0, self.mock_imgs[1])]
+        self.mock_bk.find.return_value = closests
+        with mock.patch('pybktree.BKTree', return_value=self.mock_bk):
+            core.image_grouping(self.mock_imgs, 0)
+
+        self.mock_bk.find.assert_called_once()
+
+
+class TestNewGroupFunc(TestCase):
+
+    def setUp(self):
+        self.img = mock.Mock()
+        self.img.difference = None
+
+    def test_image_not_added_to_group_if_already_was_checked(self):
+        res = core._new_group([(0, self.img)], {self.img})
+
+        self.assertListEqual(res, [])
+
+    def test_distance_assigned_to_difference_attribute(self):
+        dist = 0
+        core._new_group([(dist, self.img)], set())
+
+        self.assertEqual(self.img.difference, dist)
+
+    def test_image_added_to_group(self):
+        res = core._new_group([(0, self.img)], set())
+
+        self.assertListEqual(res, [self.img])
+
+    def test_image_added_to_checked(self):
+        checked = set()
+        core._new_group([(0, self.img)], checked)
+
+        self.assertSetEqual(checked, {self.img})
+
+
 class TestImageClass(TestCase):
 
     def setUp(self):
@@ -373,58 +476,3 @@ class TestCacheFunctions(TestCase):
 
         self.assertDictEqual({}, new_cache)
         self.assertTrue(mock_cache.called)
-
-
-class TestImageGroupingFunction(TestCase):
-
-    @classmethod
-    def image_factory(cls, num, filename, dhash):
-        '''Create <class Image> instances'''
-
-        images = []
-
-        for i in range(num):
-            name, suffix = filename.split('.')
-            name = '{}{}{}'.format(name, i, suffix)
-            images.append(core.Image(name, dhash=dhash))
-
-        return images
-
-    @classmethod
-    def setUpClass(cls):
-        # Create readable images
-        cls.red = cls.image_factory(3, 'red.jpg', 30)
-        cls.yellow = cls.image_factory(2, 'yellow.jpg', 20)
-        cls.green = cls.image_factory(1, 'green.jpg', 10)
-
-        # Create 'corrupted' images (cannot be open without errors)
-        cls.corrupted = cls.image_factory(3, 'corrupted.png', None)
-
-    def test_image_grouping_return_empty_list_if_pass_0_or_1_len_list(self):
-        images = []
-        image_groups = core.image_grouping(images, 0)
-
-        self.assertListEqual(image_groups, [])
-
-        images = [core.Image(path='any.png')]
-        image_groups = core.image_grouping(images, 0)
-
-        self.assertListEqual(image_groups, [])
-
-    def test_image_grouping_return_duplicate_images(self):
-        images = self.red + self.yellow + self.green
-        image_groups = core.image_grouping(images, 0)
-
-        # In 'red' - 3 images, in 'yellow' - 2
-        if len(image_groups[0]) > len(image_groups[1]):
-            red, yellow = set(image_groups[0]), set(image_groups[1])
-        else:
-            red, yellow = set(image_groups[1]), set(image_groups[0])
-
-        self.assertSetEqual(red, set(self.red))
-        self.assertSetEqual(yellow, set(self.yellow))
-
-    def test_image_grouping_raise_TypeError(self):
-        images = self.corrupted
-        with self.assertRaises(TypeError):
-            core.image_grouping(images, 0)
