@@ -136,7 +136,7 @@ def change_size(size: int) -> None:
 
     SIZE = size
 
-def similarity_rate(image_groups: List[core.Group])-> List[core.Group]:
+def similarity_rate(image_groups: List[core.Group]):
     '''To compare images, hamming distance between their
     hashes is found (difference). It is easier for a user
     to compare similarities'''
@@ -150,53 +150,6 @@ def similarity_rate(image_groups: List[core.Group])-> List[core.Group]:
                 # if difference == 0, then similarity == 100
             else:
                 image.difference = 100
-    return image_groups
-
-
-class Sort:
-    '''Custom sort for duplicate images (already grouped)'''
-
-    def __init__(self, image_groups: List[core.Group]):
-        self.image_groups = image_groups
-
-    def sort(self, sort_type: int) -> None:
-        '''Sort duplicate image groups
-
-        :param sort_type: 0 - sort by similarity rate
-                              in descending order,
-                          1 - sort by size of an image file
-                              in descending order,
-                          2 - sort by width and height of an image
-                              in descending order,
-                          3 - sort by path of an image file
-                              in ascending order
-        '''
-
-        # if sort_type == 0, do nothing since the data
-        # is already sorted by difference (similarity)
-
-        if sort_type == 1:
-            self._filesize_sort()
-        if sort_type == 2:
-            self._dimensions_sort()
-        if sort_type == 3:
-            self._path_sort()
-
-    def _filesize_sort(self) -> None:
-        for group in self.image_groups:
-            group.sort(key=core.Image.filesize, reverse=True)
-
-    def _dimensions_sort(self) -> None:
-        for group in self.image_groups:
-            group.sort(key=self._dimensions_product, reverse=True)
-
-    def _path_sort(self) -> None:
-        for group in self.image_groups:
-            group.sort(key=lambda img: img.path)
-
-    def _dimensions_product(self, image: core.HashedImage) -> int:
-        width, height = image.dimensions()
-        return width * height
 
 
 class Worker(QtCore.QRunnable):
@@ -255,9 +208,10 @@ class ImageProcessing:
 
             image_groups = self.grouping(cached, self.sensitivity)
 
-            image_groups = similarity_rate(image_groups)
-            s = Sort(image_groups)
+            s = core.Sort(image_groups)
             s.sort(self.conf['sort'])
+
+            similarity_rate(image_groups)
 
             image_groups = self.make_thumbnails(image_groups)
 

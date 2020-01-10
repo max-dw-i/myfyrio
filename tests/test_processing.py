@@ -167,7 +167,7 @@ class TestThumbnailFunction(TestCase):
         self.assertIsInstance(ba, QtCore.QByteArray)
 
 
-class TestSort(TestCase):
+class TestSimilarityRateFunc(TestCase):
 
     def test_similarity_rate_100(self):
         img_group = [[core.Image('test', difference=0)]]
@@ -186,64 +186,6 @@ class TestSort(TestCase):
         processing.similarity_rate(img_group)
 
         self.assertEqual(img_group[0][0].difference, 50)
-
-    def test_similarity_sort(self):
-        img1 = core.Image('test', difference=5)
-        img2 = core.Image('test', difference=0)
-        img3 = core.Image('test', difference=3)
-        img_groups = [[img1, img2, img3]]
-
-        s = processing.Sort(img_groups)
-        s.sort(0)
-
-        self.assertListEqual(img_groups[0], [img1, img2, img3])
-
-    def test_size_sort(self):
-        '''Image.filesize returns values in KB by default.
-        So do not use small numbers or you might get incorrect
-        sort results
-        '''
-
-        img1 = core.Image('test')
-        img1.size = 3072
-        img2 = core.Image('test')
-        img2.size = 1024
-        img3 = core.Image('test')
-        img3.size = 2048
-        img_groups = [[img1, img2, img3]]
-
-        s = processing.Sort(img_groups)
-        s.sort(1)
-
-        self.assertListEqual(img_groups[0], [img1, img3, img2])
-
-    def test_dimensions_sort(self):
-        img1 = core.Image('test')
-        img1.width = 4
-        img1.height = 6
-        img2 = core.Image('test')
-        img2.width = 1
-        img2.height = 1
-        img3 = core.Image('test')
-        img3.width = 5
-        img3.height = 3
-        img_groups = [[img1, img2, img3]]
-
-        s = processing.Sort(img_groups)
-        s.sort(2)
-
-        self.assertListEqual(img_groups[0], [img1, img3, img2])
-
-    def test_path_sort(self):
-        img1 = core.Image('test3')
-        img2 = core.Image('test1')
-        img3 = core.Image('test2')
-        img_groups = [[img1, img2, img3]]
-
-        s = processing.Sort(img_groups)
-        s.sort(3)
-
-        self.assertListEqual(img_groups[0], [img2, img3, img1])
 
 
 class TestImageProcessingClass(TestCase):

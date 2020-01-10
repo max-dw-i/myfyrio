@@ -140,7 +140,6 @@ def image_grouping(images: Collection[HashedImage],
 
         image_groups.append(_new_group(closests, checked))
 
-    #return [sorted(g, key=lambda x: x.difference) for g in image_groups]
     return image_groups
 
 def _new_group(closests: List[Tuple[Distance, HashedImage]],
@@ -369,6 +368,56 @@ class Image():
 
     def __str__(self) -> str:
         return self.path
+
+
+class Sort:
+    '''Custom sort for duplicate images (already grouped)'''
+
+    def __init__(self, image_groups: List[Group]):
+        self.image_groups = image_groups
+
+    def sort(self, sort_type: int) -> None:
+        '''Sort duplicate image groups
+
+        :param sort_type: 0 - sort by similarity rate
+                              in descending order,
+                          1 - sort by size of an image file
+                              in descending order,
+                          2 - sort by width and height of an image
+                              in descending order,
+                          3 - sort by path of an image file
+                              in ascending order
+        '''
+
+        if sort_type == 0:
+            self._similarity_sort()
+        if sort_type == 1:
+            self._filesize_sort()
+        if sort_type == 2:
+            self._dimensions_sort()
+        if sort_type == 3:
+            self._path_sort()
+
+    def _similarity_sort(self) -> None:
+        for group in self.image_groups:
+            group.sort(key=lambda x: x.difference)
+
+    def _filesize_sort(self) -> None:
+        for group in self.image_groups:
+            group.sort(key=Image.filesize, reverse=True)
+
+    def _dimensions_sort(self) -> None:
+        for group in self.image_groups:
+            group.sort(key=self._dimensions_product, reverse=True)
+
+    def _path_sort(self) -> None:
+        for group in self.image_groups:
+            group.sort(key=lambda img: img.path)
+
+    @staticmethod
+    def _dimensions_product(image: HashedImage) -> int:
+        width, height = image.dimensions()
+        return width * height
 
 
 ########################## Types ##################################
