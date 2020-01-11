@@ -155,18 +155,18 @@ def _new_group(closests: List[Tuple[Distance, HashedImage]],
 def load_cache() -> Cache:
     '''Load the cache with earlier calculated hashes
 
-    :return: dictionary with pairs 'image path: hash',
+    :return: dictionary with pairs 'ImagePath: Hash',
     :raise EOFError: the cache file cannot be read
     '''
 
     try:
-        with open('image_hashes.p', 'rb') as f:
-            cached_hashes = pickle.load(f)
+        with open('cache.p', 'rb') as f:
+            cache = pickle.load(f)
     except FileNotFoundError:
-        cached_hashes = {}
+        cache = {}
     except EOFError:
         raise EOFError('The cache file might be corrupted (or empty)')
-    return cached_hashes
+    return cache
 
 def check_cache(
         paths: Iterable[ImagePath],

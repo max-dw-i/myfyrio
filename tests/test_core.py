@@ -236,6 +236,108 @@ class TestNewGroupFunc(TestCase):
         self.assertSetEqual(checked, {self.img})
 
 
+class TestLoadCacheFunc(TestCase):
+
+    @mock.patch('pickle.load')
+    def test_load_from_cache_p(self, mock_load):
+        with mock.patch('builtins.open', mock.mock_open()) as mock_open:
+            core.load_cache()
+
+        mock_open.assert_called_once_with('cache.p', 'rb')
+
+    @mock.patch('pickle.load', return_value='hashes')
+    def test_return_loaded_hashes(self, mock_load):
+        with mock.patch('builtins.open', mock.mock_open()):
+            res = core.load_cache()
+
+        self.assertEqual(res, 'hashes')
+
+    @mock.patch('builtins.open', side_effect=FileNotFoundError)
+    def test_return_empty_dict_if_FileNotFoundError(self, mock_open):
+        res = core.load_cache()
+
+        self.assertDictEqual(res, {})
+
+    @mock.patch('builtins.open', side_effect=EOFError)
+    def test_raise_EOFError_if_EOFError(self, mock_open):
+        with self.assertRaises(EOFError):
+            core.load_cache()
+
+
+class TestCacheFunctions(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        # Sets with file names that are cached and not
+        cls.cached = ['image.{}'.format(suffix)
+                      for suffix in ('.png', '.jpg', '.jpeg', '.bmp')]
+        cls.not_cached = ['image.{}'.format(suffix)
+                          for suffix in ('.tiff', '.txt')]
+
+        # Make cache
+        cls.cache = {filename: 666 for filename in cls.cached}
+
+    def test_check_cache_return_empty_lists_if_pass_empty_paths(self):
+        paths, cache = [], {}
+        cached, not_cached = core.check_cache(paths, cache)
+
+        self.assertListEqual(cached, [])
+        self.assertListEqual(not_cached, [])
+
+    def test_check_cache_return_empty_cached_list_if_pass_empty_cache(self):
+        cache = {}
+        cached, _ = core.check_cache(self.not_cached, cache)
+
+        self.assertListEqual(cached, [])
+
+    def test_check_cache_return_correct_cached_list(self):
+        cached, _ = core.check_cache(self.cached, self.cache)
+
+        for image in cached:
+            self.assertIn(image.path, self.cache)
+            self.assertEqual(image.hash, self.cache[image.path])
+
+    def test_check_cache_return_correct_not_cached_list(self):
+        expected_images = [core.Image(path) for path in self.not_cached]
+        _, not_cached = core.check_cache(self.not_cached, self.cache)
+
+        for i, _ in enumerate(not_cached):
+            self.assertEqual(expected_images[i].suffix, not_cached[i].suffix)
+            self.assertEqual(expected_images[i].path, not_cached[i].path)
+
+    @mock.patch(CORE + 'pickle.dump')
+    @mock.patch(CORE + 'open')
+    def test_caching(self, mock_open, mock_cache):
+        '''!!! BE AWARE WHEN CHANGE THIS TEST. IF THERE'S
+        ALREADY POPULATED CACHE FILE AND YOU DON'T PATCH
+        OPEN(), YOU'LL REWRITE THE FILE
+        '''
+
+        images = [core.Image(path, dhash=666) for path in self.cached]
+        new_cache = {}
+        expected = {path: 666 for path in self.cached}
+        core.caching(images, new_cache)
+
+        self.assertDictEqual(expected, new_cache)
+        self.assertTrue(mock_cache.called)
+
+    @mock.patch(CORE + 'pickle.dump')
+    @mock.patch(CORE + 'open')
+    def test_caching_with_None_hash(self, mock_open, mock_cache):
+        '''!!! BE AWARE WHEN CHANGE THIS TEST. IF THERE'S
+        ALREADY POPULATED CACHE FILE AND YOU DON'T PATCH
+        OPEN(), YOU'LL REWRITE THE FILE
+        '''
+
+        images = [core.Image(path, dhash=None) for path in self.cached]
+        new_cache = {}
+        core.caching(images, new_cache)
+
+        self.assertDictEqual({}, new_cache)
+        self.assertTrue(mock_cache.called)
+
+
+
 class TestImageClass(TestCase):
 
     def setUp(self):
@@ -385,97 +487,6 @@ class TestImageClass(TestCase):
         self.image.del_parent_dir()
 
         self.assertFalse(mock_rm.called)
-
-
-class TestCacheFunctions(TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        # Sets with file names that are cached and not
-        cls.cached = ['image.{}'.format(suffix)
-                      for suffix in ('.png', '.jpg', '.jpeg', '.bmp')]
-        cls.not_cached = ['image.{}'.format(suffix)
-                          for suffix in ('.tiff', '.txt')]
-
-        # Make cache
-        cls.cache = {filename: 666 for filename in cls.cached}
-
-    @mock.patch(CORE + 'open', side_effect=FileNotFoundError)
-    def test_load_cache_return_empty_dict_if_FileNotFoundError(self, mock_opn):
-        loaded = core.load_cache()
-
-        self.assertDictEqual(loaded, {})
-
-    @mock.patch(CORE + 'pickle.load', side_effect=EOFError)
-    def test_load_cache_raise_EOFError_if_EOFError(self, mock_load):
-        with self.assertRaises(EOFError):
-            core.load_cache()
-
-    @mock.patch(CORE + 'pickle.load')
-    def test_load_cache_return(self, mock_load):
-        mock_load.return_value = self.cache
-        loaded = core.load_cache()
-
-        self.assertDictEqual(loaded, self.cache)
-
-    def test_check_cache_return_empty_lists_if_pass_empty_paths(self):
-        paths, cache = [], {}
-        cached, not_cached = core.check_cache(paths, cache)
-
-        self.assertListEqual(cached, [])
-        self.assertListEqual(not_cached, [])
-
-    def test_check_cache_return_empty_cached_list_if_pass_empty_cache(self):
-        cache = {}
-        cached, _ = core.check_cache(self.not_cached, cache)
-
-        self.assertListEqual(cached, [])
-
-    def test_check_cache_return_correct_cached_list(self):
-        cached, _ = core.check_cache(self.cached, self.cache)
-
-        for image in cached:
-            self.assertIn(image.path, self.cache)
-            self.assertEqual(image.hash, self.cache[image.path])
-
-    def test_check_cache_return_correct_not_cached_list(self):
-        expected_images = [core.Image(path) for path in self.not_cached]
-        _, not_cached = core.check_cache(self.not_cached, self.cache)
-
-        for i, _ in enumerate(not_cached):
-            self.assertEqual(expected_images[i].suffix, not_cached[i].suffix)
-            self.assertEqual(expected_images[i].path, not_cached[i].path)
-
-    @mock.patch(CORE + 'pickle.dump')
-    @mock.patch(CORE + 'open')
-    def test_caching(self, mock_open, mock_cache):
-        '''!!! BE AWARE WHEN CHANGE THIS TEST. IF THERE'S
-        ALREADY POPULATED CACHE FILE AND YOU DON'T PATCH
-        OPEN(), YOU'LL REWRITE THE FILE
-        '''
-
-        images = [core.Image(path, dhash=666) for path in self.cached]
-        new_cache = {}
-        expected = {path: 666 for path in self.cached}
-        core.caching(images, new_cache)
-
-        self.assertDictEqual(expected, new_cache)
-        self.assertTrue(mock_cache.called)
-
-    @mock.patch(CORE + 'pickle.dump')
-    @mock.patch(CORE + 'open')
-    def test_caching_with_None_hash(self, mock_open, mock_cache):
-        '''!!! BE AWARE WHEN CHANGE THIS TEST. IF THERE'S
-        ALREADY POPULATED CACHE FILE AND YOU DON'T PATCH
-        OPEN(), YOU'LL REWRITE THE FILE
-        '''
-
-        images = [core.Image(path, dhash=None) for path in self.cached]
-        new_cache = {}
-        core.caching(images, new_cache)
-
-        self.assertDictEqual({}, new_cache)
-        self.assertTrue(mock_cache.called)
 
 
 class TestSort(TestCase):
