@@ -170,12 +170,12 @@ def load_cache() -> Cache:
 
 def check_cache(
         paths: Iterable[ImagePath],
-        cached_hashes: Cache
+        cache: Cache
     ) -> Tuple[List[HashedImage], List[NoneImage]]:
     '''Check which images are cached and which ones are not
 
     :param paths: full paths of images,
-    :param cached_hashes: dictionary with pairs 'image path: hash',
+    :param cache: dictionary with pairs 'ImagePath: Hash',
     :return: return a tuple with 2 lists. The images that are found
              in the cache are in the 1st one, the images that are not
              found in the cache are in the 2nd one
@@ -183,8 +183,8 @@ def check_cache(
 
     cached, not_cached = [], []
     for path in paths:
-        if path in cached_hashes:
-            cached.append(Image(path, dhash=cached_hashes[path]))
+        if path in cache:
+            cached.append(Image(path, dhash=cache[path]))
         else:
             not_cached.append(Image(path, dhash=None))
     return cached, not_cached
