@@ -21,7 +21,7 @@ permission notice:
 
     MIT License
 
-    Copyright (c) 2019 Maxim Shpak <maxim.shpak@posteo.uk>
+    Copyright (c) 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
     Permission is hereby granted, free of charge, to any person obtaining
     a copy of this software and associated documentation files
@@ -51,13 +51,12 @@ from __future__ import annotations
 
 import os
 import pickle
-from functools import wraps
 from multiprocessing import Pool
 from pathlib import Path
-from typing import (Any, Callable, Collection, Dict, Iterable, List, Optional,
-                    Set, Tuple, TypeVar, Union)
+from typing import (Collection, Dict, Iterable, List, Optional, Sequence, Set,
+                    Tuple, TypeVar, Union)
 
-import dhash
+import dhash as dhashlib
 import pybktree
 from PIL import Image as PILImage
 from PIL import ImageFile
@@ -96,7 +95,7 @@ def _search(path: Path, recursive: bool) -> Set[ImagePath]:
                 paths.add(str(filename))
     return paths
 
-def hamming(image1: HashedImage, image2: HashedImage) -> Distance:
+def hamming(image1: Image, image2: Image) -> Distance:
     '''Calculate the Hamming distance between two images
 
     :param image1: the first image,
@@ -104,9 +103,9 @@ def hamming(image1: HashedImage, image2: HashedImage) -> Distance:
     :return: Hamming distance
     '''
 
-    return dhash.get_num_bits_different(image1.hash, image2.hash)
+    return dhashlib.get_num_bits_different(image1.hash, image2.hash)
 
-def image_grouping(images: Collection[HashedImage],
+def image_grouping(images: Collection[Image],
                    sensitivity: Sensitivity) -> List[Group]:
     '''Find similar images and group them
 
@@ -122,7 +121,7 @@ def image_grouping(images: Collection[HashedImage],
         return []
 
     image_groups = []
-    checked: Set[HashedImage] = set()
+    checked: Set[Image] = set()
     try:
         bkt = pybktree.BKTree(hamming, images)
     except TypeError:
@@ -142,8 +141,8 @@ def image_grouping(images: Collection[HashedImage],
 
     return image_groups
 
-def _new_group(closests: List[Tuple[Distance, HashedImage]],
-               checked: Set[HashedImage]) -> Group:
+def _new_group(closests: List[Tuple[Distance, Image]],
+               checked: Set[Image]) -> Group:
     image_group = []
     for dist, img in closests:
         if img not in checked:
@@ -155,8 +154,9 @@ def _new_group(closests: List[Tuple[Distance, HashedImage]],
 def load_cache() -> Cache:
     '''Load the cache with earlier calculated hashes
 
-    :return: dictionary with pairs 'ImagePath: Hash',
-    :raise EOFError: the cache file cannot be read
+    :return: dictionary with pairs "ImagePath: Hash",
+    :raise EOFError: the cache file might be corrupted (or empty),
+    :raise OSError: if there's some problem while opening cache file
     '''
 
     try:
@@ -166,115 +166,100 @@ def load_cache() -> Cache:
         cache = {}
     except EOFError:
         raise EOFError('The cache file might be corrupted (or empty)')
+    except OSError as e:
+        raise OSError(e)
     return cache
 
-def check_cache(
-        paths: Iterable[ImagePath],
-        cache: Cache
-    ) -> Tuple[List[HashedImage], List[NoneImage]]:
-    '''Check which images are cached and which ones are not
+def check_cache(paths: Iterable[ImagePath], cache: Cache) -> List[ImagePath]:
+    '''Check which images are not cached
 
     :param paths: full paths of images,
-    :param cache: dictionary with pairs 'ImagePath: Hash',
-    :return: return a tuple with 2 lists. The images that are found
-             in the cache are in the 1st one, the images that are not
-             found in the cache are in the 2nd one
+    :param cache: dict with pairs "ImagePath: Hash",
+    :return: list with the paths of not cached images
     '''
 
-    cached, not_cached = [], []
+    not_cached = []
     for path in paths:
-        if path in cache:
-            cached.append(Image(path, dhash=cache[path]))
-        else:
-            not_cached.append(Image(path, dhash=None))
-    return cached, not_cached
+        if path not in cache:
+            not_cached.append(path)
+    return not_cached
 
-def hashes_calculating(images: Iterable[NoneImage]) -> List[HashedImage]:
-    '''Calculate the hashes of :images:
+def extend_cache(cache: Cache, paths: Iterable[ImagePath],
+                 hashes: Sequence[Optional[Hash]]) -> Cache:
+    '''Populate cache with new hashes
 
-    :param images: images which hashes are not calculated yet,
-    :return: images with calculated hashes
+    :param cache: dict with pairs "ImagePath: Hash",
+    :param paths: paths of new images,
+    :param hashes: new hashes,
+    :return: dict with pairs "ImagePath: Hash" (updated cache)
+    '''
+
+    for i, path in enumerate(paths):
+        dhash = hashes[i]
+        if dhash is not None:
+            cache[path] = dhash
+    return cache
+
+def save_cache(cache: Cache) -> None:
+    '''Save cache on the disk
+
+    :param cache: dict with pairs "ImagePath: Hash",
+    :raise OSError: if there's some problem while opening cache file
+    '''
+
+    try:
+        with open('cache.p', 'wb') as f:
+            pickle.dump(cache, f)
+    except OSError as e:
+        raise OSError(e)
+
+def calculating(paths: Iterable[ImagePath]) -> List[Optional[Hash]]:
+    '''Calculate the hashes of images with :paths:
+
+    :param paths: paths of the images which hashes are not calculated yet,
+    :return: list with calculated hashes, Hash can be "None"
     '''
 
     with Pool() as p:
-        calculated_images = p.map(Image.dhash, images)
-    return calculated_images
-
-def caching(images: Iterable[HashedImage], cached_hashes: Cache) -> None:
-    '''Add new hashes to the cache and save them on the disk
-
-    :param images: images to process,
-    :param cached_hashes: dictionary with pairs 'image path: hash'
-    '''
-
-    for image in images:
-        img_hash = image.hash
-        if img_hash is not None:
-            cached_hashes[image.path] = img_hash
-
-    with open('image_hashes.p', 'wb') as f:
-        pickle.dump(cached_hashes, f)
-
-def return_obj(func: Callable[[T], Any]) -> Callable[[T], T]:
-    '''Decorator needed for parallel hashes calculating.
-    Multiprocessing lib does not allow to change an object
-    in place (because it's a different process). So it's
-    passed to the process, changed in there and then
-    must be returned
-
-    :param func: function to use in 'multiprocessing.Pool.map',
-                 eg. 'Image.dhash',
-    :return: object on which :func: is called, eg. 'Image' object
-    '''
-
-    @wraps(func)
-    def wrapper(obj):
-        func(obj)
-        return obj
-    return wrapper
+        hashes = p.map(Image.dhash, paths)
+    return hashes
 
 
-class Image():
-    '''Class that represents images'''
+class Image:
+    '''Class representing images'''
 
-    def __init__(self, path: ImagePath, dhash: Optional[Hash] = None,
-                 difference: Distance = 0, thumbnail: Any = None) -> None:
+    def __init__(self, path: ImagePath, dhash: Hash) -> None:
         self.path = path
-        # Difference between the image's hash and the 1st
-        # image's hash in the group
-        self.difference = difference
         self.hash = dhash
-        self.thumbnail = thumbnail
+        # Difference between the hash of the image
+        # and the hash of the 1st image in the group
+        self.difference = 0
+        self.thumbnail = None
         self.suffix: Suffix = Path(path).suffix # '.jpg', '.png', etc.
         self.size: FileSize = None
         self.width: Width = None
         self.height: Height = None
 
-    @return_obj
-    def dhash(self) -> Optional[Hash]:
-        '''Calculate the perceptual hash of the image using 'dhash' library
+    @staticmethod
+    def dhash(path: ImagePath) -> Optional[Hash]:
+        '''Calculate the perceptual hash of the image using lib "dhash"
 
+        :param path: path of an image,
         :return: the hash of the image or None if there's any problem
         '''
 
         try:
-            image = PILImage.open(self.path)
+            image = PILImage.open(path)
         except OSError:
-            self.hash = None
-        #except UnboundLocalError as e:
-            # Sometimes UnboundLocalError in PIL/JpegImagePlugin.py
-            # happens with some images. Should be fixed in PIL 6.1.0.
-            # Till then these images are not processed
-            #print(e, self.path)
-            #self.hash = None
+            dhash = None
         else:
-            self.hash = dhash.dhash_int(image)
-        return self.hash
+            dhash = dhashlib.dhash_int(image)
+        return dhash
 
     def dimensions(self) -> Tuple[Width, Height]:
         '''Return the dimensions of the image
 
-        :return: tuple with the image's width and height,
+        :return: tuple with width and height of the image,
         :raise OSError: any problem while opening the image
         '''
 
@@ -297,6 +282,9 @@ class Image():
         :raise ValueError: :size_format: is not amongst the allowed values
         '''
 
+        if size_format not in (0, 1, 2):
+            raise ValueError('Wrong size format')
+
         if self.size is None:
             try:
                 image_size = os.path.getsize(self.path)
@@ -306,13 +294,13 @@ class Image():
                 self.size = image_size
 
         if size_format == 0:
-            return self.size
+            filesize = self.size
         if size_format == 1:
-            return round(self.size / 1024, 1)
+            filesize = round(self.size / 1024, 1)
         if size_format == 2:
-            return round(self.size / (1024**2), 1)
+            filesize = round(self.size / (1024**2), 1)
 
-        raise ValueError('Wrong size format')
+        return filesize
 
     def delete(self) -> None:
         '''Delete the image from the disk
@@ -328,7 +316,7 @@ class Image():
     def move(self, dst: FolderPath) -> None:
         r'''Move the image to a new directory
 
-        :param dst: new location, eg. '/new/location/' or 'C:\location',
+        :param dst: new location, eg. "/new/location/" or "C:\location",
         :raise OSError: the file does not exist, is a folder,
                         :dst: exists, etc.
         '''
@@ -355,7 +343,7 @@ class Image():
         try:
             path.rename(new_name)
         except FileExistsError as e:
-            raise FileExistsError(f"File with name '{name}' already exists")
+            raise FileExistsError(f'File with name "{name}" already exists')
         else:
             self.path = str(new_name)
 
@@ -373,10 +361,10 @@ class Image():
 class Sort:
     '''Custom sort for duplicate images (already grouped)'''
 
-    def __init__(self, image_groups: List[Group]):
+    def __init__(self, image_groups: Iterable[Group]) -> None:
         self.image_groups = image_groups
 
-    def sort(self, sort_type: int) -> None:
+    def sort(self, sort_type: int = 0) -> None:
         '''Sort duplicate image groups
 
         :param sort_type: 0 - sort by similarity rate
@@ -415,7 +403,7 @@ class Sort:
             group.sort(key=lambda img: img.path)
 
     @staticmethod
-    def _dimensions_product(image: HashedImage) -> int:
+    def _dimensions_product(image: Image) -> int:
         width, height = image.dimensions()
         return width * height
 
@@ -432,10 +420,8 @@ Width = int # Width of a image
 Height = int # Height of a image
 FileSize = Union[int, float] # Size of a file
 SizeFormat = int # Units of file size (one of {0, 1, 2})
-NoneImage = Image # Image whose hash is None
-HashedImage = Image # Image whose hash is not None
 Cache = Dict[ImagePath, Hash] # Cache containing image hashes
-Group = List[HashedImage] # Group of similar images
+Group = List[Image] # Group of similar images
 
 T = TypeVar('T')
 
@@ -448,43 +434,37 @@ if __name__ == '__main__':
     print('It might take some time, Be patient')
     print('------------------------')
 
-    msg = "Type the folder's path you want to find duplicate images in\n"
+    msg = 'Type the path of the folder you want to find duplicate images in\n'
     folders = input(msg)
     msg = ('Type the searching sensitivity (a value '
-           'between 0 and 50 is recommended)\n')
+           'between 0 and 20 is recommended)\n')
     sensitivity = input(msg)
     print('------------------------')
 
-    try:
-        paths = find_images([folders])
-    except ValueError as e:
-        print(e)
+    paths = find_images([folders])
     print(f'There are {len(paths)} images in the folder')
 
-    try:
-        cached_hashes = load_cache()
-    except EOFError as e:
-        print(e)
-        print('Delete (back up if needed) the corrupted (or empty) ',
-              'cache file and run the script again')
-
-    cached, not_cached = check_cache(paths, cached_hashes)
+    cache = load_cache()
+    not_cached = check_cache(paths, cache)
     print(f'{len(paths)-len(not_cached)} images have been found in the cache')
 
     print('Starting to calculate hashes...')
     if not_cached:
-        calculated = hashes_calculating(not_cached)
-        calculated = [image for image in calculated if image.hash is not None]
-        caching(calculated, cached_hashes)
-        cached.extend(calculated)
+        hashes = calculating(not_cached)
+        cache = extend_cache(cache, not_cached, hashes)
+        save_cache(cache)
     print('All the hashes have been calculated')
 
+    images = [Image(path, cache[path]) for path in paths if path in cache]
+
     print('Starting to compare images...')
-    try:
-        image_groups = image_grouping(cached, int(sensitivity))
-    except TypeError as e:
-        print(e)
+    image_groups = image_grouping(images, int(sensitivity))
     print(f'{len(image_groups)} duplicate image groups have been found')
+
+    print('Sorting the images by similarity rate in descending order...')
+    s = Sort(image_groups)
+    s.sort()
+    print('Done')
     print('------------------------')
 
     for i, group in enumerate(image_groups):
