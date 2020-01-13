@@ -1,4 +1,4 @@
-'''Copyright 2019 Maxim Shpak <maxim.shpak@posteo.uk>
+'''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
 This file is part of Doppelgänger.
 
@@ -19,9 +19,9 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 import logging
 from unittest import TestCase, mock
 
-from PyQt5 import QtCore, QtGui, QtTest, QtWidgets
+from PyQt5 import QtCore, QtTest, QtWidgets
 
-from doppelganger import config, core, exception, mainwindow, processing
+from doppelganger import exception, processing, signals
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -38,433 +38,591 @@ if app is None:
 
 # pylint: disable=unused-argument,missing-class-docstring,protected-access
 
+CORE = 'doppelganger.core.'
+PROCESSING = 'doppelganger.processing.'
 
-class TestThumbnailFunction(TestCase):
+
+class TestFuncThumbnailFunc(TestCase):
 
     def setUp(self):
-        self.image = core.Image('image.png')
+        self.img = mock.Mock()
+        self.img.path = 'path'
+        self.img.suffix = '.png'
+        self.size = 222
 
-    @mock.patch('doppelganger.processing._scaling_dimensions', side_effect=OSError)
-    def test_thumbnail_returns_None_if_OSError(self, mock_dim):
-        th = processing.thumbnail(self.image)
+        self.w, self.h = 111, 111
+        self.DIM = PROCESSING + '_scaling_dimensions'
+        self.IMG = PROCESSING + '_scaled_image'
+        self.BA = PROCESSING + '_QImage_to_QByteArray'
 
-        self.assertIsNone(th)
+    def test_scaling_dimensions_called_with_image_and_size_args(self):
+        with mock.patch(self.DIM, return_value=(self.w, self.h)) as mock_dim:
+            with mock.patch(self.IMG):
+                with mock.patch(self.BA):
+                    processing.thumbnail(self.img, self.size)
 
-    @mock.patch('doppelganger.processing._scaling_dimensions', side_effect=OSError)
-    def test_thumbnail_logs_errors(self, mock_dim):
-        with self.assertLogs('main.processing', 'ERROR'):
-            processing.thumbnail(self.image)
+        mock_dim.assert_called_once_with(self.img, self.size)
 
-    @mock.patch('doppelganger.processing._scaled_image', return_value=None)
-    @mock.patch('doppelganger.processing._scaling_dimensions', return_value=(1, 1))
-    def test_thumbnail_returns_None_if_scaled_image_is_None(self, mock_dim, mock_scaled):
-        th = processing.thumbnail(self.image)
+    def test_args_scaled_image_called_with(self):
+        with mock.patch(self.DIM, return_value=(self.w, self.h)):
+            with mock.patch(self.IMG) as mock_scaled_img:
+                with mock.patch(self.BA):
+                    processing.thumbnail(self.img, self.size)
 
-        self.assertIsNone(th)
+        mock_scaled_img.assert_called_once_with(self.img.path, self.w, self.h)
 
-    @mock.patch('doppelganger.processing._QImage_to_QByteArray', return_value='return')
-    @mock.patch('doppelganger.processing._scaled_image', return_value='image')
-    @mock.patch('doppelganger.processing._scaling_dimensions', return_value=(1, 1))
-    def test_thumbnail_returns_QImage_to_QByteArray_result(self, mock_dim, mock_scaled, mock_QBA):
-        th = processing.thumbnail(self.image)
+    def test_args_QImage_to_QByteArray_called_with(self):
+        qimage = 'image'
+        with mock.patch(self.DIM, return_value=(self.w, self.h)):
+            with mock.patch(self.IMG, return_value=qimage):
+                with mock.patch(self.BA) as mock_ba:
+                    processing.thumbnail(self.img, self.size)
 
-        self.assertEqual(th, 'return')
+        mock_ba.assert_called_once_with(qimage, 'PNG')
 
-    def test_scaling_dimensions_raises_ValueError_if_pass_not_positive(self):
-        for size in (-1, 0):
-            with self.assertRaises(ValueError):
-                processing._scaling_dimensions(self.image, size)
+    def test_return_QImage_to_QByteArray_result(self):
+        ba_image = 'QByteArray_image'
+        with mock.patch(self.DIM, return_value=(self.w, self.h)):
+            with mock.patch(self.IMG):
+                with mock.patch(self.BA, return_value=ba_image):
+                    res = processing.thumbnail(self.img, self.size)
 
-    @mock.patch('doppelganger.core.Image.dimensions', side_effect=OSError)
-    def test_scaling_dimensions_raises_OSError(self, mock_dim):
-        with self.assertRaises(OSError):
-            processing._scaling_dimensions(self.image, 1)
+        self.assertEqual(res, ba_image)
 
-    @mock.patch('doppelganger.core.Image.dimensions')
-    def test_scaling_dimensions_return_if_pass_square_image(self, mock_dim):
-        w, h = 5, 5
-        mock_dim.return_value = (w, h)
-        new_size = processing._scaling_dimensions(self.image, w*2)
+    def test_log_error_if_raise_OSError(self):
+        with mock.patch(self.DIM, side_effect=OSError):
+            with self.assertLogs('main.processing', 'ERROR'):
+                processing.thumbnail(self.img, self.size)
 
-        self.assertEqual(new_size[0], w*2)
-        self.assertEqual(new_size[1], h*2)
+    def test_log_error_if_raise_ThumbnailError(self):
+        with mock.patch(self.DIM, return_value=(self.w, self.h)):
+            with mock.patch(self.IMG, side_effect=exception.ThumbnailError):
+                with self.assertLogs('main.processing', 'ERROR'):
+                    processing.thumbnail(self.img, self.size)
 
-    @mock.patch('doppelganger.core.Image.dimensions')
-    def test_scaling_dimensions_return_if_pass_portrait_image(self, mock_dim):
-        w, h = 1, 5
-        mock_dim.return_value = (w, h)
-        new_size = processing._scaling_dimensions(self.image, h*2)
+    def test_return_None_if_raise_OSError(self):
+        with mock.patch(self.DIM, side_effect=OSError):
+            res = processing.thumbnail(self.img, self.size)
 
-        self.assertEqual(new_size[0], w*2)
-        self.assertEqual(new_size[1], h*2)
+        self.assertIsNone(res)
 
-    @mock.patch('doppelganger.core.Image.dimensions')
-    def test_scaling_dimensions_return_if_pass_landscape_image(self, mock_dim):
-        w, h = 5, 1
-        mock_dim.return_value = (w, h)
-        new_size = processing._scaling_dimensions(self.image, w*2)
+    def test_return_None_if_raise_ThumbnailError(self):
+        with mock.patch(self.DIM, return_value=(self.w, self.h)):
+            with mock.patch(self.IMG, side_effect=exception.ThumbnailError):
+                res = processing.thumbnail(self.img, self.size)
 
-        self.assertEqual(new_size[0], w*2)
-        self.assertEqual(new_size[1], h*2)
+        self.assertIsNone(res)
 
-    @mock.patch('PyQt5.QtGui.QImageReader.canRead', return_value=False)
-    def test_scaled_image_returns_None_if_canRead_returns_False(self, mock_read):
-        th = processing._scaled_image(self.image.path, 10, 10)
-        self.assertIsNone(th)
+class TestFuncScalingDimensionsFunc(TestCase):
 
-    @mock.patch('PyQt5.QtGui.QImageReader.canRead', return_value=False)
-    def test_scaled_images_logs_errors_if_canRead_returns_False(self, mock_read):
-        with self.assertLogs('main.processing', 'ERROR'):
-            processing._scaled_image(self.image.path, 10, 10)
+    def setUp(self):
+        self.mock_image = mock.Mock()
 
-    @mock.patch('PyQt5.QtGui.QImage.isNull', return_value=True)
-    @mock.patch('PyQt5.QtGui.QImageReader.canRead', return_value=True)
-    def test_scaled_image_returns_None_if_isNull_returns_False(self, mock_canRead, mock_isNull):
-        th = processing._scaled_image(self.image.path, 10, 10)
+    def test_return_if_pass_square_image(self):
+        self.mock_image.dimensions.return_value = (5, 5)
+        new_size = processing._scaling_dimensions(self.mock_image, 10)
 
-        self.assertIsNone(th)
+        self.assertEqual(new_size[0], 10)
+        self.assertEqual(new_size[1], 10)
 
-    @mock.patch('PyQt5.QtGui.QImage.isNull', return_value=True)
-    @mock.patch('PyQt5.QtGui.QImageReader.canRead', return_value=True)
-    def test_scaled_image_logs_errors_if_isNull_returns_False(self, mock_canRead, mock_isNull):
-        with self.assertLogs('main.processing', 'ERROR'):
-            processing._scaled_image(self.image.path, 10, 10)
+    def test_return_if_pass_portrait_image(self):
+        self.mock_image.dimensions.return_value = (1, 5)
+        new_size = processing._scaling_dimensions(self.mock_image, 10)
 
-    @mock.patch('PyQt5.QtGui.QImage.isNull', return_value=False)
-    @mock.patch('PyQt5.QtGui.QImageReader.canRead', return_value=True)
-    def test_scaled_image_returns_QImage_object(self, mock_canRead, mock_isNull):
-        th = processing._scaled_image(self.image.path, 10, 10)
+        self.assertEqual(new_size[0], 2)
+        self.assertEqual(new_size[1], 10)
 
-        self.assertIsInstance(th, QtGui.QImage)
+    def test_return_if_pass_landscape_image(self):
+        self.mock_image.dimensions.return_value = (5, 1)
+        new_size = processing._scaling_dimensions(self.mock_image, 10)
 
-    @mock.patch('PyQt5.QtCore.QBuffer.open', return_value=False)
-    def test_QImage_to_QByteArray_returns_None_if_open_returns_False(self, mock_open):
-        ba = processing._QImage_to_QByteArray(QtGui.QImage(), 'png')
-
-        self.assertIsNone(ba)
-
-    @mock.patch('PyQt5.QtCore.QBuffer.open', return_value=False)
-    def test_QImage_to_QByteArray_logs_errors_if_open_returns_False(self, mock_open):
-        with self.assertLogs('main.processing', 'ERROR'):
-            processing._QImage_to_QByteArray(QtGui.QImage(), 'png')
-
-    @mock.patch('PyQt5.QtGui.QImage.save', return_value=False)
-    def test_QImage_to_QByteArray_returns_None_if_save_returns_False(self, mock_save):
-        ba = processing._QImage_to_QByteArray(QtGui.QImage(), 'png')
-
-        self.assertIsNone(ba)
-
-    @mock.patch('PyQt5.QtGui.QImage.save', return_value=False)
-    def test_QImage_to_QByteArray_logs_errors_if_save_returns_False(self, mock_save):
-        with self.assertLogs('main.processing', 'ERROR'):
-            processing._QImage_to_QByteArray(QtGui.QImage(), 'png')
-
-    @mock.patch('PyQt5.QtGui.QImage.save', return_value=True)
-    @mock.patch('PyQt5.QtCore.QBuffer.open', return_value=True)
-    def test_QImage_to_QByteArray_returns_QByteArray(self, mock_open, mock_save):
-        ba = processing._QImage_to_QByteArray(QtGui.QImage(), 'png')
-
-        self.assertIsInstance(ba, QtCore.QByteArray)
+        self.assertEqual(new_size[0], 10)
+        self.assertEqual(new_size[1], 2)
 
 
-class TestSimilarityRateFunc(TestCase):
+class TestFuncScaledImageFunc(TestCase):
+
+    def setUp(self):
+        self.path = 'path'
+        self.width = 1
+        self.height = 2
+
+        self.QIR = 'PyQt5.QtGui.QImageReader'
+        self.reader = mock.Mock()
+        self.reader.canRead.return_value = True
+        self.image = mock.Mock()
+        self.image.isNull.return_value = False
+        self.reader.read.return_value = self.image
+
+    def test_QImageReader_called_with_path_arg(self):
+        with mock.patch(self.QIR, return_value=self.reader) as mock_QIR:
+            processing._scaled_image(self.path, self.width, self.height)
+
+        mock_QIR.assert_called_once_with(self.path)
+
+    def test_format_from_content(self):
+        from_content = self.reader.setDecideFormatFromContent
+        with mock.patch(self.QIR, return_value=self.reader):
+            processing._scaled_image(self.path, self.width, self.height)
+
+        from_content.assert_called_once_with(True)
+
+    def test_scaling_size_set(self):
+        with mock.patch(self.QIR, return_value=self.reader):
+            processing._scaled_image(self.path, self.width, self.height)
+
+        self.reader.setScaledSize.assert_called_once()
+
+    def test_raise_ThumbnailError_if_canRead_False(self):
+        self.reader.canRead.return_value = False
+        with mock.patch(self.QIR, return_value=self.reader):
+            with self.assertRaises(exception.ThumbnailError):
+                processing._scaled_image(self.path, self.width, self.height)
+
+    def test_return_image_if_isNull_False(self):
+        with mock.patch(self.QIR, return_value=self.reader):
+            res = processing._scaled_image(self.path, self.width, self.height)
+
+        self.assertEqual(res, self.image)
+
+    def test_raise_ThumbnailError_if_isNull_True(self):
+        self.image.isNull.return_value = True
+        with mock.patch(self.QIR, return_value=self.reader):
+            with self.assertRaises(exception.ThumbnailError):
+                processing._scaled_image(self.path, self.width, self.height)
+
+
+class TestFuncQImageToQByteArrayFunc(TestCase):
+
+    def setUp(self):
+        self.img = mock.Mock()
+        self.ba = mock.Mock()
+        self.buf = mock.Mock()
+        self.buf.open.return_value = True
+        self.img.save.return_value = True
+
+        self.BUF = 'PyQt5.QtCore.QBuffer'
+        self.BA = 'PyQt5.QtCore.QByteArray'
+
+    def test_QBuffer_called_with_QByteArray_arg(self):
+        with mock.patch(self.BA, return_value=self.ba):
+            with mock.patch(self.BUF, return_value=self.buf) as mock_buf:
+                processing._QImage_to_QByteArray(self.img, 'PNG')
+
+        mock_buf.assert_called_once_with(self.ba)
+
+    def test_QBuffer_open_called_with_WriteOnly(self):
+        with mock.patch(self.BA, return_value=self.ba):
+            with mock.patch(self.BUF, return_value=self.buf):
+                processing._QImage_to_QByteArray(self.img, 'PNG')
+
+        self.buf.open.assert_called_once_with(QtCore.QIODevice.WriteOnly)
+
+    def test_raise_ThumbnailError_if_QByteArray_open_return_False(self):
+        self.buf.open.return_value = False
+        with mock.patch(self.BA, return_value=self.ba):
+            with mock.patch(self.BUF, return_value=self.buf):
+                with self.assertRaises(exception.ThumbnailError):
+                    processing._QImage_to_QByteArray(self.img, 'PNG')
+
+    def test_args_QImage_save_called_with(self):
+        with mock.patch(self.BA, return_value=self.ba):
+            with mock.patch(self.BUF, return_value=self.buf):
+                processing._QImage_to_QByteArray(self.img, 'PNG')
+
+        self.img.save.assert_called_once_with(self.buf, 'PNG', 100)
+
+    def test_raise_ThumbnailError_if_QImage_save_return_False(self):
+        self.img.save.return_value = False
+        with mock.patch(self.BA, return_value=self.ba):
+            with mock.patch(self.BUF, return_value=self.buf):
+                with self.assertRaises(exception.ThumbnailError):
+                    processing._QImage_to_QByteArray(self.img, 'PNG')
+
+    def test_QBuffer_closed(self):
+        with mock.patch(self.BA, return_value=self.ba):
+            with mock.patch(self.BUF, return_value=self.buf):
+                processing._QImage_to_QByteArray(self.img, 'PNG')
+
+        self.buf.close.assert_called_once_with()
+
+    def test_return_iamge_in_QByteArray_format(self):
+        with mock.patch(self.BA, return_value=self.ba):
+            with mock.patch(self.BUF, return_value=self.buf):
+                res = processing._QImage_to_QByteArray(self.img, 'PNG')
+
+        self.assertEqual(res, self.ba)
+
+
+class TestFuncSimilarityRate(TestCase):
+
+    def setUp(self):
+        self.img_group = [[mock.Mock()]]
+        self.img = self.img_group[0][0]
 
     def test_similarity_rate_100(self):
-        img_group = [[core.Image('test', difference=0)]]
-        processing.similarity_rate(img_group)
+        self.img.difference = 0
+        processing.similarity_rate(self.img_group)
 
-        self.assertEqual(img_group[0][0].difference, 100)
+        self.assertEqual(self.img.difference, 100)
 
     def test_similarity_rate_0(self):
-        img_group = [[core.Image('test', difference=128)]]
-        processing.similarity_rate(img_group)
+        self.img.difference = 128
+        processing.similarity_rate(self.img_group)
 
-        self.assertEqual(img_group[0][0].difference, 0)
+        self.assertEqual(self.img.difference, 0)
 
     def test_similarity_rate(self):
-        img_group = [[core.Image('test', difference=64)]]
-        processing.similarity_rate(img_group)
+        self.img.difference = 64
+        processing.similarity_rate(self.img_group)
 
-        self.assertEqual(img_group[0][0].difference, 50)
+        self.assertEqual(self.img.difference, 50)
 
 
-class TestImageProcessingClass(TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.mw = mainwindow.MainWindow()
+class TestClassImageProcessing(TestCase):
 
     def setUp(self):
-        self.CONF = {
-            'size': 200,
-            'show_similarity': True,
-            'show_size': True,
-            'show_path': True,
-            'sort': 0,
-            'delete_dirs': False,
-            'size_format': 1,
-            'subfolders': True,
-            'close_confirmation': False,
-        }
-        self.im_pr = processing.ImageProcessing(self.mw.signals, [], 0, self.CONF)
+        self.mw_signals = signals.Signals()
+        self.folders = []
+        self.sensitivity = 0
+        self.CONF = {'sort': 0,
+                     'subfolders': True,
+                     'size': 200}
+        self.proc = processing.ImageProcessing(self.mw_signals, self.folders,
+                                               self.sensitivity, self.CONF)
 
-    def test_attributes_initial_values(self):
-        self.assertListEqual(self.im_pr.folders, [])
-        self.assertEqual(self.im_pr.sensitivity, 0)
-        self.assertFalse(self.im_pr.interrupt)
-        self.assertFalse(self.im_pr.errors)
-        self.assertEqual(self.im_pr.progress_bar_value, 0.0)
-        self.assertEqual(self.CONF, self.im_pr.conf)
 
-    @mock.patch('doppelganger.processing.change_size')
-    def test_init_call_change_size(self, mock_ch):
-        conf = {'size': 555}
-        processing.ImageProcessing(self.mw.signals, [], 0, conf)
+class TestMethodInit(TestClassImageProcessing):
 
-        mock_ch.assert_called_once()
+    def test_attrs_initial_values(self):
+        self.assertListEqual(self.proc.folders, [])
+        self.assertEqual(self.proc.sensitivity, 0)
+        self.assertFalse(self.proc.interrupt)
+        self.assertFalse(self.proc.errors)
+        self.assertEqual(self.proc.progress_bar_value, 0.0)
+        self.assertEqual(self.CONF, self.proc.conf)
 
-    @mock.patch('doppelganger.processing.core.find_images', return_value='paths')
-    def test_find_images_return(self, mock_paths):
-        p = self.im_pr.find_images([])
 
-        self.assertEqual(p, 'paths')
+class TestMethodFindImages(TestClassImageProcessing):
 
-    @mock.patch('doppelganger.processing.core.find_images', side_effect=ValueError)
-    def test_find_images_raise_ValueError(self, mock_exists):
+    @mock.patch(CORE+'find_images')
+    def test_args_core_find_images_called_with(self, mock_find):
+        self.proc._find_images()
+
+        mock_find.assert_called_once_with(self.folders,
+                                          self.CONF['subfolders'])
+
+    @mock.patch(CORE+'find_images', return_value=['path'])
+    def test_return_core_find_images_result(self, mock_paths):
+        res = self.proc._find_images()
+
+        self.assertListEqual(res, ['path'])
+
+    @mock.patch(CORE+'find_images', side_effect=ValueError)
+    def test_raise_ValueError_if_core_find_images_ValueError(self, mock_find):
         with self.assertRaises(ValueError):
-            self.im_pr.find_images([])
+            self.proc._find_images()
 
-    def test_find_images_emits_update_info_signal(self):
-        spy = QtTest.QSignalSpy(self.im_pr.signals.update_info)
+    @mock.patch(CORE+'find_images', return_value=['path'])
+    def test_emits_update_info_signal_with_loaded_images_arg(self, mock_find):
+        spy = QtTest.QSignalSpy(self.proc.signals.update_info)
+        self.proc._find_images()
 
-        p = self.im_pr.find_images([])
-
+        self.assertEqual(len(spy), 1)
         self.assertEqual(spy[0][0], 'loaded_images')
-        self.assertEqual(spy[0][1], str(len(p)))
+        self.assertEqual(spy[0][1], '1')
 
-    def test_find_images_updates_progress_bar_value(self):
-        self.im_pr.find_images([])
+    @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
+    @mock.patch(CORE+'find_images')
+    def test_update_progress_bar_called_with_5(self, mock_find, mock_bar):
+        self.proc._find_images()
 
-        self.assertEqual(self.im_pr.progress_bar_value, 5)
+        mock_bar.assert_called_once_with(5)
 
-    @mock.patch('doppelganger.processing.core.load_cache', return_value='cache')
-    def test_load_cache_return(self, mock_cache):
-        c = self.im_pr.load_cache()
 
-        self.assertEqual(c, 'cache')
+class TestMethodLoadCache(TestClassImageProcessing):
 
-    @mock.patch('doppelganger.processing.core.load_cache', side_effect=EOFError)
-    def test_load_cache_return_empty_dict_if_EOFError(self, mock_cache):
-        c = self.im_pr.load_cache()
+    @mock.patch(CORE+'load_cache', return_value={'path': 'hash'})
+    def test_return_core_load_cache_result(self, mock_cache):
+        res = self.proc._load_cache()
 
-        self.assertDictEqual(c, {})
+        self.assertEqual(res, {'path': 'hash'})
 
-    def test_load_cache_updates_progress_bar_value(self):
-        self.im_pr.load_cache()
+    @mock.patch(CORE+'load_cache', side_effect=EOFError)
+    def test_return_empty_dict_if_core_load_cache_EOFErrores(self, mock_cache):
+        res = self.proc._load_cache()
 
-        self.assertEqual(self.im_pr.progress_bar_value, 10)
+        self.assertDictEqual(res, {})
 
-    @mock.patch('doppelganger.processing.core.check_cache', return_value=('cached', 'not_cached'))
-    def test_check_cache_return(self, mock_check):
-        c, n = self.im_pr.check_cache([], {})
+    @mock.patch(CORE+'load_cache', side_effect=OSError)
+    def test_raise_OSError_if_core_load_cache_EOFErrores(self, mock_cache):
+        with self.assertRaises(OSError):
+            self.proc._load_cache()
 
-        self.assertEqual(c, 'cached')
-        self.assertEqual(n, 'not_cached')
+    @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
+    @mock.patch(CORE+'load_cache')
+    def test_update_progress_bar_called_with_10(self, mock_find, mock_bar):
+        self.proc._load_cache()
 
-    def test_check_cache_emits_update_info_signal(self):
-        spy = QtTest.QSignalSpy(self.im_pr.signals.update_info)
+        mock_bar.assert_called_once_with(10)
 
-        c, _ = self.im_pr.check_cache([], {})
 
+class TestMethodCheckCache(TestClassImageProcessing):
+
+    def setUp(self):
+        super().setUp()
+
+        self.paths = ['path']
+        self.cache = {'path': 'hash'}
+
+    @mock.patch(CORE+'check_cache')
+    def test_core_check_cache_called_with_paths_and_cache_args(self, mock_ch):
+        self.proc._check_cache(self.paths, self.cache)
+
+        mock_ch.assert_called_once_with(self.paths, self.cache)
+
+    @mock.patch(CORE+'check_cache', return_value=['not_cached'])
+    def test_return_core_check_cache_result(self, mock_ch):
+        res = self.proc._check_cache(self.paths, self.cache)
+
+        self.assertEqual(res, ['not_cached'])
+
+    @mock.patch(CORE+'check_cache', return_value=['not_cached'])
+    def test_emits_update_info_signal_with_found_in_cache_arg(self, mock_ch):
+        spy = QtTest.QSignalSpy(self.proc.signals.update_info)
+        self.proc._check_cache(self.paths, self.cache)
+
+        self.assertEqual(len(spy), 1)
         self.assertEqual(spy[0][0], 'found_in_cache')
-        self.assertEqual(spy[0][1], str(len(c)))
+        self.assertEqual(spy[0][1], '0')
 
-    @mock.patch('doppelganger.processing.core.check_cache', return_value=('', 'not_cached'))
-    def test_check_cache_updates_progress_bar_value_if_not_cached_not_empty(self, mock_check):
-        self.im_pr.check_cache([], {})
+    @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
+    @mock.patch(CORE+'check_cache', return_value=['not_cached'])
+    def test_update_progress_bar_called_with_15_if_not_cached(self, mock_ch,
+                                                              mock_bar):
+        self.proc._check_cache(self.paths, self.cache)
 
-        self.assertEqual(self.im_pr.progress_bar_value, 15)
+        mock_bar.assert_called_once_with(15)
 
-    def test_check_cache_updates_progress_bar_value_if_not_cached_empty(self):
-        self.im_pr.check_cache([], {})
+    @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
+    @mock.patch(CORE+'check_cache', return_value=[])
+    def test_update_progress_bar_called_with_55_if_cached(self, mock_ch,
+                                                          mock_bar):
+        self.proc._check_cache(self.paths, self.cache)
 
-        self.assertEqual(self.im_pr.progress_bar_value, 55)
+        mock_bar.assert_called_once_with(55)
 
-    @mock.patch('doppelganger.processing.ImageProcessing._imap', return_value='calculated')
-    def test_hashes_calculating_return(self, mock_calc):
-        calc_res = [core.Image('a', dhash=0), core.Image('a', dhash=None)]
-        mock_calc.return_value = calc_res
-        c = self.im_pr.hashes_calculating([])
 
-        self.assertListEqual(c, calc_res[:1])
+class TestMethodExtendCache(TestClassImageProcessing):
 
-    @mock.patch('doppelganger.processing.ImageProcessing._imap', return_value='calculated')
-    def test_hashes_calculating_logs_if_hash_is_None(self, mock_calc):
-        calc_res = [core.Image('a', dhash=None)]
-        mock_calc.return_value = calc_res
+    def setUp(self):
+        super().setUp()
+
+        self.cache = {'path': 'hash'}
+        self.paths = ['path2']
+        self.hashes = ['hash2']
+
+    def test_hash_added_to_cache_if_it_is_not_None(self):
+        res = self.proc._extend_cache(self.cache, self.paths, self.hashes)
+
+        self.assertDictEqual(res, {'path': 'hash', 'path2': 'hash2'})
+
+    def test_log_error_if_hash_is_None(self):
         with self.assertLogs('main.processing', 'ERROR'):
-            self.im_pr.hashes_calculating([])
+            self.proc._extend_cache(self.cache, self.paths, [None])
 
-        self.assertTrue(self.im_pr.errors)
+    def test_set_error_attr_to_True_if_hash_is_None(self):
+        self.proc._extend_cache(self.cache, self.paths, [None])
 
-    @mock.patch('doppelganger.processing.core.caching')
-    def test_caching_core_func_called(self, mock_caching):
-        self.im_pr.caching([], {})
+        self.assertTrue(self.proc.errors)
 
-        self.assertTrue(mock_caching.called)
+    @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
+    def test_update_progress_bar_called_with_55(self, mock_bar):
+        self.proc._extend_cache(self.cache, self.paths, self.hashes)
 
-    @mock.patch('doppelganger.processing.core.caching')
-    def test_caching_updates_progress_bar(self, mock_caching):
-        '''Use patch here so 'core.caching_images' isn't
-        called and doesn't mess up our real cache (if exists)
-        '''
+        mock_bar.assert_called_once_with(55)
 
-        self.im_pr.caching([], {})
 
-        self.assertEqual(self.im_pr.progress_bar_value, 55)
+class TestMethodImageGrouping(TestClassImageProcessing):
 
-    @mock.patch('doppelganger.processing.core.image_grouping', return_value='groups')
-    def test_grouping_return(self, mock_group):
-        g = self.im_pr.grouping([], 0)
+    def setUp(self):
+        super().setUp()
 
-        self.assertEqual(g, 'groups')
+        self.imgs = ['img']
 
-    def test_grouping_emits_update_info_signal(self):
-        spy = QtTest.QSignalSpy(self.im_pr.signals.update_info)
+    @mock.patch(CORE+'image_grouping')
+    def test_args_core_image_grouping_called_with(self, mock_group):
+        self.proc._image_grouping(self.imgs)
 
-        g = self.im_pr.grouping([], 0)
+        mock_group.assert_called_once_with(self.imgs, self.proc.sensitivity)
+
+    @mock.patch(CORE+'image_grouping', return_value=[['img']])
+    def test_return_core_image_grouping_result(self, mock_group):
+        res = self.proc._image_grouping(self.imgs)
+
+        self.assertEqual(res, [['img']])
+
+    @mock.patch(CORE+'image_grouping', return_value=[['img1', 'img2']])
+    def test_emits_update_info_signal_with_proper_args(self, mock_group):
+        spy = QtTest.QSignalSpy(self.proc.signals.update_info)
+        self.proc._image_grouping(self.imgs)
 
         self.assertEqual(spy[0][0], 'image_groups')
-        self.assertEqual(spy[0][1], str(len(g)))
+        self.assertEqual(spy[0][1], '1')
         self.assertEqual(spy[1][0], 'duplicates')
-        self.assertEqual(spy[1][1], str(len(g)))
+        self.assertEqual(spy[1][1], '2')
 
-    def test_grouping_updates_progress_bar(self):
-        self.im_pr.grouping([], 0)
+    @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
+    @mock.patch(CORE+'image_grouping')
+    def test_update_progress_bar_called_with_65(self, mock_group, mock_bar):
+        self.proc._image_grouping(self.imgs)
 
-        self.assertEqual(self.im_pr.progress_bar_value, 65)
+        mock_bar.assert_called_once_with(65)
 
-    def test_make_thumbnails_if_pass_empty_image_groups(self):
-        g = self.im_pr.make_thumbnails([])
 
-        self.assertListEqual(g, [])
+class TestMethodMakeThumbnails(TestClassImageProcessing):
 
-    @mock.patch('doppelganger.processing.ImageProcessing._imap')
-    def test_make_thumbnails_emit_result(self, mock_thumbs):
-        image_groups = [[core.Image(path=f'{i}{j}') for j in range(2)]
-                        for i in range(2)]
-        thumbnails = [i for i in range(4)]
-        mock_thumbs.return_value = thumbnails
+    def setUp(self):
+        super().setUp()
 
-        result = self.im_pr.make_thumbnails(image_groups)
+        self.img_groups = [[mock.Mock()], [mock.Mock()]]
 
-        k = 0
-        for i, group in enumerate(result):
-            for j, image in enumerate(group):
-                self.assertEqual(image.path, image_groups[i][j].path)
-                self.assertEqual(image.thumbnail, thumbnails[k])
-                k += 1
+    @mock.patch(PROCESSING+'ImageProcessing._imap')
+    def test_args_imap_called_with(self, mock_imap):
+        self.proc._make_thumbnails(self.img_groups)
 
-    def test_is_interrupted_called_when_signal_emitted(self):
-        self.mw.signals.interrupted.emit()
+        mock_imap.assert_called_once_with(
+            self.proc._thumbnail_args_unpacker,
+            [(self.img_groups[0][0], self.proc.conf['size']),
+             (self.img_groups[1][0], self.proc.conf['size'])],
+            'thumbnails'
+        )
 
-        self.assertTrue(self.im_pr.interrupt)
+    @mock.patch(PROCESSING+'ImageProcessing._imap')
+    def test_return_same_image_groups(self, mock_imap):
+        res = self.proc._make_thumbnails(self.img_groups)
 
-    def test_update_progress_bar(self):
-        value = 5
-        spy = QtTest.QSignalSpy(self.im_pr.signals.update_progressbar)
-        self.im_pr._update_progress_bar(value)
+        self.assertEqual(res[0][0], self.img_groups[0][0])
+        self.assertEqual(res[1][0], self.img_groups[1][0])
 
-        self.assertEqual(self.im_pr.progress_bar_value, value)
-        self.assertEqual(spy[0][0], value)
+    @mock.patch(PROCESSING+'ImageProcessing._imap', return_value=['t1', 't2'])
+    def test_assign_thumbnails_to_image_attrs(self, mock_imap):
+        self.proc._make_thumbnails(self.img_groups)
 
-    def test_imap_returns_empty_list_if_pass_empty_collection(self):
-        result = self.im_pr._imap(len, [], 'label')
+        self.assertEqual(self.img_groups[0][0].thumbnail, 't1')
+        self.assertEqual(self.img_groups[1][0].thumbnail, 't2')
 
-        self.assertListEqual(result, [])
 
-    def test_imap_emits_update_info_signal(self):
-        spy = QtTest.QSignalSpy(self.im_pr.signals.update_info)
+class TestMethodUpdateProgressBar(TestClassImageProcessing):
 
-        label = 'label'
-        collection = ['a']
-        num = len(collection)
-        self.im_pr._imap(len, collection, label)
+    def setUp(self):
+        super().setUp()
 
-        for i in range(0, num+1):
-            self.assertEqual(spy[i][0], label)
-            self.assertEqual(spy[i][1], str(num))
+        self.value = 5
 
-            num -= 1
+    def test_change_progress_bar_value_attr(self):
+        self.proc._update_progress_bar(self.value)
 
-    @mock.patch('doppelganger.processing.ImageProcessing._update_progress_bar')
-    def test_imap_emits_update_progress_bar_calls_number(self, mock_bar):
-        collection = ['a']
-        self.im_pr._imap(len, collection, 'label')
+        self.assertEqual(self.proc.progress_bar_value, self.value)
 
-        self.assertEqual(mock_bar.call_count, len(collection))
+    def test_emit_update_progressbar_signal(self):
+        spy = QtTest.QSignalSpy(self.proc.signals.update_progressbar)
+        self.proc._update_progress_bar(self.value)
 
-    def test_imap_emits_final_progress_bar_value(self):
-        self.im_pr._imap(len, ['a'], 'label')
+        self.assertEqual(spy[0][0], self.value)
 
-        self.assertEqual(self.im_pr.progress_bar_value, 35)
 
-    def test_imap_raises_InterruptProcessing_if_interrupt_True(self):
-        self.im_pr.interrupt = True
-        with self.assertRaises(exception.InterruptProcessing):
-            self.im_pr._imap(len, ['a'], 'label')
+class TestMethodImap(TestClassImageProcessing):
 
-    def test_imap_return(self):
-        result = self.im_pr._imap(len, ['a', 'bb', 'ccc'], 'label')
-        expected = [1, 2, 3]
-        self.assertListEqual(result, expected)
+    def setUp(self):
+        super().setUp()
 
-    @mock.patch('doppelganger.processing.ImageProcessing.find_images')
-    def test_run_if_raise_InterruptProcessing(self, mock):
-        mock.side_effect = exception.InterruptProcessing
-        spy = QtTest.QSignalSpy(self.im_pr.signals.finished)
+        self.func = mock.Mock()
+        self.collection = ['item']
+        self.label = 'label'
 
-        self.im_pr.run()
+        self.mock_Pool = mock.MagicMock()
+        mock_context_obj = mock.Mock()
+        self.mock_Pool.__enter__.return_value = mock_context_obj
+        self.imap_return = ['return' for item in self.collection]
+        mock_context_obj.imap.return_value = self.imap_return
+
+    def test_return_empty_list_if_pass_empty_collection(self):
+        res = self.proc._imap(self.func, [], self.label)
+
+        self.assertListEqual(res, [])
+
+    def test_emit_update_info_with_passed_label_arg(self):
+        spy = QtTest.QSignalSpy(self.proc.signals.update_info)
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
+            self.proc._imap(self.func, self.collection, self.label)
+
+        self.assertEqual(spy[0][0], self.label)
+        self.assertEqual(spy[0][1], '1')
+        self.assertEqual(spy[1][0], self.label)
+        self.assertEqual(spy[1][1], '0')
+
+    @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
+    def test_update_prog_bar_called_with_current_val_plus_step(self, mock_bar):
+        self.proc.progress_bar_value = 21
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
+            self.proc._imap(self.func, self.collection, self.label)
+
+        # step == 35 / len(collection) == 35 in this case
+        mock_bar.assert_called_once_with(56)
+
+    def test_return_imap_result(self):
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
+            res = self.proc._imap(self.func, self.collection, self.label)
+
+        self.assertListEqual(res, self.imap_return)
+
+    def test_raise_InterruptProcessing_if_interrupt_attr_is_True(self):
+        self.proc.interrupt = True
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
+            with self.assertRaises(exception.InterruptProcessing):
+                self.proc._imap(self.func, self.collection, self.label)
+
+
+class TestMethodRun(TestClassImageProcessing):
+
+    def setUp(self):
+        super().setUp()
+
+        self.FIND_IMAGES = PROCESSING+'ImageProcessing._find_images'
+
+    # FUNCTION '_FIND_IMAGES' IS USED IN THESE TESTS JUST
+    # SO WE DO NOT HAVE TO GO THROUGH MAIN BRANCH IN 'TRY'
+    # SINCE WE TEST OTHER BLOCKS
+
+    def test_log_info_if_some_func_raise_InterruptProcessing(self):
+        exc = exception.InterruptProcessing
+        with mock.patch(self.FIND_IMAGES, side_effect=exc):
+            with self.assertLogs('main.processing', 'INFO'):
+                self.proc.run()
+
+    def test_log_error_if_some_func_raise_general_exception(self):
+        with mock.patch(self.FIND_IMAGES, side_effect=Exception):
+            with self.assertLogs('main.processing', 'ERROR'):
+                self.proc.run()
+
+    def test_set_errors_attr_True_if_some_func_raise_general_exception(self):
+        with mock.patch(self.FIND_IMAGES, side_effect=Exception):
+            self.proc.run()
+
+        self.assertTrue(self.proc.errors)
+
+    def test_emit_signal_finished(self):
+        spy = QtTest.QSignalSpy(self.proc.signals.finished)
+        with mock.patch(self.FIND_IMAGES, side_effect=Exception):
+            self.proc.run()
 
         self.assertEqual(len(spy), 1)
 
-    @mock.patch('doppelganger.processing.ImageProcessing.find_images')
-    def test_run_logs_info(self, mock):
-        mock.side_effect = exception.InterruptProcessing
-        with self.assertLogs('main.processing', 'INFO'):
-            self.im_pr.run()
+    def test_emit_signal_error_if_attr_error_is_True(self):
+        self.proc.errors = True
+        spy = QtTest.QSignalSpy(self.proc.signals.error)
+        with mock.patch(self.FIND_IMAGES, side_effect=Exception):
+            self.proc.run()
 
-    @mock.patch('doppelganger.processing.ImageProcessing.find_images')
-    def test_run_if_raise_Exception(self, mock):
-        mock.side_effect = Exception('General exception')
-        spy_finished = QtTest.QSignalSpy(self.im_pr.signals.finished)
-
-        self.im_pr.run()
-
-        self.assertEqual(len(spy_finished), 1)
-        self.assertTrue(self.im_pr.errors)
-
-    @mock.patch('doppelganger.processing.ImageProcessing.find_images')
-    def test_run_logs_errors(self, mock):
-        mock.side_effect = Exception('General exception')
-        with self.assertLogs('main.processing', 'ERROR'):
-            self.im_pr.run()
-
-    def test_run_emits_result_signal(self):
-        spy_finished = QtTest.QSignalSpy(self.im_pr.signals.finished)
-        spy_result = QtTest.QSignalSpy(self.im_pr.signals.result)
-
-        self.im_pr.run()
-
-        self.assertListEqual(spy_result[0][0], [])
-        self.assertEqual(len(spy_finished), 1)
-
-    def test_run_emits_error_signal(self):
-        spy_finished = QtTest.QSignalSpy(self.im_pr.signals.finished)
-        spy_error = QtTest.QSignalSpy(self.im_pr.signals.error)
-
-        self.im_pr.errors = True
-        self.im_pr.run()
-
-        self.assertEqual(len(spy_error), 1)
-        self.assertEqual(len(spy_finished), 1)
+        self.assertEqual(len(spy), 1)

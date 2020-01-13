@@ -1,4 +1,4 @@
-'''Copyright 2019 Maxim Shpak <maxim.shpak@posteo.uk>
+'''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
 This file is part of Doppelgänger.
 
@@ -18,123 +18,71 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 from multiprocessing import Pool
-from typing import (Any, Callable, Collection, Dict, Iterable, List, Optional,
-                    Set, Tuple)
+from typing import (Any, Callable, Collection, Iterable, List, Optional, Set,
+                    Tuple)
 
 from PyQt5 import QtCore, QtGui
 
 from doppelganger import config, core, signals
-from doppelganger.exception import InterruptProcessing
-
-SIZE = 200
+from doppelganger.exception import InterruptProcessing, ThumbnailError
 
 processing_logger = logging.getLogger('main.processing')
 
-def thumbnail(image: core.Image) -> Optional[QtCore.QByteArray]:
+def thumbnail(image: core.Image, size: int) -> Optional[QtCore.QByteArray]:
     '''Make thumbnail of :image:
 
-    :param image: image which thumbnail is returned,
-    :return: 'QByteArray' object or None if there's any problem
+    :param image: image whose thumbnail is returned,
+    :param size: the biggest dimension of the image after being scaled,
+    :return: "QByteArray" object or None if there's any problem
     '''
 
     try:
-        width, height = _scaling_dimensions(image, SIZE)
-    except OSError as e:
+        width, height = _scaling_dimensions(image, size)
+        qimg = _scaled_image(image.path, width, height)
+        ba_img = _QImage_to_QByteArray(qimg, image.suffix[1:].upper())
+    except (OSError, ThumbnailError) as e:
         processing_logger.error(e)
         return None
 
-    img = _scaled_image(image.path, width, height)
+    return ba_img
 
-    if img is None:
-        return None
-    return _QImage_to_QByteArray(img, image.suffix[1:])
+def _scaling_dimensions(image: core.Image, size: int) -> Tuple[int, int]:
+    width, height = image.dimensions()
+    biggest_dim = width if width >= height else height
+    new_width, new_height = (width * size // biggest_dim,
+                             height * size // biggest_dim)
+    return new_width, new_height
 
-def _scaling_dimensions(image: core.Image, biggest_dim: int) -> Tuple[core.Width, core.Height]:
-    '''Find the new dimensions of the image (with aspect ratio kept)
-    after being scaled
-
-    :param image: image to scale,
-    :param biggest_dim: the biggest dimension of the image after
-                            being scaled,
-    :return: tuple with the image's width and height,
-    :raise OSError: any problem while getting the image's dimensions,
-    :raise ValuError: new :biggest_dim: is not positive
-    '''
-
-    if biggest_dim <= 0:
-        raise ValueError('The new size values must be positive')
-
-    try:
-        width, height = image.dimensions()
-    except OSError:
-        raise OSError(f'Cannot get the scaling dimensions of {image.path}')
-
-    if width >= height:
-        width, height = (width * biggest_dim // width,
-                         height * biggest_dim // width)
-    else:
-        width, height = (width * biggest_dim // height,
-                         height * biggest_dim // height)
-    return width, height
-
-def _scaled_image(path: core.ImagePath, width: core.Width,
-                  height: core.Height) -> Optional[QtGui.QImage]:
-    '''Return the scaled image
-
-    :param path: full path of the image,
-    :param width: new width,
-    :param height: new height,
-    :return: scaled image as 'QImage' object
-             or None if something went wrong
-    '''
-
+def _scaled_image(path: core.ImagePath, width: int,
+                  height: int) -> QtGui.QImage:
     reader = QtGui.QImageReader(path)
     reader.setDecideFormatFromContent(True)
     reader.setScaledSize(QtCore.QSize(width, height))
 
     if not reader.canRead():
-        processing_logger.error(f'{path} cannot be read')
-        return None
+        raise ThumbnailError(f'{path} cannot be read')
 
     img = reader.read()
 
     if img.isNull():
         e = reader.errorString()
-        processing_logger.error(e)
-        return None
+        raise ThumbnailError(e)
     return img
 
-def _QImage_to_QByteArray(image: QtGui.QImage, suffix: str) -> Optional[QtCore.QByteArray]:
-    '''Convert 'QImage' object to 'QByteArray' object
-
-    :param image: 'QImage' object,
-    :param suffix: suffix of the image (without a dot),
-    :return: 'QByteArray' object or None if there's any problem
-    '''
-
+def _QImage_to_QByteArray(image: QtGui.QImage, suffix: str) \
+    -> Optional[QtCore.QByteArray]:
     ba = QtCore.QByteArray()
     buf = QtCore.QBuffer(ba)
 
     if not buf.open(QtCore.QIODevice.WriteOnly):
-        processing_logger.error('Something wrong happened while opening buffer')
-        return None
+        raise ThumbnailError('Something went wrong while opening buffer')
 
-    if not image.save(buf, suffix.upper(), 100):
-        processing_logger.error('Something wrong happened while saving image into buffer')
-        return None
+    if not image.save(buf, suffix, 100):
+        raise ThumbnailError('Something went wrong while saving image '
+                             'into buffer')
 
     buf.close()
-
     return ba
-
-def change_size(size: int) -> None:
-    '''VERY naughty and dirty hack!!! Since multiprocessing.imap
-    is used with function 'thumbnail', we cannot pass size as
-    an argument'''
-
-    global SIZE
-
-    SIZE = size
 
 def similarity_rate(image_groups: List[core.Group]):
     '''To compare images, hamming distance between their
@@ -155,7 +103,8 @@ def similarity_rate(image_groups: List[core.Group]):
 class Worker(QtCore.QRunnable):
     '''QRunnable class reimplementation to handle a separate thread'''
 
-    def __init__(self, func: Callable[..., None], *args: Any, **kwargs: Any) -> None:
+    def __init__(self, func: Callable[..., None], *args: Any,
+                 **kwargs: Any) -> None:
         super().__init__()
         self.func = func
         self.args = args
@@ -167,57 +116,62 @@ class Worker(QtCore.QRunnable):
 
 
 class ImageProcessing:
-    '''The whole machinery happenning in a separate thread while
+    '''The whole machinery happens in a separate thread while
     processing images
 
-    :mw_signals: signals object from the main (GUI) thread,
-    :folders: folders to process,
-    :sensitivity: maximal difference between hashes of 2 images
-                        when they are considered similar;
+    :param mw_signals: signals object from the main (GUI) thread,
+    :param folders: folders to process,
+    :param sensitivity: max difference between the hashes of 2 images
+                        when they are considered similar,
+    :param conf: dict with programme preferences
     '''
 
-    def __init__(self, mw_signals: signals.Signals, folders: Iterable[core.FolderPath],
-                 sensitivity: core.Sensitivity, conf: config.ConfigData) -> None:
-        super().__init__()
-        self.signals = signals.Signals()
+    def __init__(self, mw_signals: signals.Signals,
+                 folders: Iterable[core.FolderPath],
+                 sensitivity: core.Sensitivity,
+                 conf: config.ConfigData) -> None:
         self.folders = folders
         self.sensitivity = sensitivity
         self.conf = conf
-        change_size(conf['size'])
 
         # If a user's clicked button 'Stop' in the main (GUI) thread,
         # 'interrupt' flag is changed to True
         mw_signals.interrupted.connect(self._is_interrupted)
+        self.signals = signals.Signals()
+
         self.interrupt = False
         self.errors = False
-
         self.progress_bar_value: float = 0.0
 
     def run(self) -> None:
         '''Main processing function'''
 
         try:
-            paths = self.find_images(self.folders)
-            cache = self.load_cache()
-            cached, not_cached = self.check_cache(paths, cache)
+            paths = self._find_images()
+            cache = self._load_cache()
+            not_cached = self._check_cache(paths, cache)
 
             if not_cached:
-                calculated = self.hashes_calculating(not_cached)
-                self.caching(calculated, cache)
-                cached.extend(calculated)
+                hashes = self._imap(core.Image.dhash, not_cached,
+                                    'remaining_images')
+                cache = self._extend_cache(cache, not_cached, hashes)
+                core.save_cache(cache)
 
-            image_groups = self.grouping(cached, self.sensitivity)
+            images = [core.Image(path, cache[path])
+                      for path in paths if path in cache]
+            image_groups = self._image_grouping(images)
 
             s = core.Sort(image_groups)
             s.sort(self.conf['sort'])
 
             similarity_rate(image_groups)
 
-            image_groups = self.make_thumbnails(image_groups)
+            image_groups = self._make_thumbnails(image_groups)
 
             self.signals.result.emit(image_groups)
         except InterruptProcessing:
-            processing_logger.info('Image processing has been interrupted by the user')
+            processing_logger.info('Image processing has been interrupted '
+                                   'by the user')
         except Exception:
             processing_logger.error('Unknown error: ', exc_info=True)
             self.errors = True
@@ -227,82 +181,74 @@ class ImageProcessing:
                 self.signals.error.emit('Something went wrong while '
                                         'processing images')
 
-    def find_images(self, folders: Iterable[core.FolderPath]) -> Set[core.ImagePath]:
+    def _find_images(self) -> Set[core.ImagePath]:
         try:
-            paths = core.find_images(folders, self.conf['subfolders'])
-        except ValueError as e:
-            raise ValueError(e)
+            paths = core.find_images(self.folders, self.conf['subfolders'])
+        except FileNotFoundError as e:
+            raise FileNotFoundError(e)
 
         self.signals.update_info.emit('loaded_images', str(len(paths)))
         self._update_progress_bar(5)
 
         return paths
 
-    def load_cache(self) -> Dict[core.ImagePath, core.Hash]:
+    def _load_cache(self) -> core.Cache:
         try:
             cached_hashes = core.load_cache()
         except EOFError as e:
-            processing_logger.error(e)
             cached_hashes = {}
+        except OSError as e:
+            raise OSError(e)
 
         self._update_progress_bar(10)
 
         return cached_hashes
 
-    def check_cache(
-            self,
-            paths: Iterable[core.ImagePath],
-            cache: Dict[core.ImagePath, core.Hash]
-        ) -> Tuple[List[core.HashedImage], List[core.NoneImage]]:
-        cached, not_cached = core.check_cache(paths, cache)
+    def _check_cache(self, paths: Collection[core.ImagePath],
+                     cache: core.Cache) -> List[core.ImagePath]:
+        not_cached = core.check_cache(paths, cache)
 
-        self.signals.update_info.emit('found_in_cache', str(len(cached)))
+        num_of_cached = len(paths) - len(not_cached)
+        self.signals.update_info.emit('found_in_cache', str(num_of_cached))
         if not_cached:
             self._update_progress_bar(15)
         else:
             self._update_progress_bar(55)
 
-        return cached, not_cached
+        return not_cached
 
-    def hashes_calculating(self, not_cached: Collection[core.NoneImage]) -> List[core.HashedImage]:
-        calculated = self._imap(core.Image.dhash, not_cached, 'remaining_images')
-
-        good = []
-        for image in calculated:
-            if image.hash is None:
-                processing_logger.error(f'Hash of {image.path} cannot be calculated')
+    def _extend_cache(self, cache: core.Cache, paths: Iterable[core.ImagePath],
+                      hashes: List[Optional[core.Hash]]) -> core.Cache:
+        for i, path in enumerate(paths):
+            dhash = hashes[i]
+            if dhash is None:
+                processing_logger.error(f'Hash of {path} cannot be calculated')
                 self.errors = True
             else:
-                good.append(image)
-
-        return good
-
-    def caching(self, calculated: Iterable[core.HashedImage],
-                cache: Dict[core.ImagePath, core.Hash]) -> None:
-        core.caching(calculated, cache)
+                cache[path] = dhash
 
         self._update_progress_bar(55)
 
-    def grouping(self, images: Collection[core.HashedImage],
-                 sensitivity: core.Sensitivity) -> List[core.Group]:
-        image_groups = core.image_grouping(images, sensitivity)
+        return cache
+
+    def _image_grouping(self, images: Collection[core.Image]) \
+        -> List[core.Group]:
+        image_groups = core.image_grouping(images, self.sensitivity)
 
         self.signals.update_info.emit('image_groups', str(len(image_groups)))
-        self.signals.update_info.emit('duplicates', str(sum(len(g) for g in image_groups)))
+        self.signals.update_info.emit('duplicates',
+                                      str(sum(len(g) for g in image_groups)))
         self._update_progress_bar(65)
 
         return image_groups
 
-    def make_thumbnails(self, image_groups: List[core.Group]) -> List[core.Group]:
-        '''Make thumbnails of the images
-
-        :param image_groups: groups of duplicate images,
-        :return: groups of duplicate images with created thumbnails
-        '''
-
+    def _make_thumbnails(self, image_groups: List[core.Group]) \
+        -> List[core.Group]:
         # 'Flat' list is processed better in parallel
-        flat = [image for group in image_groups for image in group]
-        thumbnails = self._imap(thumbnail, flat, 'thumbnails')
+        flat = [(image, self.conf['size'])
+                for group in image_groups for image in group]
+        thumbnails = self._imap(self._thumbnail_args_unpacker, flat,
+                                'thumbnails')
 
         # Go through already formed list with groups of duplicate images
         # and assign thumbnails to the corresponding attributes. It's easy
@@ -312,31 +258,22 @@ class ImageProcessing:
             for image in group:
                 image.thumbnail = thumbnails[j]
                 j += 1
-
         return image_groups
+
+    @staticmethod
+    def _thumbnail_args_unpacker(image: Tuple[core.Image, int]) \
+        -> Optional[QtCore.QByteArray]:
+        return thumbnail(image[0], image[1])
 
     def _is_interrupted(self) -> None:
         self.interrupt = True
 
     def _update_progress_bar(self, value: float) -> None:
-        '''Emit a new progress bar value
-
-        :param value: new 'progress_bar_value'
-        '''
-
         self.progress_bar_value = value
         self.signals.update_progressbar.emit(self.progress_bar_value)
 
     def _imap(self, func: Callable[[Any], core.T], collection: Collection[Any],
               label: str) -> List[core.T]:
-        '''Reimplementation of 'imap' from multiprocessing lib
-
-        :param func: function to apply to the elements of :collection:,
-        :param collection: collection to process in parallel,
-        :param label: label to update, one of ('remaining_images', 'thumbnails')
-        :return: list of processed elements
-        '''
-
         processed: List[core.T] = []
         num = len(collection)
         self.signals.update_info.emit(label, str(len(collection)))

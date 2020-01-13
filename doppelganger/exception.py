@@ -22,3 +22,7 @@ This module contains custom exceptions
 
 class InterruptProcessing(Exception):
     pass
+
+
+class ThumbnailError(Exception):
+    pass
