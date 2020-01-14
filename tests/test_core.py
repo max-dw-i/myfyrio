@@ -53,7 +53,7 @@ CORE = 'doppelganger.core.'
 # pylint: disable=unused-argument,missing-class-docstring,protected-access
 
 
-class TestFindImagesFunction(TestCase):
+class TestFuncFindImages(TestCase):
 
     def setUp(self):
         self.mock_path = mock.Mock()
@@ -88,7 +88,7 @@ class TestFindImagesFunction(TestCase):
         self.assertSetEqual(res, paths)
 
 
-class TestSearchFunc(TestCase):
+class TestFuncSearch(TestCase):
 
     def setUp(self):
         self.mock_path = mock.Mock()
@@ -132,7 +132,7 @@ class TestSearchFunc(TestCase):
         self.assertSetEqual(res, set())
 
 
-class TestImageGroupingFunc(TestCase):
+class TestFuncImageGrouping(TestCase):
 
     def setUp(self):
         self.mock_imgs = [mock.Mock() for i in range(2)]
@@ -206,7 +206,7 @@ class TestImageGroupingFunc(TestCase):
         self.mock_bk.find.assert_called_once()
 
 
-class TestNewGroupFunc(TestCase):
+class TestFuncNewGroup(TestCase):
 
     def setUp(self):
         self.img = mock.Mock()
@@ -235,7 +235,7 @@ class TestNewGroupFunc(TestCase):
         self.assertSetEqual(checked, {self.img})
 
 
-class TestLoadCacheFunc(TestCase):
+class TestFuncLoadCache(TestCase):
 
     @mock.patch('pickle.load')
     def test_load_from_cache_p(self, mock_load):
@@ -268,7 +268,7 @@ class TestLoadCacheFunc(TestCase):
             core.load_cache()
 
 
-class TestCheckCacheFunc(TestCase):
+class TestFuncCheckCache(TestCase):
 
     def setUp(self):
         self.cache = {'path2': 'hash'}
@@ -293,7 +293,7 @@ class TestCheckCacheFunc(TestCase):
         self.assertListEqual(not_cached, [])
 
 
-class TestExtendCacheFunc(TestCase):
+class TestFuncExtendCache(TestCase):
 
     def setUp(self):
         self.cache = {'path1': 'hash1'}
@@ -320,7 +320,7 @@ class TestExtendCacheFunc(TestCase):
         self.assertDictEqual(res, expected)
 
 
-class TestSaveCacheFunc(TestCase):
+class TestFuncSaveCache(TestCase):
     '''!!! BE AWARE WHEN CHANGE THESE TESTS. IF THERE'S
     ALREADY POPULATED CACHE FILE AND YOU DON'T PATCH OPEN()
     AND DUMP(), YOU'LL REWRITE THE FILE
@@ -349,12 +349,13 @@ class TestSaveCacheFunc(TestCase):
             core.save_cache(self.cache)
 
 
-class TestImageClass(TestCase):
+class TestClassImage(TestCase):
 
     def setUp(self):
         self.image = core.Image('image.png', dhash='hash')
 
-    # func 'dhash'
+
+class TestMethodDhash(TestClassImage):
 
     @mock.patch(CORE+'PILImage.open', side_effect=OSError)
     def test_return_if_open_raise_OSError(self, mock_open):
@@ -376,7 +377,16 @@ class TestImageClass(TestCase):
 
         self.assertEqual(dhash, 'hash')
 
-    # func 'dimensions'
+
+class TestMethodDimensions(TestClassImage):
+
+    def setUp(self):
+        super().setUp()
+
+        self.width = 333
+        self.height = 444
+        self.mock_img = mock.Mock()
+        self.mock_img.size = (self.width, self.height)
 
     def test_return_dimensions_if_they_already_found(self):
         self.image.width = 333
@@ -386,10 +396,8 @@ class TestImageClass(TestCase):
         self.assertTupleEqual(dims, (self.image.width, self.image.height))
 
     def test_pil_open_called_with_image_path(self):
-        mock_img = mock.Mock()
-        mock_img.size = (333, 444)
         NAME = CORE + 'PILImage.open'
-        with mock.patch(NAME, return_value=mock_img) as mock_pil:
+        with mock.patch(NAME, return_value=self.mock_img) as mock_pil:
             self.image.dimensions()
 
         mock_pil.assert_called_once_with(self.image.path)
@@ -400,25 +408,20 @@ class TestImageClass(TestCase):
                 self.image.dimensions()
 
     def test_dims_assigned_to_image_attrs(self):
-        mock_img = mock.Mock()
-        width, height = 333, 444
-        mock_img.size = (width, height)
-        with mock.patch(CORE + 'PILImage.open', return_value=mock_img):
+        with mock.patch(CORE + 'PILImage.open', return_value=self.mock_img):
             self.image.dimensions()
 
-        self.assertEqual(self.image.width, width)
-        self.assertEqual(self.image.height, height)
+        self.assertEqual(self.image.width, self.width)
+        self.assertEqual(self.image.height, self.height)
 
     def test_return_dims(self):
-        mock_img = mock.Mock()
-        width, height = 333, 444
-        mock_img.size = (width, height)
-        with mock.patch(CORE + 'PILImage.open', return_value=mock_img):
+        with mock.patch(CORE + 'PILImage.open', return_value=self.mock_img):
             dims = self.image.dimensions()
 
-        self.assertTupleEqual(dims, (width, height))
+        self.assertTupleEqual(dims, (self.width, self.height))
 
-    # func 'filesize'
+
+class TestMethodFilesize(TestClassImage):
 
     def test_return_image_size_attr_if_Bytes_format(self):
         self.image.size = 1024
@@ -477,7 +480,8 @@ class TestImageClass(TestCase):
 
         self.assertAlmostEqual(filesize, 1)
 
-    # func 'delete'
+
+class TestMethodDelete(TestClassImage):
 
     @mock.patch('os.remove', side_effect=OSError)
     def test_raise_OSError_if_remove_raise_OSError(self, mock_remove):
@@ -518,68 +522,67 @@ class TestImageClass(TestCase):
 
         mock_move.assert_called_once_with(self.image.path, new_path)
 
-    # func 'rename'
+
+class TestMethodRename(TestClassImage):
+
+    def setUp(self):
+        super().setUp()
+
+        self.new_name = 'new_name.png'
+        self.mock_path = mock.MagicMock()
+        self.mock_path.parent.__truediv__.return_value = self.new_name
 
     def test_rename_called_with_new_name_arg(self):
-        new_name = 'new_name.png'
-        mock_path = mock.MagicMock()
-        mock_path.parent.__truediv__.return_value = new_name
-        with mock.patch(CORE+'Path', return_value=mock_path):
-            self.image.rename(new_name)
+        with mock.patch(CORE+'Path', return_value=self.mock_path):
+            self.image.rename(self.new_name)
 
-        mock_path.rename.assert_called_once_with(new_name)
+        self.mock_path.rename.assert_called_once_with(self.new_name)
 
     def test_new_name_assigned_to_image_path_attr(self):
-        new_name = 'new_name.png'
-        mock_path = mock.MagicMock()
-        mock_path.parent.__truediv__.return_value = new_name
-        with mock.patch(CORE+'Path', return_value=mock_path):
-            self.image.rename(new_name)
+        with mock.patch(CORE+'Path', return_value=self.mock_path):
+            self.image.rename(self.new_name)
 
-        self.assertEqual(self.image.path, new_name)
+        self.assertEqual(self.image.path, self.new_name)
 
     def test_raise_FileExistsError_if_rename_raise_FileExistsError(self):
-        new_name = 'new_name.png'
-        mock_path = mock.MagicMock()
-        mock_path.parent.__truediv__.return_value = new_name
-        mock_path.rename.side_effect = FileExistsError
-        with mock.patch(CORE+'Path', return_value=mock_path):
+        self.mock_path.rename.side_effect = FileExistsError
+        with mock.patch(CORE+'Path', return_value=self.mock_path):
             with self.assertRaises(FileExistsError):
-                self.image.rename(new_name)
+                self.image.rename(self.new_name)
 
-    # func 'del_parent_dir'
+
+class TestMethodDelParentDir(TestClassImage):
+
+    def setUp(self):
+        super().setUp()
+
+        self.mock_path = mock.Mock()
+        self.mock_path.parent.glob.return_value = []
 
     def test_Path_called_with_image_path_arg(self):
-        mock_path = mock.Mock()
-        mock_path.parent.glob.return_value = []
-        with mock.patch(CORE+'Path', return_value=mock_path) as patch:
+        with mock.patch(CORE+'Path', return_value=self.mock_path) as patch:
             self.image.del_parent_dir()
 
         patch.assert_called_once_with(self.image.path)
 
     def test_glob_search_all_files(self):
-        mock_path = mock.Mock()
-        mock_path.parent.glob.return_value = []
-        with mock.patch(CORE+'Path', return_value=mock_path):
+        with mock.patch(CORE+'Path', return_value=self.mock_path):
             self.image.del_parent_dir()
 
-        mock_path.parent.glob.assert_called_once_with('*')
+        self.mock_path.parent.glob.assert_called_once_with('*')
 
     def test_rmdir_not_called_if_dir_is_not_empty(self):
-        mock_path = mock.Mock()
-        mock_path.parent.glob.return_value = ['file']
-        with mock.patch(CORE+'Path', return_value=mock_path):
+        self.mock_path.parent.glob.return_value = ['file']
+        with mock.patch(CORE+'Path', return_value=self.mock_path):
             self.image.del_parent_dir()
 
-        mock_path.parent.rmdir.assert_not_called()
+        self.mock_path.parent.rmdir.assert_not_called()
 
     def test_rmdir_called_if_dir_is_empty(self):
-        mock_path = mock.Mock()
-        mock_path.parent.glob.return_value = []
-        with mock.patch(CORE+'Path', return_value=mock_path):
+        with mock.patch(CORE+'Path', return_value=self.mock_path):
             self.image.del_parent_dir()
 
-        mock_path.parent.rmdir.assert_called_once_with()
+        self.mock_path.parent.rmdir.assert_called_once_with()
 
 
 class TestSort(TestCase):
