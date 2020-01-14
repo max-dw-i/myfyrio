@@ -28,7 +28,7 @@ from typing import Any, Dict, Optional
 
 Param = str
 Value = Any
-ConfigData = Dict[Param, Value] # preferences
+Conf = Dict[Param, Value] # preferences
 
 ##################################################################
 
@@ -36,7 +36,7 @@ ConfigData = Dict[Param, Value] # preferences
 class Config:
     '''Represent "config" containing programme's preferences'''
 
-    def __init__(self, data: Optional[ConfigData] = None) -> None:
+    def __init__(self, data: Optional[Conf] = None) -> None:
         if data is None:
             self.default()
         else:

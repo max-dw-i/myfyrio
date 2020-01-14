@@ -33,7 +33,7 @@ from doppelganger import config
 pref_logger = logging.getLogger('main.preferences')
 
 
-def load_config() -> config.ConfigData:
+def load_config() -> config.Conf:
     '''Load and return config with the preferences
 
     :return: dict with the loaded preferences
@@ -58,7 +58,7 @@ def load_config() -> config.ConfigData:
 
     return c.data
 
-def save_config(conf: config.ConfigData) -> None:
+def save_config(conf: config.Conf) -> None:
     '''Save config with the preferences
 
     :param conf: dict with config data
@@ -143,7 +143,7 @@ class PreferencesWindow(QtWidgets.QMainWindow):
                     widgets.append(w)
         return widgets
 
-    def update_prefs(self, conf: config.ConfigData) -> None:
+    def update_prefs(self, conf: config.Conf) -> None:
         '''Update the form with new preferences
 
         :param conf: new preferences
@@ -152,7 +152,7 @@ class PreferencesWindow(QtWidgets.QMainWindow):
         for w in self.widgets:
             setVal(w, conf[w.property('conf_param')])
 
-    def gather_prefs(self) -> config.ConfigData:
+    def gather_prefs(self) -> config.Conf:
         '''Gather checked/unchecked/filled by a user options
         and form a config dictionary
 

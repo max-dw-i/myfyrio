@@ -129,7 +129,7 @@ class ImageProcessing:
     def __init__(self, mw_signals: signals.Signals,
                  folders: Iterable[core.FolderPath],
                  sensitivity: core.Sensitivity,
-                 conf: config.ConfigData) -> None:
+                 conf: config.Conf) -> None:
         self.folders = folders
         self.sensitivity = sensitivity
         self.conf = conf
