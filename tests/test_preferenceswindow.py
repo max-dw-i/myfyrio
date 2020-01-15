@@ -221,27 +221,25 @@ class TestPreferencesForm(TestCase):
                 'subfolders': False,
                 'close_confirmation': False}
 
-        gathered_data = self.w.gather_prefs()
+        self.w.gather_prefs()
 
-        self.assertDictEqual(data, gathered_data)
+        self.assertDictEqual(self.w.conf, data)
 
     @mock.patch('doppelganger.preferenceswindow.save_config')
-    def test_saveBtn_click_save_config_in_attr(self, mock_save):
+    def test_saveBtn_click_call_gather_prefs(self, mock_save):
         NAME = 'doppelganger.preferenceswindow.PreferencesWindow.gather_prefs'
-        conf = {'param': 'val'}
-        with mock.patch(NAME, return_value=conf):
+        with mock.patch(NAME) as mock_gather:
             self.w.saveBtn_click()
 
-        self.assertDictEqual(self.w.conf, conf)
+        mock_gather.assert_called_once_with()
 
     @mock.patch('doppelganger.preferenceswindow.save_config')
     def test_saveBtn_click_call_save_config(self, mock_save):
         NAME = 'doppelganger.preferenceswindow.PreferencesWindow.gather_prefs'
-        conf = {'param': 'val'}
-        with mock.patch(NAME, return_value=conf):
+        with mock.patch(NAME):
             self.w.saveBtn_click()
 
-        mock_save.assert_called_once_with(conf)
+        mock_save.assert_called_once_with(self.w.conf)
 
     @mock.patch('PyQt5.QtWidgets.QMainWindow.close')
     @mock.patch('doppelganger.config.Config.save')

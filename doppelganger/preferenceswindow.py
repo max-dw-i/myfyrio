@@ -115,9 +115,8 @@ class PreferencesWindow(QtWidgets.QMainWindow):
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
 
-        pref_ui_path = 'doppelganger/resources/ui/preferenceswindow.ui'
-        PREFERENCES_UI = pathlib.Path(pref_ui_path)
-        uic.loadUi(str(PREFERENCES_UI), self)
+        UI = pathlib.Path('doppelganger/resources/ui/preferenceswindow.ui')
+        uic.loadUi(str(UI), self)
 
         self.widgets = self._gather_widgets()
 
@@ -152,17 +151,16 @@ class PreferencesWindow(QtWidgets.QMainWindow):
         for w in self.widgets:
             setVal(w, conf[w.property('conf_param')])
 
-    def gather_prefs(self) -> config.Conf:
+    def gather_prefs(self):
         '''Gather checked/unchecked/filled by a user options
-        and form a config dictionary
-
-        :return: dict with preferences of the programme
+        and update the config dictionary
         '''
 
-        return {w.property('conf_param'): val(w) for w in self.widgets}
+        for w in self.widgets:
+            self.conf[w.property('conf_param')] = val(w)
 
     def saveBtn_click(self) -> None:
-        self.conf = self.gather_prefs()
+        self.gather_prefs()
         save_config(self.conf)
         self.close()
 
