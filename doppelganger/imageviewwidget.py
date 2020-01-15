@@ -17,7 +17,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
-Module implementing widget rendering duplicate images found
+Module implementing widgets rendering duplicate images found
 '''
 
 
@@ -25,39 +25,36 @@ import logging
 import pathlib
 import subprocess
 import sys
-from typing import Iterable, List, Optional, Tuple
+from typing import Callable, Iterable, List, Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from doppelganger import config, core, signals
 
 IMG_ERROR = str(pathlib.Path('doppelganger/resources/images/image_error.png'))
-SIZE = 200
 
 widgets_logger = logging.getLogger('main.widgets')
 
 
-class InfoLabelWidget(QtWidgets.QLabel):
+class InfoLabel(QtWidgets.QLabel):
     '''Abstract Label class'''
 
-    def __init__(self, text: str, widget_size: int, parent=None) -> None:
+    def __init__(self, text: str, widget_width: int,
+                 parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
-        self.widget_size = widget_size
+
+        self.widget_width = widget_width
 
         self.setAlignment(QtCore.Qt.AlignHCenter)
         self.setText(text)
 
     def setText(self, text: str):
-        new_text = self._word_wrap(text)
+        new_text = self._wordWrap(text)
         super().setText(new_text)
 
-    def _word_wrap(self, text: str) -> str:
+    def _wordWrap(self, text: str) -> str:
         '''QLabel wraps words only at word-breaks but we need
-        it to happen at any letter
-
-        :param text: text,
-        :return: wrapped text
-        '''
+        it to happen at any letter'''
 
         fontMetrics = QtGui.QFontMetrics(self.font())
         wrapped_text = ''
@@ -66,118 +63,136 @@ class InfoLabelWidget(QtWidgets.QLabel):
         for c in text:
             # We have 4 margins 9px each (I guess) so we take 40
             width = fontMetrics.size(QtCore.Qt.TextSingleLine, line+c).width()
-            if width > self.widget_size - 40:
+            if width > self.widget_width - 40:
                 wrapped_text += line + '\n'
                 line = c
             else:
                 line += c
         wrapped_text += line
-
         return wrapped_text
 
 
-class SimilarityLabel(InfoLabelWidget):
-    '''Widget to show info about images similarity'''
+class SimilarityLabel(InfoLabel):
+    '''Widget viewing info about images similarity'''
 
 
-class ImageSizeLabel(InfoLabelWidget):
-    '''Widget to show info about the image size'''
+class ImageSizeLabel(InfoLabel):
+    '''Widget viewing info about size of an image'''
 
 
-class ImagePathLabel(InfoLabelWidget):
-    '''Widget to show the path to an image'''
+class ImagePathLabel(InfoLabel):
+    '''Widget viewing the path of an image'''
 
-    def __init__(self, text: core.ImagePath, widget_size: int,
-                 parent=None) -> None:
-        super().__init__(QtCore.QFileInfo(text).canonicalFilePath(),
-                         widget_size, parent)
+    def __init__(self, path: core.ImagePath, widget_width: int,
+                 parent: QtWidgets.QWidget = None) -> None:
+        path = QtCore.QFileInfo(path).canonicalFilePath()
+        super().__init__(path, widget_width, parent)
+
 
 class ImageInfoWidget(QtWidgets.QWidget):
-    '''Widget to show info about an image (its similarity
-    rate, size and path)'''
+    '''Widget showing info about the image (its similarity
+    rate, size and path)
+    '''
 
-    def __init__(self, path: core.ImagePath, difference: core.Distance,
-                 dimensions: Tuple[core.Width, core.Height],
-                 filesize: core.FileSize, conf: config.ConfigData,
-                 parent=None) -> None:
+    def __init__(self, image: core.Image, conf: config.Conf,
+                 parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.setAlignment(QtCore.Qt.AlignBottom)
 
-        if conf['show_similarity']:
-            widget = SimilarityLabel(f'{difference}%', conf['size'], self)
-            layout.addWidget(widget)
-        if conf['show_size']:
-            widget = ImageSizeLabel(
-                self._get_image_size(dimensions, filesize,
-                                     conf['size_format']),
-                conf['size'],
-                self
-            )
-            layout.addWidget(widget)
-        if conf['show_path']:
-            widget = ImagePathLabel(path, conf['size'], self)
-            layout.addWidget(widget)
+        self.image = image
+        self.conf = conf
 
-        self.setLayout(layout)
+        self.similarityLabel: Optional[SimilarityLabel] = None
+        self.imageSizeLabel: Optional[ImageSizeLabel] = None
+        self.imagePathLabel: Optional[ImagePathLabel] = None
 
-    @staticmethod
-    def _get_image_size(dimensions: Tuple[core.Width, core.Height],
-                        filesize: core.FileSize, size_format: int) -> str:
-        '''Return info about image dimensions and file size
+        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout.setAlignment(QtCore.Qt.AlignBottom)
+        self.setLayout(self.layout)
 
-        :param dimensions: image dimensions,
-        :param filesize: file size in bytes, kilobytes or megabytes,
-                         rounded to the first decimal place,
-        :return: string with format '{width}x{height}, {file_size} {units}'
-        '''
+    def render(self) -> None:
+        '''Create and render widgets "SimilarityLabel",
+        "ImageSizeLabel", "ImagePathLabel"'''
 
-        width, height = dimensions[0], dimensions[1]
+        if self.conf['show_similarity']:
+            self._setSimilarityLabel()
+        if self.conf['show_size']:
+            self._setImageSizeLabel()
+        if self.conf['show_path']:
+            self._setImagePathLabel()
+
+    def _setSimilarityLabel(self) -> None:
+        self.similarityLabel = SimilarityLabel(f'{self.image.difference}%',
+                                               self.conf['size'], self)
+        self.layout.addWidget(self.similarityLabel)
+
+    def _setImageSizeLabel(self) -> None:
+        sizeInfo = self._sizeInfo()
+        self.imageSizeLabel = ImageSizeLabel(sizeInfo, self.conf['size'], self)
+        self.layout.addWidget(self.imageSizeLabel)
+
+    def _setImagePathLabel(self) -> None:
+        self.imagePathLabel = ImagePathLabel(self.image.path,
+                                             self.conf['size'], self)
+        self.layout.addWidget(self.imagePathLabel)
+
+    def _sizeInfo(self) -> str:
+        try:
+            width, height = self.image.dimensions()
+        except OSError as e:
+            widgets_logger.error(e)
+            width, height = (0, 0)
+
+        try:
+            filesize = self.image.filesize(self.conf['size_format'])
+        except OSError as e:
+            widgets_logger.error(e)
+            filesize = 0
+
         units = {0: 'B',
                  1: 'KB',
-                 2: 'MB'}[size_format]
+                 2: 'MB'}[self.conf['size_format']]
 
         return f'{width}x{height}, {filesize} {units}'
 
 
 class ThumbnailWidget(QtWidgets.QLabel):
-    '''Widget to render the thumbnail of an image'''
+    '''Widget renderering the thumbnail of an image'''
 
     def __init__(self, thumbnail: QtCore.QByteArray, size: int,
-                 parent=None) -> None:
+                 parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
+
+        self.thumbnail = thumbnail
+        self.size = size
+
+        self.pixmap: Optional[QtGui.QPixmap] = None
+
         self.setAlignment(QtCore.Qt.AlignHCenter)
-        self.pixmap = self._QByteArray_to_QPixmap(thumbnail, size)
+
+    def render(self) -> None:
+        '''Create and render "Pixmap" with the thumbnail'''
+
+        self.pixmap = self._QByteArrayToQPixmap()
         self.setPixmap(self.pixmap)
 
-    @staticmethod
-    def _QByteArray_to_QPixmap(thumbnail: QtCore.QByteArray,
-                               size: int) -> QtGui.QPixmap:
-        '''Convert 'QByteArray' to 'QPixmap'
-
-        :param thumbnails: image in format 'QByteArray',
-        :param size: thumbnail size,
-        :return: image in format 'QPixmap' or, if something's
-                 wrong - error image
-        '''
-
+    def _QByteArrayToQPixmap(self) -> QtGui.QPixmap:
         # Pixmap can read BMP, GIF, JPG, JPEG, PNG, PBM, PGM, PPM, XBM, XPM
-        if thumbnail is None:
-            return QtGui.QPixmap(IMG_ERROR).scaled(size, size)
+        if self.thumbnail is None:
+            return QtGui.QPixmap(IMG_ERROR).scaled(self.size, self.size)
 
         pixmap = QtGui.QPixmap()
-        pixmap.loadFromData(thumbnail)
+        pixmap.loadFromData(self.thumbnail)
 
         if pixmap.isNull():
             err_msg = ('Something happened while converting '
                        'QByteArray into QPixmap')
             widgets_logger.error(err_msg)
-            return QtGui.QPixmap(IMG_ERROR).scaled(size, size)
+            return QtGui.QPixmap(IMG_ERROR).scaled(self.size, self.size)
 
         return pixmap
 
     def mark(self) -> None:
-        '''Mark the thumbnail as selected'''
+        '''Mark the widget as selected (change colour)'''
 
         marked = self.pixmap.copy()
         width, height = marked.width(), marked.height()
@@ -190,73 +205,65 @@ class ThumbnailWidget(QtWidgets.QLabel):
         self.setPixmap(marked)
 
     def unmark(self) -> None:
-        '''Mark the thumbnail as not selected'''
+        '''Mark the thumbnail as not selected (change colour back)'''
 
         self.setPixmap(self.pixmap)
 
 
-class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
-    '''Widget to render a duplicate image and all the info
+class DuplicateWidget(QtWidgets.QWidget):
+    '''Widget viewing a duplicate image and all info
     about it (its similarity rate, size and path)
     '''
 
-    def __init__(self, image: core.HashedImage, conf: config.ConfigData,
-                 parent=None) -> None:
+    def __init__(self, image: core.Image, conf: config.Conf,
+                 parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
         self.image = image
         self.conf = conf
         self.selected = False
-        self.imageLabel, self.imageInfo = self._widgets()
-
         self.signals = signals.Signals()
 
+        self.imageLabel: Optional[ThumbnailWidget] = None
+        self.infoLabel: Optional[ImageInfoWidget] = None
+
         self.setFixedWidth(conf['size'])
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.setAlignment(QtCore.Qt.AlignTop)
-        for widget in (self.imageLabel, self.imageInfo):
-            layout.addWidget(widget)
-        self.setLayout(layout)
+        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout.setAlignment(QtCore.Qt.AlignTop)
+        self.setLayout(self.layout)
 
-    def _widgets(self) -> Tuple[ThumbnailWidget, ImageInfoWidget]:
-        '''Return ThumbnailWidget and ImageInfoWidget objects
+    def render(self) -> None:
+        '''Create and render "ThumbnailWidget" and "ImageInfoWidget"'''
 
-        :return: tuple, ('ThumbnailWidget' obj, 'ImageInfoWidget' obj)
-        '''
+        self.imageLabel = ThumbnailWidget(self.image.thumbnail,
+                                          self.conf['size'], self)
+        self.layout.addWidget(self.imageLabel)
+        self.imageLabel.render()
 
-        imageLabel = ThumbnailWidget(self.image.thumbnail, self.conf['size'],
-                                     self)
+        self.infoLabel = ImageInfoWidget(self.image, self.conf, self)
+        self.layout.addWidget(self.infoLabel)
+        self.infoLabel.render()
 
-        try:
-            dimensions = self.image.dimensions()
-        except OSError as e:
-            widgets_logger.error(e)
-            dimensions = (0, 0)
-
-        try:
-            filesize = self.image.filesize(self.conf['size_format'])
-        except OSError as e:
-            widgets_logger.error(e)
-            filesize = 0
-
-        imageInfo = ImageInfoWidget(self.image.path, self.image.difference,
-                                    dimensions, filesize, self.conf, self)
-
-        return imageLabel, imageInfo
-
-    def _open_image(self) -> None:
+    def openImage(self) -> None:
         '''Open the image in the OS default image viewer'''
 
         open_image_command = {'linux': 'xdg-open',
                               'win32': 'explorer',
-                              'darwin': 'open'}[sys.platform]
+                              'darwin': 'open'}
+        command = open_image_command.get(sys.platform, 'Unknown platform')
 
         try:
-            subprocess.run([open_image_command, self.image.path], check=True)
-        except subprocess.CalledProcessError:
-            msg = 'Something wrong happened while opening the image viewer'
-            widgets_logger.error(msg, exc_info=True)
+            subprocess.run([command, self.image.path], check=True)
+        except (FileNotFoundError, subprocess.CalledProcessError) as e:
+            widgets_logger.error(e, exc_info=True)
 
-    def _rename_image(self) -> None:
+            msgBox = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning,
+                'Opening image',
+                'Something went wrong while opening the image'
+            )
+            msgBox.exec()
+
+    def renameImage(self) -> None:
         '''Rename the image'''
 
         name = pathlib.Path(self.image.path).name
@@ -271,30 +278,30 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
                 self.image.rename(new_name)
             except FileExistsError as e:
                 widgets_logger.error(e)
+
                 msgBox = QtWidgets.QMessageBox(
                     QtWidgets.QMessageBox.Warning,
                     'Renaming image',
-                    f"File with name '{new_name}' already exists"
+                    f'File with name "{new_name}" already exists'
                 )
                 msgBox.exec()
             else:
-                pathLabel = self.findChild(ImagePathLabel)
-                pathLabel.setText(self.image.path)
-
+                self.infoLabel.imagePathLabel.setText(self.image.path)
 
     def contextMenuEvent(self, event) -> None:
         menu = QtWidgets.QMenu(self)
-        openAction = menu.addAction("Open")
+        openAction = menu.addAction('Open')
         menu.addSeparator()
-        renameAction = menu.addAction("Rename")
+        renameAction = menu.addAction('Rename')
+
         action = menu.exec_(self.mapToGlobal(event.pos()))
         if action == openAction:
-            self._open_image()
+            self.openImage()
         if action == renameAction:
-            self._rename_image()
+            self.renameImage()
 
     def click(self) -> None:
-        '''Select/unselect widget and emit signal about it'''
+        '''Select/unselect widget and emit signal "clicked"'''
 
         if self.selected:
             self.selected = False
@@ -306,14 +313,10 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
         self.signals.clicked.emit()
 
     def mouseReleaseEvent(self, event) -> None:
-        '''Function called on mouse release event'''
-
-        super().mouseReleaseEvent(event)
-
         self.click()
 
     def delete(self) -> None:
-        '''Delete the image from disk and its DuplicateWidget instance
+        '''Delete the image from the disk and its "DuplicateWidget" instance
 
         :raise OSError: something went wrong while removing the image
         '''
@@ -324,11 +327,11 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
             raise OSError(e)
         else:
             self.selected = False
-            self.deleteLater()
+            self.hide()
 
     def move(self, dst: core.FolderPath) -> None:
         '''Move the image to a new location and delete
-        its DuplicateWidget instance
+        its "DuplicateWidget" instance
 
         :param dst: new location, eg. /new/location,
         :raise OSError: something went wrong while moving the image
@@ -340,141 +343,176 @@ class DuplicateWidget(QtWidgets.QWidget, QtCore.QObject):
             raise OSError(e)
         else:
             self.selected = False
-            self.deleteLater()
+            self.hide()
 
 
 class ImageGroupWidget(QtWidgets.QWidget):
-    '''Widget to group similar images together'''
+    '''Widget grouping similar images together'''
 
-    def __init__(self, image_group: Iterable[core.HashedImage],
-                 conf: config.ConfigData, parent=None) -> None:
+    def __init__(self, conf: config.Conf, parent: QtWidgets.QWidget = None) \
+        -> None:
         super().__init__(parent)
-        layout = QtWidgets.QHBoxLayout(self)
-        layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
-        self.duplicate_widgets = []
-        for image in image_group:
-            duplicate_widgets = DuplicateWidget(image, conf, self)
-            self.duplicate_widgets.append(duplicate_widgets)
-            layout.addWidget(duplicate_widgets)
-        self.setLayout(layout)
 
-    def getSelectedWidgets(self) -> List[DuplicateWidget]:
-        '''Return a list of the selected DuplicateWidget instances
+        self.conf = conf
+        self.widgets: List[DuplicateWidget] = []
 
-        :return: selected DuplicateWidget instances
+        self.layout = QtWidgets.QHBoxLayout(self)
+        self.layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+        self.setLayout(self.layout)
+
+    def render(self, image_group: Iterable[core.Image]) -> None:
+        '''Create and render "DuplicateWidget"s
+
+        :param image_group: group of similar images
         '''
 
-        widgets = self.findChildren(
-            DuplicateWidget,
-            options=QtCore.Qt.FindDirectChildrenOnly
-        )
-        return [widget for widget in widgets if widget.selected]
+        for image in image_group:
+            dupl_w = DuplicateWidget(image, self.conf, self)
+            self.widgets.append(dupl_w)
+            self.layout.addWidget(dupl_w)
+            dupl_w.render()
 
-    def auto_select(self) -> None:
-        '''Automatic selection of DuplicateWidget's'''
+    def selectedWidgets(self) -> List[DuplicateWidget]:
+        '''Return selected "DuplicateWidget"s
+
+        :return: list with selected "DuplicateWidget"s
+        '''
+
+        return [widget for widget in self.widgets if widget.selected]
+
+    def visibleWidgets(self) -> List[DuplicateWidget]:
+        '''Return visible "DuplicateWidget"s
+
+        :return: list with visible "DuplicateWidget"s
+        '''
+
+        return [widget for widget in self.widgets if widget.isVisible()]
+
+    def hasSelectedWidgets(self) -> bool:
+        '''Check if there are selected "DuplicateWidget"s
+
+        :return: True if there are any selected "DuplicateWidget"s
+        '''
+
+        for dupl_w in self.widgets:
+            if dupl_w.selected:
+                return True
+        return False
+
+    def autoSelect(self) -> None:
+        '''Automatic selection of "DuplicateWidget"s'''
 
         for i in range(1, len(self)):
-            self.duplicate_widgets[i].click()
+            if not self.widgets[i].selected:
+                self.widgets[i].click()
 
     def __len__(self) -> int:
-        return len(self.duplicate_widgets)
+        return len(self.widgets)
 
 
 class ImageViewWidget(QtWidgets.QWidget):
     '''Widget rendering duplicate images found'''
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, conf: config.Conf, parent: QtWidgets.QWidget = None) \
+        -> None:
         super().__init__(parent)
+
+        self.conf = conf
+        self.widgets: List[ImageGroupWidget] = []
 
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
 
-    def render(self, conf, image_groups: Iterable[core.Group]) -> None:
-        '''Add 'ImageGroupWidget' to 'scrollArea'
+    def render(self, image_groups: Iterable[core.Group]) -> None:
+        '''Create and render "ImageGroupWidget"s
 
         :param image_groups: groups of similar images
         '''
 
-        if not image_groups:
-            msg_box = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Information,
-                'No duplicate images found',
-                'No duplicate images have been found in the selected folders'
-            )
-            msg_box.exec()
-        else:
-            for group in image_groups:
-                self.layout.addWidget(ImageGroupWidget(group, conf, self))
+        for group in image_groups:
+            widget = ImageGroupWidget(self.conf, self)
+            self.widgets.append(widget)
+            self.layout.addWidget(widget)
+            widget.render(group)
 
     def hasSelectedWidgets(self) -> bool:
-        '''Check if there are selected 'DuplicateWidget' on the form
+        '''Check if there are selected "DuplicateWidget"s
 
-        :return: True if there are any selected ones
+        :return: True if there are any selected "DuplicateWidget"s
         '''
 
-        for group_widget in self.findChildren(ImageGroupWidget):
-            selected_widgets = group_widget.getSelectedWidgets()
-            if selected_widgets:
+        for group_w in self.widgets:
+            if group_w.hasSelectedWidgets():
                 return True
         return False
 
     def clear(self) -> None:
-        '''Clear the widget from the previous duplicate images'''
+        '''Clear the widget from duplicate images found'''
 
-        groups = self.findChildren(ImageGroupWidget)
-        for group_widget in groups:
-            group_widget.deleteLater()
+        for group_w in self.widgets:
+            group_w.deleteLater()
 
-    def call_on_selected_widgets(
-            self,
-            conf,
-            dst: Optional[core.FolderPath] = None
-        ) -> None:
-        '''Call 'move' or 'delete' on selected widgets
+        self.widgets = []
 
-        :param dst: if None, 'delete' is called, otherwise - 'move'
+    def delete(self) -> None:
+        '''Delete selected images'''
+
+        try:
+            self._callOnSelectedWidgets(DuplicateWidget.delete)
+        except OSError as e:
+            err_msg = f'Error occured while removing image "{e}"'
+            widgets_logger.error(err_msg)
+
+            msgBox = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning,
+                'Removing image',
+                err_msg
+            )
+            msgBox.exec()
+
+    def move(self, dst: core.FolderPath) -> None:
+        '''Move selected images into another folder
+
+        :param dst: folder to move the images into,
         '''
+        try:
+            self._callOnSelectedWidgets(DuplicateWidget.move, dst)
+        except OSError as e:
+            err_msg = f'Error occured while moving image "{e}"'
+            widgets_logger.error(err_msg)
 
-        groups = self.findChildren(ImageGroupWidget)
-        for group_widget in groups:
-            selected_widgets = group_widget.getSelectedWidgets()
-            for selected_widget in selected_widgets:
+            msgBox = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning,
+                'Moving image',
+                err_msg
+            )
+            msgBox.exec()
+
+    def _callOnSelectedWidgets(self, func: Callable,
+                               *args, **kwargs) -> None:
+        for group_w in self.widgets:
+            for selected_w in group_w.selectedWidgets():
                 try:
-                    if dst:
-                        selected_widget.move(dst)
-                    else:
-                        selected_widget.delete()
+                    func(selected_w, *args, **kwargs)
                 except OSError as e:
-                    widgets_logger.error(e)
-                    msgBox = QtWidgets.QMessageBox(
-                        QtWidgets.QMessageBox.Warning,
-                        'Removing/Moving image',
-                        ('Error occured while removing/moving '
-                         f'image {selected_widget.image.path}')
-                    )
-                    msgBox.exec()
+                    raise OSError(selected_w.image.path) from e
                 else:
-                    if conf['delete_dirs']:
-                        selected_widget.image.del_parent_dir()
-            # If we select all (or except one) the images in a group,
-            if len(group_widget) - len(selected_widgets) <= 1:
-                # and all the selected images were processed correctly (so
-                # there are no selected images anymore), delete the whole group
-                if not group_widget.getSelectedWidgets():
-                    group_widget.deleteLater()
+                    if self.conf['delete_dirs']:
+                        selected_w.image.del_parent_dir()
+
+            if len(group_w.visibleWidgets()) <= 1:
+                group_w.hide()
 
     def autoSelect(self) -> None:
-        '''Automatic selection of DuplicateWidget's'''
+        '''Automatic selection of "DuplicateWidget"s'''
 
-        group_widgets = self.findChildren(ImageGroupWidget)
-        for group in group_widgets:
-            group.auto_select()
+        for group_w in self.widgets:
+            group_w.autoSelect()
 
     def unselect(self) -> None:
-        '''Unselect all the selected DuplicateWidget's'''
+        '''Unselect all selected "DuplicateWidget"s'''
 
-        duplicate_widgets = self.findChildren(DuplicateWidget)
-        for w in duplicate_widgets:
-            if w.selected:
-                w.click()
+        for group_w in self.widgets:
+            for dupl_w in group_w.selectedWidgets():
+                dupl_w.click()
