@@ -17,7 +17,8 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
-Module implementing window "Main"
+Module implementing widget allowing to add and remove folder paths
+to/from QListWidget
 '''
 
 import pathlib

@@ -35,7 +35,7 @@ class TestPathsGroupBox(TestCase):
 
     def setUp(self):
         self.w = pathsgroupbox.PathsGroupBox()
-        self.items = ['item1', 'item2', 'item3']
+        self.items = ['path1', 'path2', 'path3']
         for item in self.items:
             self.w.pathsList.addItem(item)
 
@@ -58,9 +58,9 @@ class TestPathsGroupBox(TestCase):
         self.assertFalse(self.w.delFolderBtn.isEnabled())
 
     def test_folder_from_file_dialog_added(self):
-        NAME = 'PyQt5.QtWidgets.QFileDialog.getExistingDirectory'
-        item = 'item4'
-        with mock.patch(NAME, return_value=item):
+        PATCH_DIR = 'PyQt5.QtWidgets.QFileDialog.getExistingDirectory'
+        item = 'path4'
+        with mock.patch(PATCH_DIR, return_value=item):
             self.w.addPath()
 
         self.assertEqual(self.w.pathsList.count(), len(self.items)+1)
