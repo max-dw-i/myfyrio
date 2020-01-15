@@ -136,10 +136,10 @@ class TestProcessingGroupBox(TestCase):
 
     def test_startProcessing_call_clearWidget(self):
         NM = 'doppelganger.processinggroupbox.ProcessingGroupBox._clearWidget'
-        with mock.patch(NM) as mock_start:
+        with mock.patch(NM) as mock_clear:
             self.w.startProcessing()
 
-        mock_start.assert_called_once_with()
+        mock_clear.assert_called_once_with()
 
     def test_startProcessing_disable_startBtn(self):
         self.w.startBtn.setEnabled(True)
