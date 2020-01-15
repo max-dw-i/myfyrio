@@ -28,7 +28,7 @@ if app is None:
     app = QtWidgets.QApplication([])
 
 
-# pylint: disable=missing-class-docstring,protected-access
+# pylint: disable=missing-class-docstring
 
 
 class TestSensitivityGroupBox(TestCase):

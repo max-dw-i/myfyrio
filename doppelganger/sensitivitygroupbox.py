@@ -27,8 +27,7 @@ from PyQt5 import QtWidgets, uic
 
 
 class SensitivityGroupBox(QtWidgets.QGroupBox):
-    '''Widget setting sensitivity of duplicate images search
-    '''
+    '''Widget setting sensitivity of duplicate images search'''
 
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
