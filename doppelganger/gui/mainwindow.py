@@ -26,11 +26,11 @@ from typing import Iterable
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-from doppelganger import (actionsgroupbox, core, imageviewwidget,
-                          pathsgroupbox, processing, processinggroupbox,
-                          sensitivitygroupbox, signals)
-from doppelganger.aboutwindow import AboutWindow
-from doppelganger.preferenceswindow import PreferencesWindow
+from doppelganger import core, processing, signals
+from doppelganger.gui import (actionsgroupbox, imageviewwidget, pathsgroupbox,
+                              processinggroupbox, sensitivitygroupbox)
+from doppelganger.gui.aboutwindow import AboutWindow
+from doppelganger.gui.preferenceswindow import PreferencesWindow
 
 
 def errorMessage(msg: str) -> None:

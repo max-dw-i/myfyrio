@@ -20,7 +20,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtWidgets
 
-from doppelganger import processinggroupbox
+from doppelganger.gui import processinggroupbox
 
 # Check if there's QApplication instance already
 app = QtWidgets.QApplication.instance()
@@ -135,7 +135,8 @@ class TestProcessingGroupBox(TestCase):
             self.assertEqual(label.text()[-2:], self.new_val)
 
     def test_startProcessing_call_clearWidget(self):
-        NM = 'doppelganger.processinggroupbox.ProcessingGroupBox._clearWidget'
+        NM = ('doppelganger.gui.processinggroupbox.'
+              'ProcessingGroupBox._clearWidget')
         with mock.patch(NM) as mock_clear:
             self.w.startProcessing()
 

@@ -20,12 +20,17 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
 
-from doppelganger import aboutwindow, mainwindow, preferenceswindow, signals
+from doppelganger import signals
+from doppelganger.gui import aboutwindow, mainwindow, preferenceswindow
 
 # Check if there's QApplication instance already
 app = QtWidgets.QApplication.instance()
 if app is None:
     app = QtWidgets.QApplication([])
+
+
+MAIN_WINDOW = 'doppelganger.gui.mainwindow.'
+IMAGE_VIEW_WIDGET = 'doppelganger.gui.imageviewwidget.'
 
 
 # pylint: disable=unused-argument,missing-class-docstring,protected-access
@@ -118,7 +123,7 @@ class TestMainFormMethodStartProcessing(TestMainForm):
 
     @mock.patch('PyQt5.QtCore.QThreadPool.start')
     def test_ImageViewWidget_clear_called(self, mock_pool):
-        PATCH_CLEAR = 'doppelganger.imageviewwidget.ImageViewWidget.clear'
+        PATCH_CLEAR = IMAGE_VIEW_WIDGET + 'ImageViewWidget.clear'
         with mock.patch(PATCH_CLEAR) as mock_clear:
             self.w.startProcessing()
 
@@ -188,7 +193,7 @@ class TestMainFormMethodCloseEvent(TestMainForm):
 
 class TestMainFormMethodOpenWindow(TestMainForm):
 
-    PATCH_SENDER = 'doppelganger.mainwindow.MainWindow.sender'
+    PATCH_SENDER = MAIN_WINDOW + 'MainWindow.sender'
 
     def setUp(self):
         super().setUp()
@@ -224,61 +229,62 @@ class TestMainFormMethodOpenDocs(TestMainForm):
 
 class TestMainFormMethodSwitchImgActionsAndBtns(TestMainForm):
 
-    PATCH_W = 'doppelganger.imageviewwidget.ImageViewWidget.hasSelectedWidgets'
-    PATCH_A = 'doppelganger.actionsgroupbox.ActionsGroupBox.setEnabled'
+    PATCH_SELECTED = IMAGE_VIEW_WIDGET + 'ImageViewWidget.hasSelectedWidgets'
+    PATCH_ENABLED = ('doppelganger.gui.actionsgroupbox.'
+                     'ActionsGroupBox.setEnabled')
 
     def test_actions_btns_enabled_if_there_are_selected_widgets(self):
-        with mock.patch(self.PATCH_W, return_value=True):
-            with mock.patch(self.PATCH_A) as mock_set_call:
+        with mock.patch(self.PATCH_SELECTED, return_value=True):
+            with mock.patch(self.PATCH_ENABLED) as mock_set_call:
                 self.w.switchImgActionsAndBtns()
 
         mock_set_call.assert_called_once_with(True)
 
     def test_move_menu_action_enabled_if_there_are_selected_widgets(self):
         self.w.moveAction.setEnabled(False)
-        with mock.patch(self.PATCH_W, return_value=True):
+        with mock.patch(self.PATCH_SELECTED, return_value=True):
             self.w.switchImgActionsAndBtns()
 
         self.assertTrue(self.w.moveAction.isEnabled())
 
     def test_delete_menu_action_enabled_if_there_are_selected_widgets(self):
         self.w.deleteAction.setEnabled(False)
-        with mock.patch(self.PATCH_W, return_value=True):
+        with mock.patch(self.PATCH_SELECTED, return_value=True):
             self.w.switchImgActionsAndBtns()
 
         self.assertTrue(self.w.deleteAction.isEnabled())
 
     def test_unselect_menu_action_enabled_if_there_are_selected_widgets(self):
         self.w.unselectAction.setEnabled(False)
-        with mock.patch(self.PATCH_W, return_value=True):
+        with mock.patch(self.PATCH_SELECTED, return_value=True):
             self.w.switchImgActionsAndBtns()
 
         self.assertTrue(self.w.unselectAction.isEnabled())
 
     def test_actions_btns_disabled_if_no_selected_widgets(self):
-        with mock.patch(self.PATCH_W, return_value=False):
-            with mock.patch(self.PATCH_A) as mock_set_call:
+        with mock.patch(self.PATCH_SELECTED, return_value=False):
+            with mock.patch(self.PATCH_ENABLED) as mock_set_call:
                 self.w.switchImgActionsAndBtns()
 
         mock_set_call.assert_called_once_with(False)
 
     def test_move_menu_action_disabled_if_no_selected_widgets(self):
         self.w.moveAction.setEnabled(True)
-        with mock.patch(self.PATCH_W, return_value=False):
+        with mock.patch(self.PATCH_SELECTED, return_value=False):
             self.w.switchImgActionsAndBtns()
 
         self.assertFalse(self.w.moveAction.isEnabled())
 
     def test_delete_menu_action_disabled_if_no_selected_widgets(self):
         self.w.deleteAction.setEnabled(True)
-        with mock.patch(self.PATCH_W, return_value=False):
+        with mock.patch(self.PATCH_SELECTED, return_value=False):
             self.w.switchImgActionsAndBtns()
 
         self.assertFalse(self.w.deleteAction.isEnabled())
 
     def test_unselect_menu_action_disabled_if_no_selected_widgets(self):
         self.w.unselectAction.setEnabled(True)
-        with mock.patch(self.PATCH_W, return_value=False):
+        with mock.patch(self.PATCH_SELECTED, return_value=False):
             self.w.switchImgActionsAndBtns()
 
         self.assertFalse(self.w.unselectAction.isEnabled())
@@ -286,8 +292,8 @@ class TestMainFormMethodSwitchImgActionsAndBtns(TestMainForm):
 
 class TestMainFormMethodDeleteImages(TestMainForm):
 
-    @mock.patch('doppelganger.mainwindow.MainWindow.switchImgActionsAndBtns')
-    @mock.patch('doppelganger.imageviewwidget.ImageViewWidget.delete')
+    @mock.patch(MAIN_WINDOW+'MainWindow.switchImgActionsAndBtns')
+    @mock.patch(IMAGE_VIEW_WIDGET+'ImageViewWidget.delete')
     def test_nothing_happens_if_btn_Cancel_chosen(self, mock_del, mock_switch):
         with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
                         return_value=QtWidgets.QMessageBox.Cancel):
@@ -296,8 +302,8 @@ class TestMainFormMethodDeleteImages(TestMainForm):
         mock_del.assert_not_called()
         mock_switch.assert_not_called()
 
-    @mock.patch('doppelganger.mainwindow.MainWindow.switchImgActionsAndBtns')
-    @mock.patch('doppelganger.imageviewwidget.ImageViewWidget.delete')
+    @mock.patch(MAIN_WINDOW+'MainWindow.switchImgActionsAndBtns')
+    @mock.patch(IMAGE_VIEW_WIDGET+'ImageViewWidget.delete')
     def test_delete_called_if_btn_Yes_chosen(self, mock_del, mock_switch):
         with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
                         return_value=QtWidgets.QMessageBox.Yes):
@@ -305,8 +311,8 @@ class TestMainFormMethodDeleteImages(TestMainForm):
 
         mock_del.assert_called_once_with()
 
-    @mock.patch('doppelganger.mainwindow.MainWindow.switchImgActionsAndBtns')
-    @mock.patch('doppelganger.imageviewwidget.ImageViewWidget.delete')
+    @mock.patch(MAIN_WINDOW+'MainWindow.switchImgActionsAndBtns')
+    @mock.patch(IMAGE_VIEW_WIDGET+'ImageViewWidget.delete')
     def test_switchImgActionsAndBtns_called_if_btn_Yes_chosen(self, mock_del,
                                                               mock_switch):
         with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
@@ -323,8 +329,8 @@ class TestMainFormMethodMoveImages(TestMainForm):
 
         self.new_dst = 'new_folder'
 
-    @mock.patch('doppelganger.mainwindow.MainWindow.switchImgActionsAndBtns')
-    @mock.patch('doppelganger.imageviewwidget.ImageViewWidget.move')
+    @mock.patch(MAIN_WINDOW+'MainWindow.switchImgActionsAndBtns')
+    @mock.patch(IMAGE_VIEW_WIDGET+'ImageViewWidget.move')
     def test_nothing_happens_if_path_not_chosen(self, mock_move, mock_switch):
         with mock.patch('PyQt5.QtWidgets.QFileDialog.getExistingDirectory',
                         return_value=''):
@@ -333,8 +339,8 @@ class TestMainFormMethodMoveImages(TestMainForm):
         mock_move.assert_not_called()
         mock_switch.assert_not_called()
 
-    @mock.patch('doppelganger.mainwindow.MainWindow.switchImgActionsAndBtns')
-    @mock.patch('doppelganger.imageviewwidget.ImageViewWidget.move')
+    @mock.patch(MAIN_WINDOW+'MainWindow.switchImgActionsAndBtns')
+    @mock.patch(IMAGE_VIEW_WIDGET+'ImageViewWidget.move')
     def test_delete_called_if_path_chosen(self, mock_move, mock_switch):
         with mock.patch('PyQt5.QtWidgets.QFileDialog.getExistingDirectory',
                         return_value=self.new_dst):
@@ -342,8 +348,8 @@ class TestMainFormMethodMoveImages(TestMainForm):
 
         mock_move.assert_called_once_with(self.new_dst)
 
-    @mock.patch('doppelganger.mainwindow.MainWindow.switchImgActionsAndBtns')
-    @mock.patch('doppelganger.imageviewwidget.ImageViewWidget.move')
+    @mock.patch(MAIN_WINDOW+'MainWindow.switchImgActionsAndBtns')
+    @mock.patch(IMAGE_VIEW_WIDGET+'ImageViewWidget.move')
     def test_switchImgActionsAndBtns_called_if_path_chosen(self, mock_move,
                                                            mock_switch):
         with mock.patch('PyQt5.QtWidgets.QFileDialog.getExistingDirectory',
@@ -356,7 +362,7 @@ class TestMainFormMethodMoveImages(TestMainForm):
 class TestMainFormMethodRender(TestMainForm):
 
     def test_ImageViewWidget_called_if_duplicates_found(self):
-        PATCH_RENDER = 'doppelganger.imageviewwidget.ImageViewWidget.render'
+        PATCH_RENDER = IMAGE_VIEW_WIDGET + 'ImageViewWidget.render'
         img_groups = [['image']]
         with mock.patch(PATCH_RENDER) as mock_render_call:
             self.w.render(img_groups)
@@ -374,7 +380,7 @@ class TestMainFormMethodRender(TestMainForm):
 
 class TestMainFormMethodProcessingFinished(TestMainForm):
 
-    PATCH_STOP = ('doppelganger.processinggroupbox.'
+    PATCH_STOP = ('doppelganger.gui.processinggroupbox.'
                   'ProcessingGroupBox.stopProcessing')
 
     def test_ProcessingGroupBox_stopProcessing_called(self):

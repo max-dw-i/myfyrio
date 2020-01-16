@@ -22,7 +22,7 @@ import sys
 
 from PyQt5.QtWidgets import QApplication
 
-import doppelganger.mainwindow as mw
+import doppelganger.gui.mainwindow as mw
 
 if __name__ == '__main__':
     logger = logging.getLogger('main')

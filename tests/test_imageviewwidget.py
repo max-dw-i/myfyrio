@@ -23,7 +23,8 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
 
-from doppelganger import imageviewwidget, signals
+from doppelganger import signals
+from doppelganger.gui import imageviewwidget
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -38,7 +39,7 @@ if app is None:
     app = QtWidgets.QApplication([])
 
 
-VIEW = 'doppelganger.imageviewwidget.'
+VIEW = 'doppelganger.gui.imageviewwidget.'
 
 
 # pylint: disable=unused-argument,missing-class-docstring,protected-access

@@ -20,7 +20,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtWidgets
 
-from doppelganger import pathsgroupbox
+from doppelganger.gui import pathsgroupbox
 
 # Check if there's QApplication instance already
 app = QtWidgets.QApplication.instance()

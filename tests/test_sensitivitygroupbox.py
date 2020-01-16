@@ -20,7 +20,7 @@ from unittest import TestCase
 
 from PyQt5 import QtWidgets
 
-from doppelganger import sensitivitygroupbox
+from doppelganger.gui import sensitivitygroupbox
 
 # Check if there's QApplication instance already
 app = QtWidgets.QApplication.instance()

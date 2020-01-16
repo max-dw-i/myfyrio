@@ -21,7 +21,8 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtWidgets
 
-from doppelganger import config, preferenceswindow
+from doppelganger import config
+from doppelganger.gui import preferenceswindow
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -179,6 +180,9 @@ class TestValFunc(TestCase):
 
 class TestPreferencesForm(TestCase):
 
+    PATCH_GATHER = ('doppelganger.gui.preferenceswindow.'
+                    'PreferencesWindow.gather_prefs')
+
     def setUp(self):
         self.w = preferenceswindow.PreferencesWindow()
         self.clear_widgets()
@@ -225,18 +229,16 @@ class TestPreferencesForm(TestCase):
 
         self.assertDictEqual(self.w.conf, data)
 
-    @mock.patch('doppelganger.preferenceswindow.save_config')
+    @mock.patch('doppelganger.gui.preferenceswindow.save_config')
     def test_saveBtn_click_call_gather_prefs(self, mock_save):
-        NAME = 'doppelganger.preferenceswindow.PreferencesWindow.gather_prefs'
-        with mock.patch(NAME) as mock_gather:
+        with mock.patch(self.PATCH_GATHER) as mock_gather:
             self.w.saveBtn_click()
 
         mock_gather.assert_called_once_with()
 
-    @mock.patch('doppelganger.preferenceswindow.save_config')
+    @mock.patch('doppelganger.gui.preferenceswindow.save_config')
     def test_saveBtn_click_call_save_config(self, mock_save):
-        NAME = 'doppelganger.preferenceswindow.PreferencesWindow.gather_prefs'
-        with mock.patch(NAME):
+        with mock.patch(self.PATCH_GATHER):
             self.w.saveBtn_click()
 
         mock_save.assert_called_once_with(self.w.conf)
@@ -244,8 +246,7 @@ class TestPreferencesForm(TestCase):
     @mock.patch('PyQt5.QtWidgets.QMainWindow.close')
     @mock.patch('doppelganger.config.Config.save')
     def test_saveBtn_click_call_close(self, mock_save, mock_close):
-        NAME = 'doppelganger.preferenceswindow.PreferencesWindow.gather_prefs'
-        with mock.patch(NAME):
+        with mock.patch(self.PATCH_GATHER):
             self.w.saveBtn_click()
 
         mock_close.assert_called_once()
