@@ -16,19 +16,11 @@ You should have received a copy of the GNU General Public License
 along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 '''
 
-import logging
 from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
 
-from doppelganger import core, imageviewwidget, mainwindow
-
-# Configure a logger for testing purposes
-logger = logging.getLogger('main')
-logger.setLevel(logging.WARNING)
-if not logger.handlers:
-    nh = logging.NullHandler()
-    logger.addHandler(nh)
+from doppelganger import aboutwindow, mainwindow, preferenceswindow, signals
 
 # Check if there's QApplication instance already
 app = QtWidgets.QApplication.instance()
@@ -41,16 +33,384 @@ if app is None:
 
 class TestMainForm(TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        cls.w = mainwindow.MainWindow()
+
+
+class TestMainFormMethodInit(TestMainForm):
+
+    def test_init_values(self):
+        self.assertIsInstance(self.w.aboutWindow, aboutwindow.AboutWindow)
+        self.assertIsInstance(self.w.preferencesWindow,
+                              preferenceswindow.PreferencesWindow)
+        self.assertIsInstance(self.w.signals, signals.Signals)
+        self.assertIsInstance(self.w.threadpool, QtCore.QThreadPool)
+
+
+class TestMainFormMethodSwitchDelFolderAction(TestMainForm):
+
+    PATCH_SELECETED = 'PyQt5.QtWidgets.QListWidget.selectedItems'
+
+    def test_delFolderAction_enabled_if_there_are_selected_paths(self):
+        self.w.delFolderAction.setEnabled(False)
+        with mock.patch(self.PATCH_SELECETED, return_value=True):
+            self.w.switchDelFolderAction()
+
+        self.assertTrue(self.w.delFolderAction.isEnabled())
+
+    def test_delFolderAction_disabled_if_there_arent_selected_paths(self):
+        self.w.delFolderAction.setEnabled(True)
+        with mock.patch(self.PATCH_SELECETED, return_value=False):
+            self.w.switchDelFolderAction()
+
+        self.assertFalse(self.w.delFolderAction.isEnabled())
+
+
+class TestMainFormMethodSwitchStartBtn(TestMainForm):
+
+    PATCH_COUNT = 'PyQt5.QtWidgets.QListWidget.count'
+
+    def test_startBtn_enabled_if_there_are_paths(self):
+        self.w.processingGrp.startBtn.setEnabled(False)
+        with mock.patch(self.PATCH_COUNT, return_value=1):
+            self.w.switchStartBtn()
+
+        self.assertTrue(self.w.processingGrp.startBtn.isEnabled())
+
+    def test_startBtnn_disabled_if_there_are_no_paths(self):
+        self.w.processingGrp.startBtn.setEnabled(True)
+        with mock.patch(self.PATCH_COUNT, return_value=0):
+            self.w.switchStartBtn()
+
+        self.assertFalse(self.w.processingGrp.startBtn.isEnabled())
+
+
+class TestMainFormMethodSetImageProcessingObj(TestMainForm):
+
+    PATCH_IMG_PROC = 'doppelganger.processing.ImageProcessing'
+
     def setUp(self):
-        self.conf = {
-            'size': 200,
-            'show_similarity': True,
-            'show_size': True,
-            'show_path': True,
-            'sort': 0,
-            'delete_dirs': False,
-            'size_format': 1,
-            'subfolders': True,
-            'close_confirmation': False,
-        }
-        self.form = mainwindow.MainWindow()
+        super().setUp()
+
+        self.mock_proc_obj = mock.Mock()
+
+    def test_args_ImageProcessing_called_with(self):
+        with mock.patch(self.PATCH_IMG_PROC,
+                        return_value=self.mock_proc_obj) as mock_proc_call:
+            self.w._setImageProcessingObj()
+
+        mock_proc_call.assert_called_once_with(
+            self.w.signals,
+            self.w.pathsGrp.paths(),
+            self.w.sensitivityGrp.sensitivity,
+            self.w.preferencesWindow.conf
+        )
+
+    def test_return_ImageProcessing_obj(self):
+        with mock.patch(self.PATCH_IMG_PROC, return_value=self.mock_proc_obj):
+            res = self.w._setImageProcessingObj()
+
+        self.assertEqual(res, self.mock_proc_obj)
+
+
+class TestMainFormMethodStartProcessing(TestMainForm):
+
+    @mock.patch('PyQt5.QtCore.QThreadPool.start')
+    def test_ImageViewWidget_clear_called(self, mock_pool):
+        PATCH_CLEAR = 'doppelganger.imageviewwidget.ImageViewWidget.clear'
+        with mock.patch(PATCH_CLEAR) as mock_clear:
+            self.w.startProcessing()
+
+        mock_clear.assert_called_once_with()
+
+    @mock.patch('PyQt5.QtCore.QThreadPool.start')
+    def test_autoSelectBtn_disabled(self, mock_pool):
+        self.w.actionsGrp.autoSelectBtn.setEnabled(True)
+        self.w.startProcessing()
+
+        self.assertFalse(self.w.actionsGrp.autoSelectBtn.isEnabled())
+
+    @mock.patch('PyQt5.QtCore.QThreadPool.start')
+    def test_autoSelectAction_disabled(self, mock_pool):
+        self.w.autoSelectAction.setEnabled(True)
+        self.w.startProcessing()
+
+        self.assertFalse(self.w.autoSelectAction.isEnabled())
+
+
+class TestMainFormMethodStopProcessing(TestMainForm):
+
+    def test_interrupted_signal_emitted(self):
+        spy = QtTest.QSignalSpy(self.w.signals.interrupted)
+        with mock.patch('PyQt5.QtWidgets.QMessageBox'):
+            self.w.stopProcessing()
+
+        self.assertEqual(len(spy), 1)
+
+    def test_show_msg_bos(self):
+        mock_box = mock.Mock()
+        with mock.patch('PyQt5.QtWidgets.QMessageBox', return_value=mock_box):
+            self.w.stopProcessing()
+
+        mock_box.exec.assert_called_once_with()
+
+
+class TestMainFormMethodCloseEvent(TestMainForm):
+
+    def setUp(self):
+        super().setUp()
+
+        self.mock_event = mock.Mock()
+
+    def test_nothing_happens_if_conf_param_close_confirmation_is_False(self):
+        self.w.preferencesWindow.conf['close_confirmation'] = False
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question') as mock_quest:
+            self.w.closeEvent(self.mock_event)
+
+        mock_quest.assert_not_called()
+
+    def test_question_called_if_conf_param_close_confirmation_is_True(self):
+        self.w.preferencesWindow.conf['close_confirmation'] = True
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question') as mock_quest:
+            self.w.closeEvent(self.mock_event)
+
+        mock_quest.assert_called_once()
+
+    def test_event_ignored_if_btn_Cancel_chosen(self):
+        self.w.preferencesWindow.conf['close_confirmation'] = True
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Cancel):
+            self.w.closeEvent(self.mock_event)
+
+        self.mock_event.ignore.assert_called_once_with()
+
+
+class TestMainFormMethodOpenWindow(TestMainForm):
+
+    PATCH_SENDER = 'doppelganger.mainwindow.MainWindow.sender'
+
+    def setUp(self):
+        super().setUp()
+
+        self.mock_sender = mock.Mock()
+        self.mock_window = mock.Mock()
+        self.mock_sender.data.return_value = self.mock_window
+
+    def test_activate_window_if_it_is_open(self):
+        self.mock_window.isVisible.return_value = True
+        with mock.patch(self.PATCH_SENDER, return_value=self.mock_sender):
+            self.w.openWindow()
+
+        self.mock_window.activateWindow.assert_called_once_with()
+
+    def test_show_window_if_it_is_not_open(self):
+        self.mock_window.isVisible.return_value = False
+        with mock.patch(self.PATCH_SENDER, return_value=self.mock_sender):
+            self.w.openWindow()
+
+        self.mock_window.show.assert_called_once_with()
+
+
+class TestMainFormMethodOpenDocs(TestMainForm):
+
+    def test_webbrowser_open_called(self):
+        URL = 'https://github.com/oratosquilla-oratoria/doppelganger'
+        with mock.patch('webbrowser.open') as mock_open_call:
+            self.w.openDocs()
+
+        mock_open_call.assert_called_once_with(URL)
+
+
+class TestMainFormMethodSwitchImgActionsAndBtns(TestMainForm):
+
+    PATCH_W = 'doppelganger.imageviewwidget.ImageViewWidget.hasSelectedWidgets'
+    PATCH_A = 'doppelganger.actionsgroupbox.ActionsGroupBox.setEnabled'
+
+    def test_actions_btns_enabled_if_there_are_selected_widgets(self):
+        with mock.patch(self.PATCH_W, return_value=True):
+            with mock.patch(self.PATCH_A) as mock_set_call:
+                self.w.switchImgActionsAndBtns()
+
+        mock_set_call.assert_called_once_with(True)
+
+    def test_move_menu_action_enabled_if_there_are_selected_widgets(self):
+        self.w.moveAction.setEnabled(False)
+        with mock.patch(self.PATCH_W, return_value=True):
+            self.w.switchImgActionsAndBtns()
+
+        self.assertTrue(self.w.moveAction.isEnabled())
+
+    def test_delete_menu_action_enabled_if_there_are_selected_widgets(self):
+        self.w.deleteAction.setEnabled(False)
+        with mock.patch(self.PATCH_W, return_value=True):
+            self.w.switchImgActionsAndBtns()
+
+        self.assertTrue(self.w.deleteAction.isEnabled())
+
+    def test_unselect_menu_action_enabled_if_there_are_selected_widgets(self):
+        self.w.unselectAction.setEnabled(False)
+        with mock.patch(self.PATCH_W, return_value=True):
+            self.w.switchImgActionsAndBtns()
+
+        self.assertTrue(self.w.unselectAction.isEnabled())
+
+    def test_actions_btns_disabled_if_no_selected_widgets(self):
+        with mock.patch(self.PATCH_W, return_value=False):
+            with mock.patch(self.PATCH_A) as mock_set_call:
+                self.w.switchImgActionsAndBtns()
+
+        mock_set_call.assert_called_once_with(False)
+
+    def test_move_menu_action_disabled_if_no_selected_widgets(self):
+        self.w.moveAction.setEnabled(True)
+        with mock.patch(self.PATCH_W, return_value=False):
+            self.w.switchImgActionsAndBtns()
+
+        self.assertFalse(self.w.moveAction.isEnabled())
+
+    def test_delete_menu_action_disabled_if_no_selected_widgets(self):
+        self.w.deleteAction.setEnabled(True)
+        with mock.patch(self.PATCH_W, return_value=False):
+            self.w.switchImgActionsAndBtns()
+
+        self.assertFalse(self.w.deleteAction.isEnabled())
+
+    def test_unselect_menu_action_disabled_if_no_selected_widgets(self):
+        self.w.unselectAction.setEnabled(True)
+        with mock.patch(self.PATCH_W, return_value=False):
+            self.w.switchImgActionsAndBtns()
+
+        self.assertFalse(self.w.unselectAction.isEnabled())
+
+
+class TestMainFormMethodDeleteImages(TestMainForm):
+
+    @mock.patch('doppelganger.mainwindow.MainWindow.switchImgActionsAndBtns')
+    @mock.patch('doppelganger.imageviewwidget.ImageViewWidget.delete')
+    def test_nothing_happens_if_btn_Cancel_chosen(self, mock_del, mock_switch):
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Cancel):
+            self.w.deleteImages()
+
+        mock_del.assert_not_called()
+        mock_switch.assert_not_called()
+
+    @mock.patch('doppelganger.mainwindow.MainWindow.switchImgActionsAndBtns')
+    @mock.patch('doppelganger.imageviewwidget.ImageViewWidget.delete')
+    def test_delete_called_if_btn_Yes_chosen(self, mock_del, mock_switch):
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Yes):
+            self.w.deleteImages()
+
+        mock_del.assert_called_once_with()
+
+    @mock.patch('doppelganger.mainwindow.MainWindow.switchImgActionsAndBtns')
+    @mock.patch('doppelganger.imageviewwidget.ImageViewWidget.delete')
+    def test_switchImgActionsAndBtns_called_if_btn_Yes_chosen(self, mock_del,
+                                                              mock_switch):
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Yes):
+            self.w.deleteImages()
+
+        mock_switch.assert_called_once_with()
+
+
+class TestMainFormMethodMoveImages(TestMainForm):
+
+    def setUp(self):
+        super().setUp()
+
+        self.new_dst = 'new_folder'
+
+    @mock.patch('doppelganger.mainwindow.MainWindow.switchImgActionsAndBtns')
+    @mock.patch('doppelganger.imageviewwidget.ImageViewWidget.move')
+    def test_nothing_happens_if_path_not_chosen(self, mock_move, mock_switch):
+        with mock.patch('PyQt5.QtWidgets.QFileDialog.getExistingDirectory',
+                        return_value=''):
+            self.w.moveImages()
+
+        mock_move.assert_not_called()
+        mock_switch.assert_not_called()
+
+    @mock.patch('doppelganger.mainwindow.MainWindow.switchImgActionsAndBtns')
+    @mock.patch('doppelganger.imageviewwidget.ImageViewWidget.move')
+    def test_delete_called_if_path_chosen(self, mock_move, mock_switch):
+        with mock.patch('PyQt5.QtWidgets.QFileDialog.getExistingDirectory',
+                        return_value=self.new_dst):
+            self.w.moveImages()
+
+        mock_move.assert_called_once_with(self.new_dst)
+
+    @mock.patch('doppelganger.mainwindow.MainWindow.switchImgActionsAndBtns')
+    @mock.patch('doppelganger.imageviewwidget.ImageViewWidget.move')
+    def test_switchImgActionsAndBtns_called_if_path_chosen(self, mock_move,
+                                                           mock_switch):
+        with mock.patch('PyQt5.QtWidgets.QFileDialog.getExistingDirectory',
+                        return_value=self.new_dst):
+            self.w.moveImages()
+
+        mock_switch.assert_called_once_with()
+
+
+class TestMainFormMethodRender(TestMainForm):
+
+    def test_ImageViewWidget_called_if_duplicates_found(self):
+        PATCH_RENDER = 'doppelganger.imageviewwidget.ImageViewWidget.render'
+        img_groups = [['image']]
+        with mock.patch(PATCH_RENDER) as mock_render_call:
+            self.w.render(img_groups)
+
+        mock_render_call.assert_called_once_with(img_groups)
+
+    def test_msg_box_called_if_no_duplicates_found(self):
+        PATCH_BOX = 'PyQt5.QtWidgets.QMessageBox'
+        mock_box = mock.Mock()
+        with mock.patch(PATCH_BOX, return_value=mock_box):
+            self.w.render([])
+
+        mock_box.exec.assert_called_once_with()
+
+
+class TestMainFormMethodProcessingFinished(TestMainForm):
+
+    PATCH_STOP = ('doppelganger.processinggroupbox.'
+                  'ProcessingGroupBox.stopProcessing')
+
+    def test_ProcessingGroupBox_stopProcessing_called(self):
+        with mock.patch(self.PATCH_STOP) as mock_stop_call:
+            self.w.processingFinished()
+
+        mock_stop_call.assert_called_once_with()
+
+    def test_autoSelectBtn_enabled_if_images_rendered(self):
+        self.w.actionsGrp.autoSelectBtn.setEnabled(False)
+        self.w.imageViewWidget.widgets = ['group_widget']
+        with mock.patch(self.PATCH_STOP):
+            self.w.processingFinished()
+
+        self.assertTrue(self.w.actionsGrp.autoSelectBtn.isEnabled())
+
+    def test_autoselect_menu_action_enabled_if_images_rendered(self):
+        self.w.autoSelectAction.setEnabled(False)
+        self.w.imageViewWidget.widgets = ['group_widget']
+        with mock.patch(self.PATCH_STOP):
+            self.w.processingFinished()
+
+        self.assertTrue(self.w.autoSelectAction.isEnabled())
+
+    def test_autoSelectBtn_disabled_if_images_not_rendered(self):
+        self.w.actionsGrp.autoSelectBtn.setEnabled(False)
+        self.w.imageViewWidget.widgets = []
+        with mock.patch(self.PATCH_STOP):
+            self.w.processingFinished()
+
+        self.assertFalse(self.w.actionsGrp.autoSelectBtn.isEnabled())
+
+    def test_autoselect_menu_action_disabled_if_images_not_rendered(self):
+        self.w.autoSelectAction.setEnabled(False)
+        self.w.imageViewWidget.widgets = []
+        with mock.patch(self.PATCH_STOP):
+            self.w.processingFinished()
+
+        self.assertFalse(self.w.autoSelectAction.isEnabled())
