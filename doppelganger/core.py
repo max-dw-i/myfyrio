@@ -120,36 +120,60 @@ def image_grouping(images: Collection[Image],
     if len(images) <= 1:
         return []
 
-    image_groups = []
-    checked: Set[Image] = set()
     try:
         bkt = pybktree.BKTree(hamming, images)
     except TypeError:
-        raise TypeError('While grouping, image hashes must be integers')
+        raise TypeError('The hashes must be integers')
+
+    image_groups: List[Group] = []
+    checked: Dict[Image, int] = {} # {Image: index of the group}
 
     for image in images:
-        if image in checked:
+        distance, closest = _closest(bkt, image, sensitivity)
+        if closest is None:
             continue
 
-        closests = bkt.find(image, sensitivity)
-
-        # If there's one element in 'closests', it's the 'image' itself
-        if len(closests) == 1:
-            continue
-
-        image_groups.append(_new_group(closests, checked))
+        # 'closest' goes to the same group as 'image'
+        if image in checked and closest not in checked:
+            _add_img_to_existing_group(image, closest, checked, image_groups)
+        # and vice versa
+        if image not in checked and closest in checked:
+            _add_img_to_existing_group(closest, image, checked, image_groups)
+        # create a new group with 'image' and 'closest' it it
+        if image not in checked and closest not in checked:
+            _add_new_group(image, closest, checked, image_groups, distance)
 
     return image_groups
 
-def _new_group(closests: List[Tuple[Distance, Image]],
-               checked: Set[Image]) -> Group:
-    image_group = []
-    for dist, img in closests:
-        if img not in checked:
-            img.difference = dist
-            image_group.append(img)
-            checked.add(img)
-    return image_group
+def _closest(bktree: pybktree.BKTree, image: Image, sensitivity: Sensitivity) \
+    -> Tuple[Optional[Distance], Optional[Image]]:
+    closests = bktree.find(image, sensitivity)
+
+    # if len == 1, there's only 'image' itself
+    if len(closests) == 1:
+        return None, None
+
+    distance, closest = closests[1]
+    if image == closest: # again, 'image' itself
+        distance, closest = closests[0]
+
+    return distance, closest
+
+def _add_img_to_existing_group(img_in_group: Image, img_not_in_group: Image,
+                               checked: Dict[Image, int],
+                               image_groups: List[Group]):
+    group_num = checked[img_in_group]
+    img_not_in_group.difference = hamming(image_groups[group_num][0],
+                                          img_not_in_group)
+    image_groups[group_num].append(img_not_in_group)
+    checked[img_not_in_group] = group_num
+
+def _add_new_group(img1: Image, img2: Image, checked: Dict[Image, int],
+                   image_groups: List[Group], distance: Distance):
+    img2.difference = distance
+    image_groups.append([img1, img2])
+    checked[img1] = len(image_groups) - 1
+    checked[img2] = len(image_groups) - 1
 
 def load_cache() -> Cache:
     '''Load the cache with earlier calculated hashes

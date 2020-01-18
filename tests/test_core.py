@@ -135,9 +135,12 @@ class TestFuncSearch(TestCase):
 class TestFuncImageGrouping(TestCase):
 
     def setUp(self):
-        self.mock_imgs = [mock.Mock() for i in range(2)]
-
-        self.mock_bk = mock.Mock()
+        self.image1 = mock.Mock()
+        self.image1.hash = 0
+        self.image2 = mock.Mock
+        self.image2.hash = 1
+        self.images = [self.image1, self.image2]
+        self.tree = 'bktree'
 
     def test_return_empty_list_if_no_images(self):
         res = core.image_grouping([], 0)
@@ -151,88 +154,165 @@ class TestFuncImageGrouping(TestCase):
 
     def test_BKTree_called_with_hamming_dist_and_images_args(self):
         with mock.patch('pybktree.BKTree') as mock_tree:
-            core.image_grouping(self.mock_imgs, 0)
+            with mock.patch(CORE+'_closest', return_value=(None, None)):
+                core.image_grouping(self.images, 0)
 
-        mock_tree.assert_called_once_with(core.hamming, self.mock_imgs)
+        mock_tree.assert_called_once_with(core.hamming, self.images)
 
     def test_BKTree_raise_TypeError(self):
         with mock.patch('pybktree.BKTree', side_effect=TypeError):
             with self.assertRaises(TypeError):
-                core.image_grouping(self.mock_imgs, 0)
+                core.image_grouping(self.images, 0)
 
     def test_find_called_with_image_and_sensitivity_args(self):
-        self.mock_bk.find.return_value = ['image']
         sens = 0
-        with mock.patch('pybktree.BKTree', return_value=self.mock_bk):
-            core.image_grouping(self.mock_imgs, sens)
+        with mock.patch('pybktree.BKTree', return_value=self.tree):
+            with mock.patch(CORE+'_closest',
+                            return_value=(None, None)) as mock_closest_call:
+                core.image_grouping(self.images, sens)
 
-        calls = [mock.call(self.mock_imgs[0], sens),
-                 mock.call(self.mock_imgs[1], sens)]
-        self.mock_bk.find.assert_has_calls(calls)
+        calls = [mock.call(self.tree, self.image1, sens),
+                 mock.call(self.tree, self.image2, sens)]
+        mock_closest_call.assert_has_calls(calls)
 
-    @mock.patch(CORE+'_new_group')
-    def test_loop_continue_if_there_is_one_closest_image(self, mock_group):
-        self.mock_bk.find.return_value = ['image']
-        with mock.patch('pybktree.BKTree', return_value=self.mock_bk):
-            core.image_grouping(self.mock_imgs, 0)
+    @mock.patch(CORE+'_add_new_group')
+    def test_loop_continue_if_there_is_no_closest_image(self, mock_group):
+        with mock.patch('pybktree.BKTree', return_value=self.tree):
+            with mock.patch(CORE+'_closest', return_value=(None, None)):
+                core.image_grouping(self.images, 0)
 
         mock_group.assert_not_called()
 
-    @mock.patch(CORE+'_new_group')
-    def test_new_group_called_with_closests_and_checked_args(self, mock_group):
-        closests = ['img1', 'img2']
-        self.mock_bk.find.return_value = closests
-        with mock.patch('pybktree.BKTree', return_value=self.mock_bk):
-            core.image_grouping(self.mock_imgs, 0)
+    def test_return_if_image_and_closest_not_in_checked(self):
+        closest1 = (17, mock.Mock())
+        closest2 = (19, mock.Mock())
+        with mock.patch('pybktree.BKTree', return_value=self.tree):
+            with mock.patch(CORE+'_closest', side_effect=[closest1, closest2]):
+                res = core.image_grouping(self.images, 0)
 
-        mock_group.assert_called_with(closests, set())
+        self.assertListEqual(res, [[self.image1, closest1[1]],
+                                   [self.image2, closest2[1]]])
 
-    @mock.patch(CORE+'_new_group', return_value='image')
-    def test_new_group_func_return_added_to_new_group(self, mock_group):
-        self.mock_bk.find.return_value = ['img1', 'img2']
-        with mock.patch('pybktree.BKTree', return_value=self.mock_bk):
-            res = core.image_grouping(self.mock_imgs, 0)
+    def test_return_if_image_in_checked_and_closest_not_in_checked(self):
+        closest1 = (17, self.image2)
+        closest2 = (19, mock.Mock())
+        closest2[1].hash = 2
+        with mock.patch('pybktree.BKTree', return_value=self.tree):
+            with mock.patch(CORE+'_closest', side_effect=[closest1, closest2]):
+                res = core.image_grouping(self.images, 0)
 
-        # Since we have to do at least 2 iterations (or '_new_group'
-        # will not be called at all), we'll have 2 'image' in the list
-        self.assertListEqual(res, ['image', 'image'])
+        self.assertListEqual(res, [[self.image1, self.image2, closest2[1]]])
 
-    def test_loop_continue_if_image_was_checked(self):
-        closests = [(0, self.mock_imgs[0]), (0, self.mock_imgs[1])]
-        self.mock_bk.find.return_value = closests
-        with mock.patch('pybktree.BKTree', return_value=self.mock_bk):
-            core.image_grouping(self.mock_imgs, 0)
+    def test_return_if_image_not_in_checked_and_closest_in_checked(self):
+        closest1 = (17, mock.Mock())
+        closest2 = (19, self.image1)
+        closest1[1].hash = 2
+        with mock.patch('pybktree.BKTree', return_value=self.tree):
+            with mock.patch(CORE+'_closest', side_effect=[closest1, closest2]):
+                res = core.image_grouping(self.images, 0)
 
-        self.mock_bk.find.assert_called_once()
+        self.assertListEqual(res, [[self.image1, closest1[1], self.image2]])
 
 
-class TestFuncNewGroup(TestCase):
+class TestFuncClosest(TestCase):
 
     def setUp(self):
-        self.img = mock.Mock()
-        self.img.difference = None
+        self.mock_tree = mock.Mock()
+        self.mock_image = mock.Mock()
+        self.mock_tree.find.return_value = [(0, self.mock_image)]
+        self.sensitivity = 0
 
-    def test_image_not_added_to_group_if_already_was_checked(self):
-        res = core._new_group([(0, self.img)], {self.img})
+    def test_pybktree_find_called_with_image_and_sensitivity_args(self):
+        core._closest(self.mock_tree, self.mock_image, self.sensitivity)
 
-        self.assertListEqual(res, [])
+        self.mock_tree.find.assert_called_once_with(self.mock_image,
+                                                    self.sensitivity)
 
-    def test_distance_assigned_to_difference_attribute(self):
-        dist = 0
-        core._new_group([(dist, self.img)], set())
+    def test_return_None_if_result_is_image_itself(self):
+        res = core._closest(self.mock_tree, self.mock_image, self.sensitivity)
 
-        self.assertEqual(self.img.difference, dist)
+        self.assertTupleEqual(res, (None, None))
 
-    def test_image_added_to_group(self):
-        res = core._new_group([(0, self.img)], set())
+    def test_return_if_image_itself_is_first(self):
+        close_img = mock.Mock()
+        self.mock_tree.find.return_value = [(0, self.mock_image),
+                                            (0, close_img)]
+        res = core._closest(self.mock_tree, self.mock_image, self.sensitivity)
 
-        self.assertListEqual(res, [self.img])
+        self.assertTupleEqual(res, (0, close_img))
 
-    def test_image_added_to_checked(self):
-        checked = set()
-        core._new_group([(0, self.img)], checked)
+    def test_return_if_image_itself_is_second(self):
+        close_img = mock.Mock()
+        self.mock_tree.find.return_value = [(0, close_img),
+                                            (0, self.mock_image)]
+        res = core._closest(self.mock_tree, self.mock_image, self.sensitivity)
 
-        self.assertSetEqual(checked, {self.img})
+        self.assertTupleEqual(res, (0, close_img))
+
+
+class TestFuncAddImgToExistingGroup(TestCase):
+
+    def setUp(self):
+        self.mock_image = mock.Mock()
+        self.mock_image.hash = 235
+        self.checked = {self.mock_image: 0}
+        self.image_groups = [[self.mock_image]]
+
+        self.mock_img_not_in = mock.Mock()
+        self.mock_img_not_in.hash = 487
+
+    @mock.patch(CORE+'hamming')
+    def test_image_added_to_proper_group(self, mock_hamming):
+        core._add_img_to_existing_group(self.mock_image, self.mock_img_not_in,
+                                        self.checked, self.image_groups)
+
+        self.assertListEqual(self.image_groups, [[self.mock_image,
+                                                  self.mock_img_not_in]])
+
+    @mock.patch(CORE+'hamming', return_value=999)
+    def test_assign_distance_to_image_difference_attr(self, mock_hamming):
+        core._add_img_to_existing_group(self.mock_image, self.mock_img_not_in,
+                                        self.checked, self.image_groups)
+
+        self.assertEqual(self.mock_img_not_in.difference, 999)
+
+    @mock.patch(CORE+'hamming')
+    def test_checked_dict_changed_properly(self, mock_hamming):
+        core._add_img_to_existing_group(self.mock_image, self.mock_img_not_in,
+                                        self.checked, self.image_groups)
+
+        self.assertDictEqual(self.checked, {self.mock_image: 0,
+                                            self.mock_img_not_in: 0})
+
+
+class TestFuncAddNewGroup(TestCase):
+
+    def setUp(self):
+        self.mock_main_image = mock.Mock()
+        self.mock_closest_img = mock.Mock()
+        self.checked = {}
+        self.image_groups = []
+        self.distance = 888
+
+    def test_images_added_to_proper_group(self):
+        core._add_new_group(self.mock_main_image, self.mock_closest_img,
+                            self.checked, self.image_groups, self.distance)
+
+        self.assertListEqual(self.image_groups, [[self.mock_main_image,
+                                                  self.mock_closest_img]])
+
+    def test_assign_distance_to_image_difference_attr(self):
+        core._add_new_group(self.mock_main_image, self.mock_closest_img,
+                            self.checked, self.image_groups, self.distance)
+
+        self.assertEqual(self.mock_closest_img.difference, self.distance)
+
+    def test_checked_dict_changed_properly(self):
+        core._add_new_group(self.mock_main_image, self.mock_closest_img,
+                            self.checked, self.image_groups, self.distance)
+
+        self.assertDictEqual(self.checked, {self.mock_main_image: 0,
+                                            self.mock_closest_img: 0})
 
 
 class TestFuncLoadCache(TestCase):
