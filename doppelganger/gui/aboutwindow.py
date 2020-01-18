@@ -22,7 +22,7 @@ Module implementing window "About"
 
 import pathlib
 
-from PyQt5 import QtWidgets, uic
+from PyQt5 import QtCore, QtWidgets, uic
 
 
 class AboutWindow(QtWidgets.QMainWindow):
@@ -37,3 +37,5 @@ class AboutWindow(QtWidgets.QMainWindow):
         sizeHint = self.sizeHint()
         self.setMaximumSize(sizeHint)
         self.resize(sizeHint)
+
+        self.setWindowModality(QtCore.Qt.ApplicationModal)

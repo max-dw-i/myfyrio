@@ -26,7 +26,7 @@ import logging
 import pathlib
 from typing import List, Union
 
-from PyQt5 import QtWidgets, uic
+from PyQt5 import QtCore, QtWidgets, uic
 
 from doppelganger import config
 
@@ -129,6 +129,8 @@ class PreferencesWindow(QtWidgets.QMainWindow):
         sizeHint = self.sizeHint()
         self.setMaximumSize(sizeHint)
         self.resize(sizeHint)
+
+        self.setWindowModality(QtCore.Qt.ApplicationModal)
 
     def _gather_widgets(self) -> List[Widget]:
         widgets = []
