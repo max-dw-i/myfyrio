@@ -64,6 +64,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.signals = signals.Signals()
         self.threadpool = QtCore.QThreadPool()
 
+        self.interrupted = False
+        self._setInterruptionMsgBox()
+
         self._setImageViewWidget()
         self._setPathsGroupBox()
         self._setProcessingGroupBox()
@@ -78,6 +81,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self._setSensitivityGroupBox()
         self._setActionsGroupWidget()
         self._setMenubar()
+
+    def _setInterruptionMsgBox(self) -> None:
+        self.interruptionMsg = QtWidgets.QMessageBox(
+            QtWidgets.QMessageBox.Information,
+            'Interruption request',
+            'The image processing is being stopped. It may take some time. '
+            'Please, do not close this message until you are notified about '
+            'the result of your request...'
+        )
+        self.interruptionMsg.setStandardButtons(QtWidgets.QMessageBox.NoButton)
 
     def _setImageViewWidget(self) -> None:
         self.imageViewWidget = imageviewwidget.ImageViewWidget(
@@ -197,6 +210,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.imageViewWidget.clear()
         self.actionsGrp.autoSelectBtn.setEnabled(False)
         self.autoSelectAction.setEnabled(False)
+        self.processingGrp.startProcessing()
 
         processing_obj = self._setImageProcessingObj()
         worker = processing.Worker(processing_obj.run)
@@ -204,19 +218,23 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def stopProcessing(self) -> None:
         self.signals.interrupted.emit()
-
-        msgBox = QtWidgets.QMessageBox(
-            QtWidgets.QMessageBox.Information,
-            'Interruption request',
-            'The image processing has been stopped'
-        )
-        msgBox.exec()
+        self.interrupted = True
+        self.processingGrp.stopBtn.setEnabled(False)
+        self.interruptionMsg.exec()
 
     def processingFinished(self) -> None:
         self.processingGrp.stopProcessing()
         if self.imageViewWidget.widgets:
             self.actionsGrp.autoSelectBtn.setEnabled(True)
             self.autoSelectAction.setEnabled(True)
+
+        if self.interrupted:
+            self.interrupted = False
+            self.interruptionMsg.setText(
+                'The image processing has been stopped. '
+                'You can close this message...'
+            )
+            self.interruptionMsg.setStandardButtons(QtWidgets.QMessageBox.Ok)
 
     def closeEvent(self, event) -> None:
         if self.preferencesWindow.conf['close_confirmation']:

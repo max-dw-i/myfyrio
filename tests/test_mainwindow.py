@@ -31,6 +31,7 @@ if app is None:
 
 MAIN_WINDOW = 'doppelganger.gui.mainwindow.'
 IMAGE_VIEW_WIDGET = 'doppelganger.gui.imageviewwidget.'
+PROC_GRP_BOX = 'doppelganger.gui.processinggroupbox.'
 
 
 # pylint: disable=unused-argument,missing-class-docstring,protected-access
@@ -51,6 +52,12 @@ class TestMainFormMethodInit(TestMainForm):
                               preferenceswindow.PreferencesWindow)
         self.assertIsInstance(self.w.signals, signals.Signals)
         self.assertIsInstance(self.w.threadpool, QtCore.QThreadPool)
+
+        self.assertIsInstance(self.w.interruptionMsg, QtWidgets.QMessageBox)
+        self.assertEqual(self.w.interruptionMsg.standardButtons(),
+                         QtWidgets.QMessageBox.NoButton)
+
+        self.assertFalse(self.w.interrupted)
 
 
 class TestMainFormMethodSwitchDelFolderAction(TestMainForm):
@@ -143,22 +150,42 @@ class TestMainFormMethodStartProcessing(TestMainForm):
 
         self.assertFalse(self.w.autoSelectAction.isEnabled())
 
+    @mock.patch('PyQt5.QtCore.QThreadPool.start')
+    def test_processinggroupbox_startProcessing_called(self, mock_pool):
+        PATCH_STARTPROC = PROC_GRP_BOX + 'ProcessingGroupBox.startProcessing'
+        with mock.patch(PATCH_STARTPROC) as mock_start_call:
+            self.w.startProcessing()
+
+        mock_start_call.assert_called_once_with()
+
 
 class TestMainFormMethodStopProcessing(TestMainForm):
 
+    def setUp(self):
+        super().setUp()
+
+        self.w.interruptionMsg = mock.Mock()
+
     def test_interrupted_signal_emitted(self):
         spy = QtTest.QSignalSpy(self.w.signals.interrupted)
-        with mock.patch('PyQt5.QtWidgets.QMessageBox'):
-            self.w.stopProcessing()
+        self.w.stopProcessing()
 
         self.assertEqual(len(spy), 1)
 
-    def test_show_msg_bos(self):
-        mock_box = mock.Mock()
-        with mock.patch('PyQt5.QtWidgets.QMessageBox', return_value=mock_box):
-            self.w.stopProcessing()
+    def test_change_iterrupted_attr_to_True(self):
+        self.w.stopProcessing()
 
-        mock_box.exec.assert_called_once_with()
+        self.assertTrue(self.w.interrupted)
+
+    def test_stopBtn_disabled(self):
+        self.w.stopProcessing()
+
+        self.assertFalse(self.w.processingGrp.stopBtn.isEnabled())
+
+    def test_show_msg_bos(self):
+        self.w.stopProcessing()
+
+        self.w.interruptionMsg.exec.assert_called_once_with()
 
 
 class TestMainFormMethodCloseEvent(TestMainForm):
@@ -380,8 +407,7 @@ class TestMainFormMethodRender(TestMainForm):
 
 class TestMainFormMethodProcessingFinished(TestMainForm):
 
-    PATCH_STOP = ('doppelganger.gui.processinggroupbox.'
-                  'ProcessingGroupBox.stopProcessing')
+    PATCH_STOP = PROC_GRP_BOX + 'ProcessingGroupBox.stopProcessing'
 
     def test_ProcessingGroupBox_stopProcessing_called(self):
         with mock.patch(self.PATCH_STOP) as mock_stop_call:
@@ -420,3 +446,52 @@ class TestMainFormMethodProcessingFinished(TestMainForm):
             self.w.processingFinished()
 
         self.assertFalse(self.w.autoSelectAction.isEnabled())
+
+    def test_change_interrupted_attr_to_False_if_it_is_True(self):
+        self.w.interrupted = True
+        self.w.interruptionMsg = mock.Mock()
+        with mock.patch(self.PATCH_STOP):
+            self.w.processingFinished()
+
+        self.assertFalse(self.w.interrupted)
+
+    def test_interruptionMsg_box_text_changed_if_interrupted_attr_True(self):
+        self.w.interrupted = True
+        self.w.interruptionMsg = mock.Mock()
+        with mock.patch(self.PATCH_STOP):
+            self.w.processingFinished()
+
+        self.w.interruptionMsg.setText.assert_called_once()
+
+    def test_Ok_btn_set_on_interruptionMsg_box_if_interrupted_attr_True(self):
+        self.w.interrupted = True
+        self.w.interruptionMsg = mock.Mock()
+        with mock.patch(self.PATCH_STOP):
+            self.w.processingFinished()
+
+        self.w.interruptionMsg.setStandardButtons.assert_called_once_with(
+            QtWidgets.QMessageBox.Ok
+        )
+
+    def test_interrupted_attr_stay_False_if_it_is_False(self):
+        self.w.interrupted = False
+        with mock.patch(self.PATCH_STOP):
+            self.w.processingFinished()
+
+        self.assertFalse(self.w.interrupted)
+
+    def test_interruptionMsg_box_setText_not_called_if_interrupted_False(self):
+        self.w.interrupted = False
+        self.w.interruptionMsg = mock.Mock()
+        with mock.patch(self.PATCH_STOP):
+            self.w.processingFinished()
+
+        self.w.interruptionMsg.setText.assert_not_called()
+
+    def test_Ok_btn_not_set_on_interruptionMsg_box_if_interrupted_False(self):
+        self.w.interrupted = False
+        self.w.interruptionMsg = mock.Mock()
+        with mock.patch(self.PATCH_STOP):
+            self.w.processingFinished()
+
+        self.w.interruptionMsg.setStandardButtons.assert_not_called()

@@ -39,9 +39,6 @@ class ProcessingGroupBox(QtWidgets.QGroupBox):
 
         self.labels = self.findChildren(QtWidgets.QLabel)
 
-        self.startBtn.clicked.connect(self.startProcessing)
-        self.stopBtn.clicked.connect(self.stopProcessing)
-
     def _clearWidget(self) -> None:
         for label in self.labels:
             self.updateLabel(label.property('alias'), str(0))
