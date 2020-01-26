@@ -65,7 +65,7 @@
           </font>
          </property>
          <property name="text">
-          <string>Version 0.2</string>
+          <string>Version 0.3</string>
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTop|Qt::AlignTrailing</set>
