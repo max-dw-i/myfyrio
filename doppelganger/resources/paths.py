@@ -17,24 +17,27 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
-Module implementing window "About"
+Module containing paths of the resources
 '''
 
-from PyQt5 import QtCore, QtWidgets, uic
+import pathlib
 
-from doppelganger.resources.paths import ABOUT_UI, resource_path
+ABOUT_UI = 'ui/aboutwindow.ui'
+ACTIONS_UI = 'ui/actionsgroupbox.ui'
+MAIN_UI = 'ui/mainwindow.ui'
+PATHS_UI = 'ui/pathsgroupbox.ui'
+PREFERENCES_UI = 'ui/preferenceswindow.ui'
+PROCESSING_UI = 'ui/processinggroupbox.ui'
+SENSITIVITY_UI = 'ui/sensitivitygroupbox.ui'
 
+ICON = 'images/icon.png'
+ERR_IMG = 'images/image_error.png'
 
-class AboutWindow(QtWidgets.QMainWindow):
-    '''Class implementing window "About"'''
+def resource_path(relative_path: str) -> str:
+    '''Return absolute path to resource
 
-    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
-        super().__init__(parent)
+    :param relative_path: relative path
+    :return: absolute path
+    '''
 
-        uic.loadUi(resource_path(ABOUT_UI), self)
-
-        sizeHint = self.sizeHint()
-        self.setMaximumSize(sizeHint)
-        self.resize(sizeHint)
-
-        self.setWindowModality(QtCore.Qt.ApplicationModal)
+    return str(pathlib.Path(__file__).parent / relative_path)

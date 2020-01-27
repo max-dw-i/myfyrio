@@ -17,6 +17,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 import logging
+import pathlib
 from multiprocessing import Pool
 from typing import (Any, Callable, Collection, Iterable, List, Optional, Set,
                     Tuple)
@@ -126,6 +127,8 @@ class ImageProcessing:
     :param conf: dict with programme preferences
     '''
 
+    CACHE_FILE = pathlib.Path(__file__).parents[1] / 'cache.p'
+
     def __init__(self, mw_signals: signals.Signals,
                  folders: Iterable[core.FolderPath],
                  sensitivity: core.Sensitivity,
@@ -155,7 +158,7 @@ class ImageProcessing:
                 hashes = self._imap(core.Image.dhash, not_cached,
                                     'remaining_images')
                 cache = self._extend_cache(cache, not_cached, hashes)
-                core.save_cache(cache)
+                core.save_cache(str(self.CACHE_FILE), cache)
 
             images = [core.Image(path, cache[path])
                       for path in paths if path in cache]
@@ -194,7 +197,7 @@ class ImageProcessing:
 
     def _load_cache(self) -> core.Cache:
         try:
-            cached_hashes = core.load_cache()
+            cached_hashes = core.load_cache(str(self.CACHE_FILE))
         except EOFError as e:
             cached_hashes = {}
         except OSError as e:

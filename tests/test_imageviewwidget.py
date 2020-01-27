@@ -18,7 +18,6 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 
 import logging
-import pathlib
 from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
@@ -329,14 +328,14 @@ class TestThumbnailWidgetMethodQByteArrayToQPixmap(TestThumbnailWidget):
     def test_return_scaled_error_img_if_thumbnail_is_None(self):
         self.w.thumbnail = None
         self.mock_qpixmap.scaled.return_value = 'error_img'
-        IMG_ERROR = str(
-            pathlib.Path('doppelganger/resources/images/image_error.png')
-        )
+        err_img_path = 'absolute_path'
         with mock.patch('PyQt5.QtGui.QPixmap',
                         return_value=self.mock_qpixmap) as mock_qpixmap_call:
-            res = self.w._QByteArrayToQPixmap()
+            with mock.patch('doppelganger.gui.imageviewwidget.resource_path',
+                            return_value=err_img_path):
+                res = self.w._QByteArrayToQPixmap()
 
-        mock_qpixmap_call.assert_called_once_with(IMG_ERROR)
+        mock_qpixmap_call.assert_called_once_with(err_img_path)
         self.mock_qpixmap.scaled.assert_called_once_with(self.size, self.size)
         self.assertEqual(res, 'error_img')
 
@@ -353,14 +352,14 @@ class TestThumbnailWidgetMethodQByteArrayToQPixmap(TestThumbnailWidget):
     def test_return_scaled_error_img_if_isNull_is_True(self):
         self.mock_qpixmap.isNull.return_value = True
         self.mock_qpixmap.scaled.return_value = 'error_img'
-        IMG_ERROR = str(
-            pathlib.Path('doppelganger/resources/images/image_error.png')
-        )
+        err_img_path = 'absolute_path'
         with mock.patch('PyQt5.QtGui.QPixmap',
                         return_value=self.mock_qpixmap) as mock_qpixmap_call:
-            res = self.w._QByteArrayToQPixmap()
+            with mock.patch('doppelganger.gui.imageviewwidget.resource_path',
+                            return_value=err_img_path):
+                res = self.w._QByteArrayToQPixmap()
 
-        mock_qpixmap_call.assert_called_with(IMG_ERROR)
+        mock_qpixmap_call.assert_called_with(err_img_path)
         self.mock_qpixmap.scaled.assert_called_once_with(self.size, self.size)
         self.assertEqual(res, 'error_img')
 

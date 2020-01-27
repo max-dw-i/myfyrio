@@ -21,6 +21,7 @@ Module implementing saving/loading programme's preferences to/from
 a config file
 '''
 
+import pathlib
 import pickle
 from typing import Any, Dict, Optional
 
@@ -35,6 +36,8 @@ Conf = Dict[Param, Value] # preferences
 
 class Config:
     '''Represent "config" containing programme's preferences'''
+
+    CONFIG_FILE = pathlib.Path(__file__).parents[1] / 'config.p'
 
     def __init__(self, data: Optional[Conf] = None) -> None:
         if data is None:
@@ -67,7 +70,7 @@ class Config:
         '''
 
         try:
-            with open('config.p', 'wb') as f:
+            with open(self.CONFIG_FILE, 'wb') as f:
                 pickle.dump(self.data, f)
         except OSError as e:
             raise OSError(e)
@@ -81,7 +84,7 @@ class Config:
         '''
 
         try:
-            with open('config.p', 'rb') as f:
+            with open(self.CONFIG_FILE, 'rb') as f:
                 self.data = pickle.load(f)
         except FileNotFoundError as e:
             self.default()

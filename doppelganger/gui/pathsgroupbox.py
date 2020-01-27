@@ -21,12 +21,12 @@ Module implementing widget allowing to add and remove folder paths
 to/from QListWidget
 '''
 
-import pathlib
 from typing import List
 
 from PyQt5 import QtWidgets, uic
 
 from doppelganger import core
+from doppelganger.resources.paths import PATHS_UI, resource_path
 
 
 class PathsGroupBox(QtWidgets.QGroupBox):
@@ -37,8 +37,7 @@ class PathsGroupBox(QtWidgets.QGroupBox):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        UI = pathlib.Path('doppelganger/resources/ui/pathsgroupbox.ui')
-        uic.loadUi(str(UI), self)
+        uic.loadUi(resource_path(PATHS_UI), self)
 
         self.addFolderBtn.clicked.connect(self.addPath)
         self.delFolderBtn.clicked.connect(self.delPath)

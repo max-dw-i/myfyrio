@@ -20,7 +20,6 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 Module implementing window "Main"
 '''
 
-import pathlib
 import webbrowser
 from typing import Iterable
 
@@ -31,6 +30,7 @@ from doppelganger.gui import (actionsgroupbox, imageviewwidget, pathsgroupbox,
                               processinggroupbox, sensitivitygroupbox)
 from doppelganger.gui.aboutwindow import AboutWindow
 from doppelganger.gui.preferenceswindow import PreferencesWindow
+from doppelganger.resources.paths import ICON, MAIN_UI, resource_path
 
 
 def errorMessage(msg: str) -> None:
@@ -51,11 +51,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self) -> None:
         super().__init__()
 
-        UI = pathlib.Path('doppelganger/resources/ui/mainwindow.ui')
-        uic.loadUi(str(UI), self)
+        uic.loadUi(resource_path(MAIN_UI), self)
 
-        ICON = str(pathlib.Path('doppelganger/resources/images/icon.png'))
-        app_icon = QtGui.QIcon(ICON)
+        app_icon = QtGui.QIcon(resource_path(ICON))
         self.setWindowIcon(app_icon)
 
         self.aboutWindow = AboutWindow(self)

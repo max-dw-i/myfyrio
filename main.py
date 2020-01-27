@@ -1,4 +1,4 @@
-'''Copyright 2019 Maxim Shpak <maxim.shpak@posteo.uk>
+'''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
 This file is part of Doppelgänger.
 
@@ -17,7 +17,8 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 import logging
-import logging.handlers
+import logging.handlers as handlers
+import pathlib
 import sys
 
 from PyQt5.QtWidgets import QApplication
@@ -27,7 +28,9 @@ import doppelganger.gui.mainwindow as mw
 if __name__ == '__main__':
     logger = logging.getLogger('main')
     logger.setLevel(logging.WARNING)
-    rh = logging.handlers.RotatingFileHandler('errors.log', maxBytes=1024**2, backupCount=1)
+    log_path = pathlib.Path(__file__).parent / 'errors.log'
+    rh = handlers.RotatingFileHandler(log_path, maxBytes=1024**2,
+                                      backupCount=1)
     FORMAT = '{asctime} - {name} - {levelname} - {message}'
     formatter = logging.Formatter(fmt=FORMAT, style='{')
     rh.setFormatter(formatter)

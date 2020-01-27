@@ -21,9 +21,9 @@ Module implementing widget with action buttons (move, remove,
 unselect, auto-select)
 '''
 
-import pathlib
-
 from PyQt5 import QtWidgets, uic
+
+from doppelganger.resources.paths import ACTIONS_UI, resource_path
 
 
 class ActionsGroupBox(QtWidgets.QGroupBox):
@@ -32,8 +32,7 @@ class ActionsGroupBox(QtWidgets.QGroupBox):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        UI = pathlib.Path('doppelganger/resources/ui/actionsgroupbox.ui')
-        uic.loadUi(str(UI), self)
+        uic.loadUi(resource_path(ACTIONS_UI), self)
 
     def setEnabled(self, enable: bool) -> None:
         '''Enable/disable buttons "Move", "Delete", "Unselect"

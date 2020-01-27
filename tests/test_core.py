@@ -317,35 +317,37 @@ class TestFuncAddNewGroup(TestCase):
 
 class TestFuncLoadCache(TestCase):
 
+    CACHE_FILE = 'cache_file'
+
     @mock.patch('pickle.load')
     def test_load_from_cache_p(self, mock_load):
         with mock.patch('builtins.open', mock.mock_open()) as mock_open:
-            core.load_cache()
+            core.load_cache(self.CACHE_FILE)
 
-        mock_open.assert_called_once_with('cache.p', 'rb')
+        mock_open.assert_called_once_with(self.CACHE_FILE, 'rb')
 
     @mock.patch('pickle.load', return_value='hashes')
     def test_return_loaded_hashes(self, mock_load):
         with mock.patch('builtins.open', mock.mock_open()):
-            res = core.load_cache()
+            res = core.load_cache(self.CACHE_FILE)
 
         self.assertEqual(res, 'hashes')
 
     @mock.patch('builtins.open', side_effect=FileNotFoundError)
     def test_return_empty_dict_if_FileNotFoundError(self, mock_open):
-        res = core.load_cache()
+        res = core.load_cache(self.CACHE_FILE)
 
         self.assertDictEqual(res, {})
 
     @mock.patch('builtins.open', side_effect=EOFError)
     def test_raise_EOFError_if_open_raise_EOFError(self, mock_open):
         with self.assertRaises(EOFError):
-            core.load_cache()
+            core.load_cache(self.CACHE_FILE)
 
     @mock.patch('builtins.open', side_effect=OSError)
     def test_raise_OSError_if_open_raise_OSError(self, mock_open):
         with self.assertRaises(OSError):
-            core.load_cache()
+            core.load_cache(self.CACHE_FILE)
 
 
 class TestFuncCheckCache(TestCase):
@@ -406,27 +408,29 @@ class TestFuncSaveCache(TestCase):
     AND DUMP(), YOU'LL REWRITE THE FILE
     '''
 
+    CACHE_FILE = 'cache_file'
+
     def setUp(self):
         self.cache = {'path1': 'hash1'}
 
     @mock.patch('pickle.dump')
     def test_load_from_cache_p(self, mock_dump):
         with mock.patch('builtins.open', mock.mock_open()) as mock_open:
-            core.save_cache(self.cache)
+            core.save_cache(self.CACHE_FILE, self.cache)
 
-        mock_open.assert_called_once_with('cache.p', 'wb')
+        mock_open.assert_called_once_with(self.CACHE_FILE, 'wb')
 
     @mock.patch('pickle.dump')
     def test_dump_called_with_cache_arg(self, mock_dump):
         with mock.patch('builtins.open', mock.mock_open()):
-            core.save_cache(self.cache)
+            core.save_cache(self.CACHE_FILE, self.cache)
 
         self.assertEqual(mock_dump.call_args[0][0], self.cache)
 
     @mock.patch('builtins.open', side_effect=OSError)
     def test_raise_OSError_if_open_raise_OSError(self, mock_open):
         with self.assertRaises(OSError):
-            core.save_cache(self.cache)
+            core.save_cache(self.CACHE_FILE, self.cache)
 
 
 class TestClassImage(TestCase):

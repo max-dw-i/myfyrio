@@ -62,7 +62,7 @@ class TestConfig(TestCase):
         with mock.patch('builtins.open', mock.mock_open()) as mock_open:
             self.c.save()
 
-        mock_open.assert_called_once_with('config.p', 'wb')
+        mock_open.assert_called_once_with(self.c.CONFIG_FILE, 'wb')
 
     @mock.patch('pickle.dump')
     def test_save_dump_config_data(self, mock_dump):
@@ -84,7 +84,7 @@ class TestConfig(TestCase):
         with mock.patch('builtins.open', mock.mock_open()) as mock_open:
             self.c.load()
 
-        mock_open.assert_called_once_with('config.p', 'rb')
+        mock_open.assert_called_once_with(self.c.CONFIG_FILE, 'rb')
 
     @mock.patch('pickle.load', return_value='test')
     @mock.patch('builtins.open')

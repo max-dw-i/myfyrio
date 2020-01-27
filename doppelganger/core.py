@@ -50,6 +50,7 @@ This module provides core functions for processing images and find duplicates
 from __future__ import annotations
 
 import os
+import pathlib
 import pickle
 from multiprocessing import Pool
 from pathlib import Path
@@ -175,16 +176,17 @@ def _add_new_group(img1: Image, img2: Image, checked: Dict[Image, int],
     checked[img1] = len(image_groups) - 1
     checked[img2] = len(image_groups) - 1
 
-def load_cache() -> Cache:
+def load_cache(cache_file: CachePath) -> Cache:
     '''Load the cache with earlier calculated hashes
 
+    :param cache_file: path to the cache file,
     :return: dictionary with pairs "ImagePath: Hash",
     :raise EOFError: the cache file might be corrupted (or empty),
     :raise OSError: if there's some problem while opening cache file
     '''
 
     try:
-        with open('cache.p', 'rb') as f:
+        with open(cache_file, 'rb') as f:
             cache = pickle.load(f)
     except FileNotFoundError:
         cache = {}
@@ -224,15 +226,16 @@ def extend_cache(cache: Cache, paths: Iterable[ImagePath],
             cache[path] = dhash
     return cache
 
-def save_cache(cache: Cache) -> None:
+def save_cache(cache_file: CachePath, cache: Cache) -> None:
     '''Save cache on the disk
 
+    :param cache_file: path to the cache file,
     :param cache: dict with pairs "ImagePath: Hash",
     :raise OSError: if there's some problem while opening cache file
     '''
 
     try:
-        with open('cache.p', 'wb') as f:
+        with open(cache_file, 'wb') as f:
             pickle.dump(cache, f)
     except OSError as e:
         raise OSError(e)
@@ -434,8 +437,10 @@ class Sort:
 
 ########################## Types ##################################
 
-FolderPath = str # Path to a folder
-ImagePath = str # Path to an image
+FilePath = str # Path to a file
+CachePath = FilePath # Path to the cache file
+FolderPath = FilePath # Path to a folder
+ImagePath = FilePath # Path to an image
 Hash = int # Perceptual hash of an image
 Distance = int # Distance between 2 hashes
 Sensitivity = int # Max 'Distance' when images are considered similar
@@ -463,12 +468,19 @@ if __name__ == '__main__':
     msg = ('Type the searching sensitivity (a value '
            'between 0 and 20 is recommended)\n')
     sensitivity = input(msg)
+    msg = ('Type the path of the folder you want to save the cache file in. '
+           'Press "Enter" if you want to save it in the working directory\n')
+    cache_folder = input(msg)
+    if cache_folder:
+        cache_file = str(pathlib.Path(cache_folder) / 'cache.p')
+    else:
+        cache_file = 'cache.p'
     print('------------------------')
 
     paths = find_images([folders])
     print(f'There are {len(paths)} images in the folder')
 
-    cache = load_cache()
+    cache = load_cache(cache_file)
     not_cached = check_cache(paths, cache)
     print(f'{len(paths)-len(not_cached)} images have been found in the cache')
 
@@ -476,7 +488,7 @@ if __name__ == '__main__':
     if not_cached:
         hashes = calculating(not_cached)
         cache = extend_cache(cache, not_cached, hashes)
-        save_cache(cache)
+        save_cache(cache_file, cache)
     print('All the hashes have been calculated')
 
     images = [Image(path, cache[path]) for path in paths if path in cache]

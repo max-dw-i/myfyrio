@@ -23,12 +23,12 @@ Module implementing window "Preferences"
 from __future__ import annotations
 
 import logging
-import pathlib
 from typing import List, Union
 
 from PyQt5 import QtCore, QtWidgets, uic
 
 from doppelganger import config
+from doppelganger.resources.paths import PREFERENCES_UI, resource_path
 
 pref_logger = logging.getLogger('main.preferences')
 
@@ -115,8 +115,7 @@ class PreferencesWindow(QtWidgets.QMainWindow):
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
 
-        UI = pathlib.Path('doppelganger/resources/ui/preferenceswindow.ui')
-        uic.loadUi(str(UI), self)
+        uic.loadUi(resource_path(PREFERENCES_UI), self)
 
         self.widgets = self._gather_widgets()
 

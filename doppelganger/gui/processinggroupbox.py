@@ -21,9 +21,9 @@ Module implementing widget starting/stopping duplicate images search
 and showing info about the process
 '''
 
-import pathlib
-
 from PyQt5 import QtWidgets, uic
+
+from doppelganger.resources.paths import PROCESSING_UI, resource_path
 
 
 class ProcessingGroupBox(QtWidgets.QGroupBox):
@@ -34,8 +34,7 @@ class ProcessingGroupBox(QtWidgets.QGroupBox):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        UI = pathlib.Path('doppelganger/resources/ui/processinggroupbox.ui')
-        uic.loadUi(str(UI), self)
+        uic.loadUi(resource_path(PROCESSING_UI), self)
 
         self.labels = self.findChildren(QtWidgets.QLabel)
 
