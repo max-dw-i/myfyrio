@@ -30,7 +30,7 @@ from doppelganger.gui import (actionsgroupbox, imageviewwidget, pathsgroupbox,
                               processinggroupbox, sensitivitygroupbox)
 from doppelganger.gui.aboutwindow import AboutWindow
 from doppelganger.gui.preferenceswindow import PreferencesWindow
-from doppelganger.resources.paths import ICON, MAIN_UI, resource_path
+from doppelganger.resources.manager import Image, UI, resource
 
 
 def errorMessage(msg: str) -> None:
@@ -51,9 +51,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self) -> None:
         super().__init__()
 
-        uic.loadUi(resource_path(MAIN_UI), self)
+        uic.loadUi(resource(UI.MAIN), self)
 
-        app_icon = QtGui.QIcon(resource_path(ICON))
+        app_icon = QtGui.QIcon(resource(Image.ICON))
         self.setWindowIcon(app_icon)
 
         self.aboutWindow = AboutWindow(self)

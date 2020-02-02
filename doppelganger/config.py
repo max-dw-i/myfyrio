@@ -23,6 +23,7 @@ a config file
 
 import pathlib
 import pickle
+import sys
 from typing import Any, Dict, Optional
 
 ###############################Types##############################
@@ -37,7 +38,9 @@ Conf = Dict[Param, Value] # preferences
 class Config:
     '''Represent "config" containing programme's preferences'''
 
-    CONFIG_FILE = pathlib.Path(__file__).parents[1] / 'config.p'
+    CONFIG_FILE = (pathlib.Path(sys.executable).parent
+                   if getattr(sys, 'frozen', False)
+                   else pathlib.Path(__file__).parents[1]) / 'config.p'
 
     def __init__(self, data: Optional[Conf] = None) -> None:
         if data is None:

@@ -28,7 +28,8 @@ import doppelganger.gui.mainwindow as mw
 if __name__ == '__main__':
     logger = logging.getLogger('main')
     logger.setLevel(logging.WARNING)
-    log_path = pathlib.Path(__file__).parent / 'errors.log'
+    entry_point = sys.executable if getattr(sys, 'frozen', False) else __file__
+    log_path = pathlib.Path(entry_point).parent / 'errors.log'
     rh = handlers.RotatingFileHandler(log_path, maxBytes=1024**2,
                                       backupCount=1)
     FORMAT = '{asctime} - {name} - {levelname} - {message}'

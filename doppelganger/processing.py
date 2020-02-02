@@ -18,6 +18,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 import pathlib
+import sys
 from multiprocessing import Pool
 from typing import (Any, Callable, Collection, Iterable, List, Optional, Set,
                     Tuple)
@@ -127,7 +128,9 @@ class ImageProcessing:
     :param conf: dict with programme preferences
     '''
 
-    CACHE_FILE = pathlib.Path(__file__).parents[1] / 'cache.p'
+    CACHE_FILE = (pathlib.Path(sys.executable).parent
+                  if getattr(sys, 'frozen', False)
+                  else pathlib.Path(__file__).parents[1]) / 'cache.p'
 
     def __init__(self, mw_signals: signals.Signals,
                  folders: Iterable[core.FolderPath],

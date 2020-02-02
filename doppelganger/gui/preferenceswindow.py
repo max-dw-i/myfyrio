@@ -28,7 +28,7 @@ from typing import List, Union
 from PyQt5 import QtCore, QtWidgets, uic
 
 from doppelganger import config
-from doppelganger.resources.paths import PREFERENCES_UI, resource_path
+from doppelganger.resources.manager import UI, resource
 
 pref_logger = logging.getLogger('main.preferences')
 
@@ -115,7 +115,7 @@ class PreferencesWindow(QtWidgets.QMainWindow):
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
 
-        uic.loadUi(resource_path(PREFERENCES_UI), self)
+        uic.loadUi(resource(UI.PREFERENCES), self)
 
         self.widgets = self._gather_widgets()
 

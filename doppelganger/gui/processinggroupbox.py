@@ -23,7 +23,7 @@ and showing info about the process
 
 from PyQt5 import QtWidgets, uic
 
-from doppelganger.resources.paths import PROCESSING_UI, resource_path
+from doppelganger.resources.manager import UI, resource
 
 
 class ProcessingGroupBox(QtWidgets.QGroupBox):
@@ -34,7 +34,7 @@ class ProcessingGroupBox(QtWidgets.QGroupBox):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        uic.loadUi(resource_path(PROCESSING_UI), self)
+        uic.loadUi(resource(UI.PROCESSING), self)
 
         self.labels = self.findChildren(QtWidgets.QLabel)
 

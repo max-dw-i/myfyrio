@@ -26,7 +26,7 @@ from typing import List
 from PyQt5 import QtWidgets, uic
 
 from doppelganger import core
-from doppelganger.resources.paths import PATHS_UI, resource_path
+from doppelganger.resources.manager import UI, resource
 
 
 class PathsGroupBox(QtWidgets.QGroupBox):
@@ -37,7 +37,7 @@ class PathsGroupBox(QtWidgets.QGroupBox):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        uic.loadUi(resource_path(PATHS_UI), self)
+        uic.loadUi(resource(UI.PATHS), self)
 
         self.addFolderBtn.clicked.connect(self.addPath)
         self.delFolderBtn.clicked.connect(self.delPath)

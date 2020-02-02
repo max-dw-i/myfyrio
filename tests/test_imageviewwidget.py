@@ -41,7 +41,7 @@ if app is None:
 VIEW = 'doppelganger.gui.imageviewwidget.'
 
 
-# pylint: disable=unused-argument,missing-class-docstring,protected-access
+# pylint: disable=unused-argument,missing-class-docstring
 
 
 class TestInfoLabel(TestCase):
@@ -331,7 +331,7 @@ class TestThumbnailWidgetMethodQByteArrayToQPixmap(TestThumbnailWidget):
         err_img_path = 'absolute_path'
         with mock.patch('PyQt5.QtGui.QPixmap',
                         return_value=self.mock_qpixmap) as mock_qpixmap_call:
-            with mock.patch('doppelganger.gui.imageviewwidget.resource_path',
+            with mock.patch('doppelganger.gui.imageviewwidget.resource',
                             return_value=err_img_path):
                 res = self.w._QByteArrayToQPixmap()
 
@@ -355,7 +355,7 @@ class TestThumbnailWidgetMethodQByteArrayToQPixmap(TestThumbnailWidget):
         err_img_path = 'absolute_path'
         with mock.patch('PyQt5.QtGui.QPixmap',
                         return_value=self.mock_qpixmap) as mock_qpixmap_call:
-            with mock.patch('doppelganger.gui.imageviewwidget.resource_path',
+            with mock.patch('doppelganger.gui.imageviewwidget.resource',
                             return_value=err_img_path):
                 res = self.w._QByteArrayToQPixmap()
 
