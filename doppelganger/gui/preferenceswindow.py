@@ -22,15 +22,15 @@ Module implementing window "Preferences"
 
 from __future__ import annotations
 
-import logging
 from typing import List, Union
 
 from PyQt5 import QtCore, QtWidgets, uic
 
 from doppelganger import config
+from doppelganger.logger import Logger
 from doppelganger.resources.manager import UI, resource
 
-pref_logger = logging.getLogger('main.preferences')
+logger = Logger.getLogger('preferences')
 
 
 def load_config() -> config.Conf:
@@ -48,11 +48,11 @@ def load_config() -> config.Conf:
             'Errors',
             ('Cannot load preferences from file "config.p". Default '
              'preferences will be loaded. For more details, '
-             'see "errors.log"')
+             f'see "{Logger.FILE_NAME}"')
         )
         msg_box.exec()
 
-        pref_logger.error(e)
+        logger.error(e)
 
         c.default()
 
@@ -72,11 +72,11 @@ def save_config(conf: config.Conf) -> None:
             QtWidgets.QMessageBox.Warning,
             'Error',
             ("Cannot save preferences into file 'config.p'. "
-             "For more details, see 'errors.log'")
+             f"For more details, see '{Logger.FILE_NAME}'")
         )
         msg_box.exec()
 
-        pref_logger.error(e)
+        logger.error(e)
 
 def setVal(widget: Widget, val: Value) -> None:
     '''Set value of widget

@@ -21,7 +21,6 @@ Module implementing widgets rendering duplicate images found
 '''
 
 
-import logging
 import pathlib
 import subprocess
 import sys
@@ -30,9 +29,10 @@ from typing import Callable, Iterable, List, Optional
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from doppelganger import config, core, signals
+from doppelganger.logger import Logger
 from doppelganger.resources.manager import Image, resource
 
-widgets_logger = logging.getLogger('main.widgets')
+logger = Logger.getLogger('widgets')
 
 
 class InfoLabel(QtWidgets.QLabel):
@@ -138,13 +138,13 @@ class ImageInfoWidget(QtWidgets.QWidget):
         try:
             width, height = self.image.dimensions()
         except OSError as e:
-            widgets_logger.error(e)
+            logger.error(e)
             width, height = (0, 0)
 
         try:
             filesize = self.image.filesize(self.conf['size_format'])
         except OSError as e:
-            widgets_logger.error(e)
+            logger.error(e)
             filesize = 0
 
         units = {0: 'B',
@@ -186,7 +186,7 @@ class ThumbnailWidget(QtWidgets.QLabel):
         if pixmap.isNull():
             err_msg = ('Something happened while converting '
                        'QByteArray into QPixmap')
-            widgets_logger.error(err_msg)
+            logger.error(err_msg)
             return QtGui.QPixmap(resource(Image.ERR_IMG)).scaled(self.size,
                                                                  self.size)
 
@@ -255,7 +255,7 @@ class DuplicateWidget(QtWidgets.QWidget):
         try:
             subprocess.run([command, self.image.path], check=True)
         except (FileNotFoundError, subprocess.CalledProcessError) as e:
-            widgets_logger.error(e, exc_info=True)
+            logger.error(e, exc_info=True)
 
             msgBox = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning,
@@ -278,7 +278,7 @@ class DuplicateWidget(QtWidgets.QWidget):
             try:
                 self.image.rename(new_name)
             except FileExistsError as e:
-                widgets_logger.error(e)
+                logger.error(e)
 
                 msgBox = QtWidgets.QMessageBox(
                     QtWidgets.QMessageBox.Warning,
@@ -463,7 +463,7 @@ class ImageViewWidget(QtWidgets.QWidget):
             self._callOnSelectedWidgets(DuplicateWidget.delete)
         except OSError as e:
             err_msg = f'Error occured while removing image "{e}"'
-            widgets_logger.error(err_msg)
+            logger.error(err_msg)
 
             msgBox = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning,
@@ -481,7 +481,7 @@ class ImageViewWidget(QtWidgets.QWidget):
             self._callOnSelectedWidgets(DuplicateWidget.move, dst)
         except OSError as e:
             err_msg = f'Error occured while moving image "{e}"'
-            widgets_logger.error(err_msg)
+            logger.error(err_msg)
 
             msgBox = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Warning,

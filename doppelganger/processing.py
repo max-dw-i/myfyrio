@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 '''
 
-import logging
 import pathlib
 import sys
 from multiprocessing import Pool
@@ -27,8 +26,9 @@ from PyQt5 import QtCore, QtGui
 
 from doppelganger import config, core, signals
 from doppelganger.exception import InterruptProcessing, ThumbnailError
+from doppelganger.logger import Logger
 
-processing_logger = logging.getLogger('main.processing')
+logger = Logger.getLogger('processing')
 
 def thumbnail(image: core.Image, size: int) -> Optional[QtCore.QByteArray]:
     '''Make thumbnail of :image:
@@ -43,7 +43,7 @@ def thumbnail(image: core.Image, size: int) -> Optional[QtCore.QByteArray]:
         qimg = _scaled_image(image.path, width, height)
         ba_img = _QImage_to_QByteArray(qimg, image.suffix[1:].upper())
     except (OSError, ThumbnailError) as e:
-        processing_logger.error(e)
+        logger.error(e)
         return None
 
     return ba_img
@@ -176,10 +176,10 @@ class ImageProcessing:
 
             self.signals.result.emit(image_groups)
         except InterruptProcessing:
-            processing_logger.info('Image processing has been interrupted '
-                                   'by the user')
+            logger.info('Image processing has been interrupted '
+                        'by the user')
         except Exception:
-            processing_logger.error('Unknown error: ', exc_info=True)
+            logger.error('Unknown error: ', exc_info=True)
             self.errors = True
         finally:
             self.signals.finished.emit()
@@ -228,7 +228,7 @@ class ImageProcessing:
         for i, path in enumerate(paths):
             dhash = hashes[i]
             if dhash is None:
-                processing_logger.error(f'Hash of {path} cannot be calculated')
+                logger.error(f'Hash of {path} cannot be calculated')
                 self.errors = True
             else:
                 cache[path] = dhash

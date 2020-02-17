@@ -16,26 +16,15 @@ You should have received a copy of the GNU General Public License
 along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 '''
 
-import logging
-import logging.handlers as handlers
-import pathlib
 import sys
 
 from PyQt5.QtWidgets import QApplication
 
 import doppelganger.gui.mainwindow as mw
+from doppelganger.logger import Logger
 
 if __name__ == '__main__':
-    logger = logging.getLogger('main')
-    logger.setLevel(logging.WARNING)
-    entry_point = sys.executable if getattr(sys, 'frozen', False) else __file__
-    log_path = pathlib.Path(entry_point).parent / 'errors.log'
-    rh = handlers.RotatingFileHandler(log_path, maxBytes=1024**2,
-                                      backupCount=1)
-    FORMAT = '{asctime} - {name} - {levelname} - {message}'
-    formatter = logging.Formatter(fmt=FORMAT, style='{')
-    rh.setFormatter(formatter)
-    logger.addHandler(rh)
+    Logger.setLogger()
 
     app = QApplication(sys.argv)
     ex = mw.MainWindow()
