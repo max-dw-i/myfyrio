@@ -248,11 +248,17 @@ class TestImageInfoWidgetMethodSizeInfo(TestImageInfoWidget):
     def setUp(self):
         super().setUp()
 
-        self.mock_image.dimensions.return_value = (22, 33)
+        type(self.mock_image).width = mock.PropertyMock(return_value=22)
+        type(self.mock_image).height = mock.PropertyMock(return_value=33)
         self.mock_image.filesize.return_value = 44
 
-    def test_log_error_if_image_dimensions_raise_OSError(self):
-        self.mock_image.dimensions.side_effect = OSError
+    def test_log_error_if_image_width_raise_OSError(self):
+        type(self.mock_image).width = mock.PropertyMock(side_effect=OSError)
+        with self.assertLogs('main.widgets', 'ERROR'):
+            self.w._sizeInfo()
+
+    def test_log_error_if_image_height_raise_OSError(self):
+        type(self.mock_image).height = mock.PropertyMock(side_effect=OSError)
         with self.assertLogs('main.widgets', 'ERROR'):
             self.w._sizeInfo()
 
@@ -262,7 +268,7 @@ class TestImageInfoWidgetMethodSizeInfo(TestImageInfoWidget):
             self.w._sizeInfo()
 
     def test_return_if_funcs_raise_OSError(self):
-        self.mock_image.dimensions.side_effect = OSError
+        type(self.mock_image).width = mock.PropertyMock(side_effect=OSError)
         self.mock_image.filesize.side_effect = OSError
         res = self.w._sizeInfo()
 

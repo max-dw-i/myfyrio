@@ -50,7 +50,7 @@ from doppelganger import core
 CORE = 'doppelganger.core.'
 
 
-# pylint: disable=unused-argument,missing-class-docstring,protected-access
+# pylint: disable=unused-argument,missing-class-docstring,protected-access,pointless-statement
 
 
 class TestFuncFindImages(TestCase):
@@ -472,37 +472,64 @@ class TestMethodDimensions(TestClassImage):
         self.mock_img = mock.Mock()
         self.mock_img.size = (self.width, self.height)
 
-    def test_return_dimensions_if_they_already_found(self):
-        self.image.width = 333
-        self.image.height = 444
-        dims = self.image.dimensions()
-
-        self.assertTupleEqual(dims, (self.image.width, self.image.height))
-
     def test_pil_open_called_with_image_path(self):
-        NAME = CORE + 'PILImage.open'
-        with mock.patch(NAME, return_value=self.mock_img) as mock_pil:
-            self.image.dimensions()
+        with mock.patch(CORE + 'PILImage.open',
+                        return_value=self.mock_img) as mock_pil:
+            self.image._dimensions()
 
         mock_pil.assert_called_once_with(self.image.path)
 
     def test_raise_OSError_if_pil_open_raise_OSError(self):
-        with mock.patch(CORE+'PILImage.open', side_effect=OSError):
+        with mock.patch(CORE + 'PILImage.open', side_effect=OSError):
             with self.assertRaises(OSError):
-                self.image.dimensions()
+                self.image._dimensions()
 
     def test_dims_assigned_to_image_attrs(self):
         with mock.patch(CORE + 'PILImage.open', return_value=self.mock_img):
-            self.image.dimensions()
+            self.image._dimensions()
 
-        self.assertEqual(self.image.width, self.width)
-        self.assertEqual(self.image.height, self.height)
+        self.assertEqual(self.image._width, self.width)
+        self.assertEqual(self.image._height, self.height)
 
-    def test_return_dims(self):
+    def test_close_called_on_opened_image(self):
         with mock.patch(CORE + 'PILImage.open', return_value=self.mock_img):
-            dims = self.image.dimensions()
+            self.image._dimensions()
 
-        self.assertTupleEqual(dims, (self.width, self.height))
+        self.mock_img.close.assert_called_once_with()
+
+
+class TestPropertyWidth(TestClassImage):
+
+    def test_dimensions_called_if_width_is_None(self):
+        self.image._width = None
+        with mock.patch(CORE + 'Image._dimensions') as mock_dim:
+            self.image.width
+
+        mock_dim.assert_called_once_with()
+
+    def test_return_width_attr(self):
+        w = 34
+        self.image._width = w
+        res = self.image.width
+
+        self.assertEqual(res, w)
+
+
+class TestPropertyHeight(TestClassImage):
+
+    def test_dimensions_called_if_height_is_None(self):
+        self.image._height = None
+        with mock.patch(CORE + 'Image._dimensions') as mock_dim:
+            self.image.height
+
+        mock_dim.assert_called_once_with()
+
+    def test_return_height_attr(self):
+        h = 34
+        self.image._height = h
+        res = self.image.height
+
+        self.assertEqual(res, h)
 
 
 class TestMethodFilesize(TestClassImage):
@@ -675,18 +702,18 @@ class TestSort(TestCase):
         self.img1 = core.Image('test3', 'hash1')
         self.img1.difference = 5
         self.img1.size = 3072
-        self.img1.width = 4
-        self.img1.height = 6
+        self.img1._width = 4
+        self.img1._height = 6
         self.img2 = core.Image('test1', 'hash2')
         self.img2.difference = 0
         self.img2.size = 1024
-        self.img2.width = 1
-        self.img2.height = 1
+        self.img2._width = 1
+        self.img2._height = 1
         self.img3 = core.Image('test2', 'hash3')
         self.img3.difference = 3
         self.img3.size = 2048
-        self.img3.width = 5
-        self.img3.height = 3
+        self.img3._width = 5
+        self.img3._height = 3
         self.img_groups = [[self.img1, self.img2, self.img3]]
 
     def test_similarity_sort(self):

@@ -119,21 +119,24 @@ class TestFuncScalingDimensionsFunc(TestCase):
         self.mock_image = mock.Mock()
 
     def test_return_if_pass_square_image(self):
-        self.mock_image.dimensions.return_value = (5, 5)
+        self.mock_image.width = 5
+        self.mock_image.height = 5
         new_size = processing._scaling_dimensions(self.mock_image, 10)
 
         self.assertEqual(new_size[0], 10)
         self.assertEqual(new_size[1], 10)
 
     def test_return_if_pass_portrait_image(self):
-        self.mock_image.dimensions.return_value = (1, 5)
+        self.mock_image.width = 1
+        self.mock_image.height = 5
         new_size = processing._scaling_dimensions(self.mock_image, 10)
 
         self.assertEqual(new_size[0], 2)
         self.assertEqual(new_size[1], 10)
 
     def test_return_if_pass_landscape_image(self):
-        self.mock_image.dimensions.return_value = (5, 1)
+        self.mock_image.width = 5
+        self.mock_image.height = 1
         new_size = processing._scaling_dimensions(self.mock_image, 10)
 
         self.assertEqual(new_size[0], 10)

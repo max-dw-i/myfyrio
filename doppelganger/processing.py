@@ -49,7 +49,7 @@ def thumbnail(image: core.Image, size: int) -> Optional[QtCore.QByteArray]:
     return ba_img
 
 def _scaling_dimensions(image: core.Image, size: int) -> Tuple[int, int]:
-    width, height = image.dimensions()
+    width, height = image.width, image.height
     biggest_dim = width if width >= height else height
     new_width, new_height = (width * size // biggest_dim,
                              height * size // biggest_dim)

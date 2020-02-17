@@ -136,7 +136,7 @@ class ImageInfoWidget(QtWidgets.QWidget):
 
     def _sizeInfo(self) -> str:
         try:
-            width, height = self.image.dimensions()
+            width, height = self.image.width, self.image.height
         except OSError as e:
             logger.error(e)
             width, height = (0, 0)

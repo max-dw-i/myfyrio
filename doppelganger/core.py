@@ -264,8 +264,8 @@ class Image:
         self.thumbnail = None
         self.suffix: Suffix = Path(path).suffix # '.jpg', '.png', etc.
         self.size: FileSize = None
-        self.width: Width = None
-        self.height: Height = None
+        self._width: Width = None
+        self._height: Height = None
 
     @staticmethod
     def dhash(path: ImagePath) -> Optional[Hash]:
@@ -283,21 +283,38 @@ class Image:
             dhash = dhashlib.dhash_int(image)
         return dhash
 
-    def dimensions(self) -> Tuple[Width, Height]:
-        '''Return the dimensions of the image
+    def _dimensions(self):
+        try:
+            image = PILImage.open(self.path)
+        except OSError:
+            raise OSError(f'Cannot get the dimensions of {self.path}')
+        else:
+            self._width, self._height = image.size
+            image.close()
 
-        :return: tuple with width and height of the image,
-        :raise OSError: any problem while opening the image
+    @property
+    def width(self) -> Width:
+        '''Return width of the image
+
+        :return: width,
+        :raise OSError: problem with opening the image
         '''
 
-        if self.width is None or self.height is None:
-            try:
-                image = PILImage.open(self.path)
-            except OSError:
-                raise OSError(f'Cannot get the dimensions of {self.path}')
-            else:
-                self.width, self.height = image.size
-        return self.width, self.height
+        if self._width is None:
+            self._dimensions()
+        return self._width
+
+    @property
+    def height(self) -> Width:
+        '''Return height of the image
+
+        :return: height,
+        :raise OSError: problem with opening the image
+        '''
+
+        if self._height is None:
+            self._dimensions()
+        return self._height
 
     def filesize(self, size_format: SizeFormat = 1) -> FileSize:
         '''Return the file size of the image
@@ -431,8 +448,7 @@ class Sort:
 
     @staticmethod
     def _dimensions_product(image: Image) -> int:
-        width, height = image.dimensions()
-        return width * height
+        return image.width * image.height
 
 
 ########################## Types ##################################
