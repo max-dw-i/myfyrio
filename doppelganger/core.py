@@ -284,7 +284,7 @@ class Image:
             image.close()
         return dhash
 
-    def _dimensions(self):
+    def _set_dimensions(self):
         try:
             image = PILImage.open(self.path)
         except OSError:
@@ -302,7 +302,7 @@ class Image:
         '''
 
         if self._width is None:
-            self._dimensions()
+            self._set_dimensions()
         return self._width
 
     @property
@@ -314,7 +314,7 @@ class Image:
         '''
 
         if self._height is None:
-            self._dimensions()
+            self._set_dimensions()
         return self._height
 
     def filesize(self, size_format: SizeFormat = 1) -> FileSize:

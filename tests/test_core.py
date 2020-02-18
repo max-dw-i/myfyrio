@@ -485,25 +485,25 @@ class TestMethodDimensions(TestClassImage):
     def test_pil_open_called_with_image_path(self):
         with mock.patch(CORE + 'PILImage.open',
                         return_value=self.mock_img) as mock_pil:
-            self.image._dimensions()
+            self.image._set_dimensions()
 
         mock_pil.assert_called_once_with(self.image.path)
 
     def test_raise_OSError_if_pil_open_raise_OSError(self):
         with mock.patch(CORE + 'PILImage.open', side_effect=OSError):
             with self.assertRaises(OSError):
-                self.image._dimensions()
+                self.image._set_dimensions()
 
     def test_dims_assigned_to_image_attrs(self):
         with mock.patch(CORE + 'PILImage.open', return_value=self.mock_img):
-            self.image._dimensions()
+            self.image._set_dimensions()
 
         self.assertEqual(self.image._width, self.width)
         self.assertEqual(self.image._height, self.height)
 
     def test_close_called_on_opened_image(self):
         with mock.patch(CORE + 'PILImage.open', return_value=self.mock_img):
-            self.image._dimensions()
+            self.image._set_dimensions()
 
         self.mock_img.close.assert_called_once_with()
 
@@ -512,7 +512,7 @@ class TestPropertyWidth(TestClassImage):
 
     def test_dimensions_called_if_width_is_None(self):
         self.image._width = None
-        with mock.patch(CORE + 'Image._dimensions') as mock_dim:
+        with mock.patch(CORE + 'Image._set_dimensions') as mock_dim:
             self.image.width
 
         mock_dim.assert_called_once_with()
@@ -529,7 +529,7 @@ class TestPropertyHeight(TestClassImage):
 
     def test_dimensions_called_if_height_is_None(self):
         self.image._height = None
-        with mock.patch(CORE + 'Image._dimensions') as mock_dim:
+        with mock.patch(CORE + 'Image._set_dimensions') as mock_dim:
             self.image.height
 
         mock_dim.assert_called_once_with()
