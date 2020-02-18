@@ -23,6 +23,7 @@ from unittest import TestCase, mock
 from PyQt5 import QtCore, QtTest, QtWidgets
 
 from doppelganger import signals
+from doppelganger.core import SizeFormat
 from doppelganger.gui import imageviewwidget
 
 # Configure a logger for testing purposes
@@ -266,6 +267,12 @@ class TestImageInfoWidgetMethodSizeInfo(TestImageInfoWidget):
         self.mock_image.filesize.side_effect = OSError
         with self.assertLogs('main.widgets', 'ERROR'):
             self.w._sizeInfo()
+
+    def test_filesize_called_with_enum_arg(self):
+        self.w._sizeInfo()
+        call_args = self.mock_image.filesize.call_args[0]
+
+        self.assertIsInstance(call_args[0], SizeFormat)
 
     def test_return_if_funcs_raise_OSError(self):
         type(self.mock_image).width = mock.PropertyMock(side_effect=OSError)

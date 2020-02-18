@@ -134,6 +134,15 @@ class ImageInfoWidget(QtWidgets.QWidget):
                                              self.conf['size'], self)
         self.layout.addWidget(self.imagePathLabel)
 
+    @staticmethod
+    def _sizeformatIntToEnum(int_sizeformat):
+        dispatcher = {
+            0: core.SizeFormat.B,
+            1: core.SizeFormat.KB,
+            2: core.SizeFormat.MB
+        }
+        return dispatcher[int_sizeformat]
+
     def _sizeInfo(self) -> str:
         try:
             width, height = self.image.width, self.image.height
@@ -141,8 +150,10 @@ class ImageInfoWidget(QtWidgets.QWidget):
             logger.error(e)
             width, height = (0, 0)
 
+        enum_sizeformat = self._sizeformatIntToEnum(self.conf['size_format'])
+
         try:
-            filesize = self.image.filesize(self.conf['size_format'])
+            filesize = self.image.filesize(enum_sizeformat)
         except OSError as e:
             logger.error(e)
             filesize = 0

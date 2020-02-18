@@ -52,6 +52,7 @@ from __future__ import annotations
 import os
 import pathlib
 import pickle
+from enum import Enum
 from multiprocessing import Pool
 from pathlib import Path
 from typing import (Collection, Dict, Iterable, List, Optional, Sequence, Set,
@@ -252,6 +253,63 @@ def calculating(paths: Iterable[ImagePath]) -> List[Optional[Hash]]:
     return hashes
 
 
+class Sort:
+    '''Custom sort for duplicate images (already grouped)'''
+
+    def __init__(self, image_groups: Iterable[Group]) -> None:
+        self.image_groups = image_groups
+
+    def sort(self, sort_type: int = 0) -> None:
+        '''Sort duplicate image groups
+
+        :param sort_type: 0 - sort by similarity rate
+                              in descending order,
+                          1 - sort by size of an image file
+                              in descending order,
+                          2 - sort by width and height of an image
+                              in descending order,
+                          3 - sort by path of an image file
+                              in ascending order
+        '''
+
+        if sort_type == 0:
+            self._similarity_sort()
+        if sort_type == 1:
+            self._filesize_sort()
+        if sort_type == 2:
+            self._dimensions_sort()
+        if sort_type == 3:
+            self._path_sort()
+
+    def _similarity_sort(self) -> None:
+        for group in self.image_groups:
+            group.sort(key=lambda x: x.difference)
+
+    def _filesize_sort(self) -> None:
+        for group in self.image_groups:
+            group.sort(key=Image.filesize, reverse=True)
+
+    def _dimensions_sort(self) -> None:
+        for group in self.image_groups:
+            group.sort(key=self._dimensions_product, reverse=True)
+
+    def _path_sort(self) -> None:
+        for group in self.image_groups:
+            group.sort(key=lambda img: img.path)
+
+    @staticmethod
+    def _dimensions_product(image: Image) -> int:
+        return image.width * image.height
+
+
+class SizeFormat(Enum):
+    '''Class representing size formats'''
+
+    B = 1           # Bytes
+    KB = 1024       # KiloBytes
+    MB = 1024**2    # MegaBytes
+
+
 class Image:
     '''Class representing images'''
 
@@ -325,30 +383,20 @@ class Image:
         else:
             self.size = image_size
 
-    def filesize(self, size_format: SizeFormat = 1) -> FileSize:
+    def filesize(self, size_format: SizeFormat = SizeFormat.KB) -> FileSize:
         '''Return the file size of the image
 
-        :param size_format: bytes - 0, KiloBytes - 1, MegaBytes - 2,
+        :param size_format: any of enum 'SizeFormat',
         :return: file size in bytes, kilobytes or megabytes, rounded
                  to the first decimal place,
-        :raise OSError: any problem while opening the image,
-        :raise ValueError: :size_format: is not amongst the allowed values
+        :raise OSError: any problem with opening the image,
         '''
-
-        if size_format not in (0, 1, 2):
-            raise ValueError('Wrong size format')
 
         if self.size is None:
             self._set_filesize()
 
-        if size_format == 0:
-            filesize = self.size
-        if size_format == 1:
-            filesize = round(self.size / 1024, 1)
-        if size_format == 2:
-            filesize = round(self.size / (1024**2), 1)
-
-        return filesize
+        formatted_size = round(self.size / size_format.value, 1)
+        return formatted_size
 
     def delete(self) -> None:
         '''Delete the image from the disk
@@ -406,55 +454,6 @@ class Image:
         return self.path
 
 
-class Sort:
-    '''Custom sort for duplicate images (already grouped)'''
-
-    def __init__(self, image_groups: Iterable[Group]) -> None:
-        self.image_groups = image_groups
-
-    def sort(self, sort_type: int = 0) -> None:
-        '''Sort duplicate image groups
-
-        :param sort_type: 0 - sort by similarity rate
-                              in descending order,
-                          1 - sort by size of an image file
-                              in descending order,
-                          2 - sort by width and height of an image
-                              in descending order,
-                          3 - sort by path of an image file
-                              in ascending order
-        '''
-
-        if sort_type == 0:
-            self._similarity_sort()
-        if sort_type == 1:
-            self._filesize_sort()
-        if sort_type == 2:
-            self._dimensions_sort()
-        if sort_type == 3:
-            self._path_sort()
-
-    def _similarity_sort(self) -> None:
-        for group in self.image_groups:
-            group.sort(key=lambda x: x.difference)
-
-    def _filesize_sort(self) -> None:
-        for group in self.image_groups:
-            group.sort(key=Image.filesize, reverse=True)
-
-    def _dimensions_sort(self) -> None:
-        for group in self.image_groups:
-            group.sort(key=self._dimensions_product, reverse=True)
-
-    def _path_sort(self) -> None:
-        for group in self.image_groups:
-            group.sort(key=lambda img: img.path)
-
-    @staticmethod
-    def _dimensions_product(image: Image) -> int:
-        return image.width * image.height
-
-
 ########################## Types ##################################
 
 FilePath = str # Path to a file
@@ -468,7 +467,6 @@ Suffix = str # '.jpg', '.png', etc. (with a dot)
 Width = int # Width of a image
 Height = int # Height of a image
 FileSize = Union[int, float] # Size of a file
-SizeFormat = int # Units of file size (one of {0, 1, 2})
 Cache = Dict[ImagePath, Hash] # Cache containing image hashes
 Group = List[Image] # Group of similar images
 

@@ -557,46 +557,46 @@ class TestMethodSetFilesize(TestClassImage):
 
     @mock.patch('os.path.getsize', return_value=1024)
     def test_assign_result_of_getsize_to_size_attr(self, mock_size):
-        self.image.filesize(0)
+        self.image.filesize(core.SizeFormat.B)
 
         self.assertEqual(self.image.size, 1024)
 
 
 class TestMethodFilesize(TestClassImage):
 
+    def h_set_filesize(self):
+        self.image.size = 1
+
     def test_return_image_size_attr_if_Bytes_format(self):
         self.image.size = 1024
-        filesize = self.image.filesize(size_format=0)
+        filesize = self.image.filesize(size_format=core.SizeFormat.B)
 
-        self.assertEqual(filesize, self.image.size)
+        self.assertAlmostEqual(filesize, self.image.size)
 
     def test_return_image_size_attr_if_KiloBytes_format(self):
         self.image.size = 1024
-        filesize = self.image.filesize(size_format=1)
+        filesize = self.image.filesize(size_format=core.SizeFormat.KB)
 
         self.assertAlmostEqual(filesize, 1)
 
     def test_return_image_size_attr_if_MegaBytes_format(self):
-        self.image.size = 1048576
-        filesize = self.image.filesize(size_format=2)
+        self.image.size = 1024**2
+        filesize = self.image.filesize(size_format=core.SizeFormat.MB)
 
         self.assertAlmostEqual(filesize, 1)
 
-    def test_raise_ValueError_if_pass_wrong_format(self):
-        with self.assertRaises(ValueError):
-            self.image.filesize(size_format=13)
-
     def test_set_filesize_called_if_size_attr_is_None(self):
         self.image.size = None
-        with mock.patch(CORE + 'Image._set_filesize') as mock_size_call:
-            self.image.filesize(size_format=0)
+        with mock.patch(CORE + 'Image._set_filesize',
+                        side_effect=self.h_set_filesize) as mock_size_call:
+            self.image.filesize(size_format=core.SizeFormat.B)
 
         mock_size_call.assert_called_once_with()
 
     def test_set_filesize_not_called_if_size_attr_is_not_None(self):
         self.image.size = 1024
         with mock.patch(CORE + 'Image._set_filesize') as mock_size_call:
-            self.image.filesize(size_format=0)
+            self.image.filesize(size_format=core.SizeFormat.B)
 
         mock_size_call.assert_not_called()
 
