@@ -42,17 +42,20 @@ class Logger:
         logger = logging.getLogger(cls.NAME)
         logger.setLevel(logging.WARNING)
 
+        FORMAT = '{asctime} - {name} - {levelname} - {message}'
+        formatter = logging.Formatter(fmt=FORMAT, style='{')
+
         frozen = getattr(sys, 'frozen', False)
         entry_point = sys.executable if frozen else __file__
         logfile = Path(entry_point).parents[1] / cls.FILE_NAME
         rh = handlers.RotatingFileHandler(logfile, maxBytes=cls.MAX_FILE_SIZE,
                                           backupCount=cls.FILES_TOTAL-1)
-
-        FORMAT = '{asctime} - {name} - {levelname} - {message}'
-        formatter = logging.Formatter(fmt=FORMAT, style='{')
         rh.setFormatter(formatter)
-
         logger.addHandler(rh)
+
+        sh = logging.StreamHandler(sys.stdout)
+        sh.setFormatter(formatter)
+        logger.addHandler(sh)
 
     @classmethod
     def getLogger(cls, suffix: str) -> logging.Logger:
