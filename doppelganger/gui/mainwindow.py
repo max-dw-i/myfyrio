@@ -245,6 +245,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
             if confirm == QtWidgets.QMessageBox.Cancel:
                 event.ignore()
+                return
+
+        if self.processingGrp.stopBtn.isEnabled():
+            self.stopProcessing()
 
     def openWindow(self) -> None:
         window = self.sender().data()

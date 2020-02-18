@@ -195,21 +195,52 @@ class TestMainFormMethodCloseEvent(TestMainForm):
 
         self.mock_event = mock.Mock()
 
-    def test_nothing_happens_if_conf_param_close_confirmation_is_False(self):
+    def test_stopProcessing_not_called_if_no_confirmation_and_no_stopBtn(self):
         self.w.preferencesWindow.conf['close_confirmation'] = False
-        with mock.patch('PyQt5.QtWidgets.QMessageBox.question') as mock_quest:
+        self.w.processingGrp.stopBtn.setEnabled(False)
+        with mock.patch(MAIN_WINDOW+'MainWindow.stopProcessing') as mock_stop:
             self.w.closeEvent(self.mock_event)
 
-        mock_quest.assert_not_called()
+        mock_stop.assert_not_called()
 
-    def test_question_called_if_conf_param_close_confirmation_is_True(self):
+    def test_stopProcessing_called_if_no_confirmation_and_stopBtn(self):
+        self.w.preferencesWindow.conf['close_confirmation'] = False
+        self.w.processingGrp.stopBtn.setEnabled(True)
+        with mock.patch(MAIN_WINDOW+'MainWindow.stopProcessing') as mock_stop:
+            self.w.closeEvent(self.mock_event)
+
+        mock_stop.assert_called_once_with()
+
+    def test_stopProcessing_not_called_if_Yes_confirmation_no_stopBtn(self):
         self.w.preferencesWindow.conf['close_confirmation'] = True
-        with mock.patch('PyQt5.QtWidgets.QMessageBox.question') as mock_quest:
-            self.w.closeEvent(self.mock_event)
+        self.w.processingGrp.stopBtn.setEnabled(False)
+        with mock.patch(MAIN_WINDOW+'MainWindow.stopProcessing') as mock_stop:
+            with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                            return_value=QtWidgets.QMessageBox.Yes):
+                self.w.closeEvent(self.mock_event)
 
-        mock_quest.assert_called_once()
+        mock_stop.assert_not_called()
 
-    def test_event_ignored_if_btn_Cancel_chosen(self):
+    def test_stopProcessing_called_if_Yes_confirmation_and_stopBtn(self):
+        self.w.preferencesWindow.conf['close_confirmation'] = True
+        self.w.processingGrp.stopBtn.setEnabled(True)
+        with mock.patch(MAIN_WINDOW+'MainWindow.stopProcessing') as mock_stop:
+            with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                            return_value=QtWidgets.QMessageBox.Yes):
+                self.w.closeEvent(self.mock_event)
+
+        mock_stop.assert_called_once_with()
+
+    def test_stopProcessing_not_called_if_confirmation_Cancel(self):
+        self.w.preferencesWindow.conf['close_confirmation'] = True
+        with mock.patch(MAIN_WINDOW+'MainWindow.stopProcessing') as mock_stop:
+            with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                            return_value=QtWidgets.QMessageBox.Cancel):
+                self.w.closeEvent(self.mock_event)
+
+        mock_stop.assert_not_called()
+
+    def test_event_ignored_if_confirmation_Cancel(self):
         self.w.preferencesWindow.conf['close_confirmation'] = True
         with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
                         return_value=QtWidgets.QMessageBox.Cancel):
