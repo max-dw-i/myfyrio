@@ -281,6 +281,7 @@ class Image:
             dhash = None
         else:
             dhash = dhashlib.dhash_int(image)
+            image.close()
         return dhash
 
     def _dimensions(self):

@@ -441,23 +441,33 @@ class TestClassImage(TestCase):
 
 class TestMethodDhash(TestClassImage):
 
-    @mock.patch(CORE+'PILImage.open', side_effect=OSError)
-    def test_return_if_open_raise_OSError(self, mock_open):
-        dhash = core.Image.dhash('image')
+    def setUp(self):
+        self.mock_image = mock.Mock()
+
+    def test_return_if_open_raise_OSError(self):
+        with mock.patch(CORE+'PILImage.open', side_effect=OSError):
+            dhash = core.Image.dhash('image')
 
         self.assertIsNone(dhash)
 
     @mock.patch('dhash.dhash_int')
-    @mock.patch(CORE+'PILImage.open', return_value='pil_image')
-    def test_dhash_int_called_with_pil_open_return(self, mock_open, mock_hash):
-        core.Image.dhash('image')
+    def test_dhash_int_called_with_pil_open_return(self, mock_hash):
+        with mock.patch(CORE+'PILImage.open', return_value=self.mock_image):
+            core.Image.dhash('image')
 
-        mock_hash.assert_called_once_with('pil_image')
+        mock_hash.assert_called_once_with(self.mock_image)
+
+    @mock.patch('dhash.dhash_int')
+    def test_image_closed(self, mock_hash):
+        with mock.patch(CORE+'PILImage.open', return_value=self.mock_image):
+            core.Image.dhash('image')
+
+        self.mock_image.close.assert_called_once_with()
 
     @mock.patch('dhash.dhash_int', return_value='hash')
-    @mock.patch(CORE+'PILImage.open')
-    def test_dhash_return_hash(self, mock_open, mock_hash):
-        dhash = core.Image.dhash('image')
+    def test_dhash_return_hash(self, mock_hash):
+        with mock.patch(CORE+'PILImage.open'):
+            dhash = core.Image.dhash('image')
 
         self.assertEqual(dhash, 'hash')
 
