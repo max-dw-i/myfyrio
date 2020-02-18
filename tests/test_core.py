@@ -542,6 +542,26 @@ class TestPropertyHeight(TestClassImage):
         self.assertEqual(res, h)
 
 
+class TestMethodSetFilesize(TestClassImage):
+
+    @mock.patch('os.path.getsize', return_value=1024)
+    def test_getsize_called_with_image_path_arg(self, mock_size):
+        self.image.filesize()
+
+        mock_size.assert_called_once_with(self.image.path)
+
+    @mock.patch('os.path.getsize', side_effect=OSError)
+    def test_raise_OSError_if_getsize_raise_OSError(self, mock_size):
+        with self.assertRaises(OSError):
+            self.image.filesize()
+
+    @mock.patch('os.path.getsize', return_value=1024)
+    def test_assign_result_of_getsize_to_size_attr(self, mock_size):
+        self.image.filesize(0)
+
+        self.assertEqual(self.image.size, 1024)
+
+
 class TestMethodFilesize(TestClassImage):
 
     def test_return_image_size_attr_if_Bytes_format(self):
@@ -566,40 +586,19 @@ class TestMethodFilesize(TestClassImage):
         with self.assertRaises(ValueError):
             self.image.filesize(size_format=13)
 
-    @mock.patch('os.path.getsize', return_value=1024)
-    def test_getsize_called_with_image_size_arg(self, mock_size):
-        self.image.filesize()
+    def test_set_filesize_called_if_size_attr_is_None(self):
+        self.image.size = None
+        with mock.patch(CORE + 'Image._set_filesize') as mock_size_call:
+            self.image.filesize(size_format=0)
 
-        mock_size.assert_called_once_with(self.image.path)
+        mock_size_call.assert_called_once_with()
 
-    @mock.patch('os.path.getsize', side_effect=OSError)
-    def test_raise_OSError_if_getsize_raise_OSError(self, mock_size):
-        with self.assertRaises(OSError):
-            self.image.filesize()
+    def test_set_filesize_not_called_if_size_attr_is_not_None(self):
+        self.image.size = 1024
+        with mock.patch(CORE + 'Image._set_filesize') as mock_size_call:
+            self.image.filesize(size_format=0)
 
-    @mock.patch('os.path.getsize', return_value=1024)
-    def test_assign_result_of_getsize_to_size_attr(self, mock_size):
-        self.image.filesize(0)
-
-        self.assertEqual(self.image.size, 1024)
-
-    @mock.patch('os.path.getsize', return_value=1024)
-    def test_return_result_of_getsize_in_Bytes(self, mock_size):
-        filesize = self.image.filesize(0)
-
-        self.assertEqual(filesize, 1024)
-
-    @mock.patch('os.path.getsize', return_value=1024)
-    def test_return_result_of_getsize_in_KiloBytes(self, mock_size):
-        filesize = self.image.filesize(1)
-
-        self.assertAlmostEqual(filesize, 1)
-
-    @mock.patch('os.path.getsize', return_value=1048576)
-    def test_return_result_of_getsize_in_MegaBytes(self, mock_size):
-        filesize = self.image.filesize(2)
-
-        self.assertAlmostEqual(filesize, 1)
+        mock_size_call.assert_not_called()
 
 
 class TestMethodDelete(TestClassImage):
