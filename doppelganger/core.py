@@ -68,32 +68,32 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def find_images(folders: Iterable[FolderPath],
                 recursive: bool = True) -> Set[ImagePath]:
-    '''Find all the images in :folders:
+    '''Find all the images in :folders:. You can change
+    the function attribute 'interrupted' to True to interrupt
+    the search ('find_images.interrupted = True')
 
     :param folders: paths of the folders,
     :param recursive: recursive search (include subfolders),
     :return: full paths of the images,
-    :raise FileNotFoundError: any of the folders does not exist
+    :raise FileNotFoundError: any of the folders does not exist,
+    :raise InterruptProcessing: search has been interrupted
     '''
 
+    IMG_SUFFIXES = {'.png', '.jpg', '.jpeg', '.bmp'}
+    find_images.interrupted = False
+    pattern = '**/*' if recursive else '*'
     paths = set()
+
     for path in folders:
         p = Path(path)
         if not p.exists():
             raise FileNotFoundError(f'{path} does not exist')
-        paths.update(_search(p, recursive))
-    return paths
 
-def _search(path: Path, recursive: bool) -> Set[ImagePath]:
-    paths = set()
-    if recursive:
-        patterns = ['**/*.png', '**/*.jpg', '**/*.jpeg', '**/*.bmp']
-    else:
-        patterns = ['*.png', '*.jpg', '*.jpeg', '*.bmp']
+        for filename in p.glob(pattern):
+            if find_images.interrupted:
+                raise InterruptProcessing
 
-    for pattern in patterns:
-        for filename in path.glob(pattern):
-            if filename.is_file():
+            if filename.is_file() and filename.suffix in IMG_SUFFIXES:
                 paths.add(str(filename))
     return paths
 
@@ -251,6 +251,10 @@ def calculating(paths: Iterable[ImagePath]) -> List[Optional[Hash]]:
     with Pool() as p:
         hashes = p.map(Image.dhash, paths)
     return hashes
+
+
+class InterruptProcessing(Exception):
+    pass
 
 
 class Sort:

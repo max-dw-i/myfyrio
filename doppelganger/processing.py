@@ -175,7 +175,7 @@ class ImageProcessing:
             image_groups = self._make_thumbnails(image_groups)
 
             self.signals.result.emit(image_groups)
-        except InterruptProcessing:
+        except core.InterruptProcessing:
             logger.info('Image processing has been interrupted '
                         'by the user')
         except Exception:
@@ -273,6 +273,7 @@ class ImageProcessing:
 
     def _is_interrupted(self) -> None:
         self.interrupt = True
+        core.find_images.interrupted = True
 
     def _update_progress_bar(self, value: float) -> None:
         self.progress_bar_value = value
@@ -297,5 +298,5 @@ class ImageProcessing:
                 self._update_progress_bar(self.progress_bar_value + step)
 
                 if self.interrupt:
-                    raise InterruptProcessing
+                    raise core.InterruptProcessing
         return processed

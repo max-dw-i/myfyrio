@@ -69,67 +69,54 @@ class TestFuncFindImages(TestCase):
             with self.assertRaises(FileNotFoundError):
                 core.find_images(['folder'])
 
-    def test_call_search_with_path_and_recursive_parameters(self):
+    def test_glob_pattern_if_recursive_search(self):
         self.mock_path.exists.return_value = True
-        recursive = True
+        self.mock_path.glob.return_value = []
         with mock.patch(CORE+'Path', return_value=self.mock_path):
-            with mock.patch(CORE+'_search', return_value=set()) as mock_search:
-                core.find_images(['folder'], recursive=recursive)
+            core.find_images(['folder'], recursive=True)
 
-        mock_search.assert_called_once_with(self.mock_path, recursive)
+        self.mock_path.glob.assert_called_once_with('**/*')
 
-    def test_search_resulting_paths(self):
+    def test_glob_pattern_if_nonrecursive_search(self):
         self.mock_path.exists.return_value = True
-        paths = {'path'}
+        self.mock_path.glob.return_value = []
         with mock.patch(CORE+'Path', return_value=self.mock_path):
-            with mock.patch(CORE+'_search', return_value=paths):
-                res = core.find_images(['folder'])
+            core.find_images(['folder'], recursive=False)
 
-        self.assertSetEqual(res, paths)
+        self.mock_path.glob.assert_called_once_with('*')
 
-
-class TestFuncSearch(TestCase):
-
-    def setUp(self):
-        self.mock_path = mock.Mock()
-
-    def test_patterns_if_recursive_parameter_is_True(self):
-        self.mock_path.glob.return_value = []
-        core._search(self.mock_path, recursive=True)
-        calls = [mock.call('**/*.png'), mock.call('**/*.jpg'),
-                 mock.call('**/*.jpeg'), mock.call('**/*.bmp')]
-
-        self.mock_path.glob.assert_has_calls(calls)
-
-    def test_patterns_if_recursive_parameter_is_False(self):
-        self.mock_path.glob.return_value = []
-        core._search(self.mock_path, recursive=False)
-        calls = [mock.call('*.png'), mock.call('*.jpg'),
-                 mock.call('*.jpeg'), mock.call('*.bmp')]
-
-        self.mock_path.glob.assert_has_calls(calls)
-
-    def test_search_return_empty_set_if_glob_return_empty_list(self):
-        self.mock_path.glob.return_value = []
-        res = core._search(self.mock_path, True)
+    def test_return_empty_set_if_path_isnt_file(self):
+        self.mock_path.exists.return_value = True
+        image_path = mock.Mock()
+        image_path.is_file.return_value = False
+        self.mock_path.glob.return_value = [image_path]
+        with mock.patch(CORE+'Path', return_value=self.mock_path):
+            res = core.find_images(['folder'], recursive=False)
 
         self.assertSetEqual(res, set())
 
-    def test_search_add_path_if_it_is_file(self):
-        returned_path = mock.Mock()
-        returned_path.is_file.return_value = True
-        self.mock_path.glob.return_value = [returned_path]
-        res = core._search(self.mock_path, True)
-
-        self.assertSetEqual(res, {str(returned_path)})
-
-    def test_search_add_path_if_it_is_not_file(self):
-        returned_path = mock.Mock()
-        returned_path.is_file.return_value = False
-        self.mock_path.glob.return_value = [returned_path]
-        res = core._search(self.mock_path, True)
+    def test_return_empty_set_if_path_is_file_but_wrong_suffix(self):
+        self.mock_path.exists.return_value = True
+        image_path = mock.Mock()
+        image_path.is_file.return_value = True
+        image_path.suffix = '.www'
+        self.mock_path.glob.return_value = [image_path]
+        with mock.patch(CORE+'Path', return_value=self.mock_path):
+            res = core.find_images(['folder'], recursive=False)
 
         self.assertSetEqual(res, set())
+
+    def test_return_image_path(self):
+        self.mock_path.exists.return_value = True
+        image_path = mock.MagicMock()
+        image_path.is_file.return_value = True
+        image_path.suffix = '.png'
+        image_path.__str__.return_value = 'image'
+        self.mock_path.glob.return_value = [image_path]
+        with mock.patch(CORE+'Path', return_value=self.mock_path):
+            res = core.find_images(['folder'], recursive=False)
+
+        self.assertSetEqual(res, {'image'})
 
 
 class TestFuncImageGrouping(TestCase):

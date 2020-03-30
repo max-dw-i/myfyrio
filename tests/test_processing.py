@@ -21,7 +21,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
 
-from doppelganger import exception, processing, signals
+from doppelganger import core, exception, processing, signals
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -583,7 +583,7 @@ class TestMethodImap(TestClassImageProcessing):
     def test_raise_InterruptProcessing_if_interrupt_attr_is_True(self):
         self.proc.interrupt = True
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            with self.assertRaises(exception.InterruptProcessing):
+            with self.assertRaises(core.InterruptProcessing):
                 self.proc._imap(self.func, self.collection, self.label)
 
 
