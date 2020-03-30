@@ -274,6 +274,7 @@ class ImageProcessing:
     def _is_interrupted(self) -> None:
         self.interrupt = True
         core.find_images.interrupted = True
+        core.image_grouping.interrupted = True
 
     def _update_progress_bar(self, value: float) -> None:
         self.progress_bar_value = value

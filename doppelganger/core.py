@@ -119,6 +119,8 @@ def image_grouping(images: Collection[Image],
     :raise TypeError: any of the hashes is not integer
     '''
 
+    image_grouping.interrupted = False
+
     if len(images) <= 1:
         return []
 
@@ -131,6 +133,9 @@ def image_grouping(images: Collection[Image],
     checked: Dict[Image, int] = {} # {Image: index of the group}
 
     for image in images:
+        if image_grouping.interrupted:
+            raise InterruptProcessing
+
         distance, closest = _closest(bkt, image, sensitivity)
         if closest is None:
             continue
