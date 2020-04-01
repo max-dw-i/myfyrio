@@ -50,30 +50,31 @@ from doppelganger import core
 CORE = 'doppelganger.core.'
 
 
-# pylint: disable=unused-argument,missing-class-docstring,protected-access,pointless-statement
+# pylint: disable=unused-argument,missing-class-docstring
 
 
-class TestFuncFindImages(TestCase):
+class TestFuncFindImage(TestCase):
 
     def setUp(self):
         self.mock_path = mock.Mock()
 
-    def test_return_empty_set_if_pass_empty_folders_list(self):
-        paths = core.find_images([])
+    def test_return_nothing_if_pass_empty_folders_list(self):
+        paths = list(core.find_image([]))
 
-        self.assertSetEqual(paths, set())
+        self.assertListEqual(paths, [])
 
     def test_raise_FileNotFoundError(self):
         self.mock_path.exists.return_value = False
         with mock.patch(CORE+'Path', return_value=self.mock_path):
             with self.assertRaises(FileNotFoundError):
-                core.find_images(['folder'])
+                res = list(core.find_image(['folder'])) #pylint: disable=unused-variable
 
     def test_glob_pattern_if_recursive_search(self):
         self.mock_path.exists.return_value = True
         self.mock_path.glob.return_value = []
         with mock.patch(CORE+'Path', return_value=self.mock_path):
-            core.find_images(['folder'], recursive=True)
+            res = list(core.find_image(['folder'], # pylint: disable=unused-variable
+                                       recursive=True))
 
         self.mock_path.glob.assert_called_once_with('**/*')
 
@@ -81,30 +82,31 @@ class TestFuncFindImages(TestCase):
         self.mock_path.exists.return_value = True
         self.mock_path.glob.return_value = []
         with mock.patch(CORE+'Path', return_value=self.mock_path):
-            core.find_images(['folder'], recursive=False)
+            res = list(core.find_image(['folder'], # pylint: disable=unused-variable
+                                       recursive=False))
 
         self.mock_path.glob.assert_called_once_with('*')
 
-    def test_return_empty_set_if_path_isnt_file(self):
+    def test_return_nothing_if_path_isnt_file(self):
         self.mock_path.exists.return_value = True
         image_path = mock.Mock()
         image_path.is_file.return_value = False
         self.mock_path.glob.return_value = [image_path]
         with mock.patch(CORE+'Path', return_value=self.mock_path):
-            res = core.find_images(['folder'], recursive=False)
+            res = list(core.find_image(['folder'], recursive=False))
 
-        self.assertSetEqual(res, set())
+        self.assertListEqual(res, [])
 
-    def test_return_empty_set_if_path_is_file_but_wrong_suffix(self):
+    def test_return_nothing_if_path_is_file_but_wrong_suffix(self):
         self.mock_path.exists.return_value = True
         image_path = mock.Mock()
         image_path.is_file.return_value = True
         image_path.suffix = '.www'
         self.mock_path.glob.return_value = [image_path]
         with mock.patch(CORE+'Path', return_value=self.mock_path):
-            res = core.find_images(['folder'], recursive=False)
+            res = list(core.find_image(['folder'], recursive=False))
 
-        self.assertSetEqual(res, set())
+        self.assertListEqual(res, [])
 
     def test_return_image_path(self):
         self.mock_path.exists.return_value = True
@@ -114,9 +116,9 @@ class TestFuncFindImages(TestCase):
         image_path.__str__.return_value = 'image'
         self.mock_path.glob.return_value = [image_path]
         with mock.patch(CORE+'Path', return_value=self.mock_path):
-            res = core.find_images(['folder'], recursive=False)
+            res = list(core.find_image(['folder'], recursive=False))
 
-        self.assertSetEqual(res, {'image'})
+        self.assertListEqual(res, ['image'])
 
 
 class TestFuncImageGrouping(TestCase):
@@ -500,7 +502,7 @@ class TestPropertyWidth(TestClassImage):
     def test_dimensions_called_if_width_is_None(self):
         self.image._width = None
         with mock.patch(CORE + 'Image._set_dimensions') as mock_dim:
-            self.image.width
+            self.image.width # pylint: disable=pointless-statement
 
         mock_dim.assert_called_once_with()
 
@@ -517,7 +519,7 @@ class TestPropertyHeight(TestClassImage):
     def test_dimensions_called_if_height_is_None(self):
         self.image._height = None
         with mock.patch(CORE + 'Image._set_dimensions') as mock_dim:
-            self.image.height
+            self.image.height # pylint: disable=pointless-statement
 
         mock_dim.assert_called_once_with()
 

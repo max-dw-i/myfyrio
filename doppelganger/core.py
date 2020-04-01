@@ -55,8 +55,8 @@ import pickle
 from enum import Enum
 from multiprocessing import Pool
 from pathlib import Path
-from typing import (Collection, Dict, Iterable, List, Optional, Sequence, Set,
-                    Tuple, TypeVar, Union)
+from typing import (Collection, Dict, Generator, Iterable, List, Optional,
+                    Sequence, Tuple, TypeVar, Union)
 
 import dhash as dhashlib
 import pybktree
@@ -66,23 +66,18 @@ from PIL import ImageFile
 # Crazy hack not to get error 'IOError: image file is truncated...'
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-def find_images(folders: Iterable[FolderPath],
-                recursive: bool = True) -> Set[ImagePath]:
-    '''Find all the images in :folders:. You can change
-    the function attribute 'interrupted' to True to interrupt
-    the search ('find_images.interrupted = True')
+def find_image(folders: Iterable[FolderPath],
+               recursive: bool = True) -> Generator[ImagePath, None, None]:
+    '''Find next image in :folders: and yield its path
 
     :param folders: paths of the folders,
     :param recursive: recursive search (include subfolders),
-    :return: full paths of the images,
-    :raise FileNotFoundError: any of the folders does not exist,
-    :raise InterruptProcessing: search has been interrupted
+    :yield: full path of the next image,
+    :raise FileNotFoundError: any of the folders does not exist
     '''
 
     IMG_SUFFIXES = {'.png', '.jpg', '.jpeg', '.bmp'}
-    find_images.interrupted = False
     pattern = '**/*' if recursive else '*'
-    paths = set()
 
     for path in folders:
         p = Path(path)
@@ -90,12 +85,8 @@ def find_images(folders: Iterable[FolderPath],
             raise FileNotFoundError(f'{path} does not exist')
 
         for filename in p.glob(pattern):
-            if find_images.interrupted:
-                raise InterruptProcessing
-
             if filename.is_file() and filename.suffix in IMG_SUFFIXES:
-                paths.add(str(filename))
-    return paths
+                yield str(filename)
 
 def hamming(image1: Image, image2: Image) -> Distance:
     '''Calculate the Hamming distance between two images
@@ -503,8 +494,8 @@ if __name__ == '__main__':
     else:
         cache_file = 'cache.p'
     print('------------------------')
-
-    paths = find_images([folders])
+    print('Searching images in the folder...')
+    paths = set(find_image([folders]))
     print(f'There are {len(paths)} images in the folder')
 
     cache = load_cache(cache_file)

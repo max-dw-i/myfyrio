@@ -21,7 +21,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
 
-from doppelganger import core, exception, processing, signals
+from doppelganger import exception, processing, signals
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -36,7 +36,7 @@ if app is None:
     app = QtWidgets.QApplication([])
 
 
-# pylint: disable=unused-argument,missing-class-docstring,protected-access
+# pylint: disable=unused-argument,missing-class-docstring
 
 CORE = 'doppelganger.core.'
 PROCESSING = 'doppelganger.processing.'
@@ -308,25 +308,26 @@ class TestMethodInit(TestClassImageProcessing):
 
 class TestMethodFindImages(TestClassImageProcessing):
 
-    @mock.patch(CORE+'find_images')
+    @mock.patch(CORE+'find_image')
     def test_args_core_find_images_called_with(self, mock_find):
         self.proc._find_images()
 
         mock_find.assert_called_once_with(self.folders,
                                           self.CONF['subfolders'])
 
-    @mock.patch(CORE+'find_images', return_value=['path'])
+    @mock.patch(CORE+'find_image', return_value=(path for path in ['path']))
     def test_return_core_find_images_result(self, mock_paths):
         res = self.proc._find_images()
 
-        self.assertListEqual(res, ['path'])
+        self.assertSetEqual(res, {'path'})
 
-    @mock.patch(CORE+'find_images', side_effect=ValueError)
-    def test_raise_ValueError_if_core_find_images_ValueError(self, mock_find):
-        with self.assertRaises(ValueError):
+    @mock.patch(CORE+'find_image', return_value=(path for path in ['path']))
+    def test_raise_InterruptProcessing_if_attr_interrupt_True(self, mock_find):
+        self.proc.interrupt = True
+        with self.assertRaises(exception.InterruptProcessing):
             self.proc._find_images()
 
-    @mock.patch(CORE+'find_images', return_value=['path'])
+    @mock.patch(CORE+'find_image', return_value=(path for path in ['path']))
     def test_emits_update_info_signal_with_loaded_images_arg(self, mock_find):
         spy = QtTest.QSignalSpy(self.proc.signals.update_info)
         self.proc._find_images()
@@ -336,7 +337,7 @@ class TestMethodFindImages(TestClassImageProcessing):
         self.assertEqual(spy[0][1], '1')
 
     @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
-    @mock.patch(CORE+'find_images')
+    @mock.patch(CORE+'find_image')
     def test_update_progress_bar_called_with_5(self, mock_find, mock_bar):
         self.proc._find_images()
 
@@ -583,7 +584,7 @@ class TestMethodImap(TestClassImageProcessing):
     def test_raise_InterruptProcessing_if_interrupt_attr_is_True(self):
         self.proc.interrupt = True
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            with self.assertRaises(core.InterruptProcessing):
+            with self.assertRaises(exception.InterruptProcessing):
                 self.proc._imap(self.func, self.collection, self.label)
 
 

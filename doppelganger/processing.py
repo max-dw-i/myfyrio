@@ -175,7 +175,7 @@ class ImageProcessing:
             image_groups = self._make_thumbnails(image_groups)
 
             self.signals.result.emit(image_groups)
-        except core.InterruptProcessing:
+        except InterruptProcessing:
             logger.info('Image processing has been interrupted '
                         'by the user')
         except Exception:
@@ -188,14 +188,18 @@ class ImageProcessing:
                                         'processing images')
 
     def _find_images(self) -> Set[core.ImagePath]:
-        try:
-            paths = core.find_images(self.folders, self.conf['subfolders'])
-        except FileNotFoundError as e:
-            raise FileNotFoundError(e)
+        paths = set()
+        path_gen = core.find_image(self.folders, self.conf['subfolders'])
+        for i, path in enumerate(path_gen):
+            if self.interrupt:
+                raise InterruptProcessing
 
-        self.signals.update_info.emit('loaded_images', str(len(paths)))
+            # Slower than showing the result number (len(paths))
+            # but show progress (better UI)
+            self.signals.update_info.emit('loaded_images', str(i+1))
+            paths.add(path)
+
         self._update_progress_bar(5)
-
         return paths
 
     def _load_cache(self) -> core.Cache:
@@ -273,7 +277,6 @@ class ImageProcessing:
 
     def _is_interrupted(self) -> None:
         self.interrupt = True
-        core.find_images.interrupted = True
         core.image_grouping.interrupted = True
 
     def _update_progress_bar(self, value: float) -> None:
@@ -299,5 +302,5 @@ class ImageProcessing:
                 self._update_progress_bar(self.progress_bar_value + step)
 
                 if self.interrupt:
-                    raise core.InterruptProcessing
+                    raise InterruptProcessing
         return processed
