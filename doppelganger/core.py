@@ -98,37 +98,36 @@ def hamming(image1: Image, image2: Image) -> Distance:
 
     return dhashlib.get_num_bits_different(image1.hash, image2.hash)
 
-def image_grouping(images: Collection[Image],
-                   sensitivity: Sensitivity) -> List[Group]:
-    '''Find similar images and group them
+def image_grouping(images: Collection[Image], sensitivity: Sensitivity) \
+    -> Generator[List[Group], None, None]:
+    '''Find similar images and group them. Yield an intermediate result
+    after checking every image in :images:. The last yielded value is
+    the result. If :images: is empty or no duplicate image is found,
+    an empty list is returned
 
     :param images: images to process,
     :param sensitivity: maximal difference between hashes of 2 images
                         when they are considered similar,
-    :return: groups of similar images. If there are no duplicate
-             images, an empty list is returned,
+    :yield: groups of similar images,
     :raise TypeError: any of the hashes is not integer
     '''
 
-    image_grouping.interrupted = False
+    image_groups: List[Group] = []
 
-    if len(images) <= 1:
-        return []
+    if not images:
+        yield image_groups
 
     try:
-        bkt = pybktree.BKTree(hamming, images)
+        bktree = pybktree.BKTree(hamming, images)
     except TypeError:
         raise TypeError('The hashes must be integers')
 
-    image_groups: List[Group] = []
     checked: Dict[Image, int] = {} # {Image: index of the group}
 
     for image in images:
-        if image_grouping.interrupted:
-            raise InterruptProcessing
-
-        distance, closest = _closest(bkt, image, sensitivity)
+        distance, closest = _closest(bktree, image, sensitivity)
         if closest is None:
+            yield image_groups
             continue
 
         # 'closest' goes to the same group as 'image'
@@ -141,7 +140,7 @@ def image_grouping(images: Collection[Image],
         if image not in checked and closest not in checked:
             _add_new_group(image, closest, checked, image_groups, distance)
 
-    return image_groups
+        yield image_groups
 
 def _closest(bktree: pybktree.BKTree, image: Image, sensitivity: Sensitivity) \
     -> Tuple[Optional[Distance], Optional[Image]]:
@@ -512,7 +511,7 @@ if __name__ == '__main__':
     images = [Image(path, cache[path]) for path in paths if path in cache]
 
     print('Starting to compare images...')
-    image_groups = image_grouping(images, int(sensitivity))
+    image_groups = list(image_grouping(images, int(sensitivity)))[-1]
     print(f'{len(image_groups)} duplicate image groups have been found')
 
     print('Sorting the images by similarity rate in descending order...')

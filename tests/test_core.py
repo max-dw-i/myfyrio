@@ -132,33 +132,35 @@ class TestFuncImageGrouping(TestCase):
         self.tree = 'bktree'
 
     def test_return_empty_list_if_no_images(self):
-        res = core.image_grouping([], 0)
+        res = list(core.image_grouping([], 0))
 
-        self.assertListEqual(res, [])
+        self.assertListEqual(res[-1], [])
 
     def test_return_empty_list_if_one_image(self):
-        res = core.image_grouping(['image'], 0)
+        with mock.patch('pybktree.BKTree'):
+            with mock.patch(CORE+'_closest', return_value=(None, None)):
+                res = list(core.image_grouping(['image'], 0))
 
-        self.assertListEqual(res, [])
+        self.assertListEqual(res[-1], [])
 
     def test_BKTree_called_with_hamming_dist_and_images_args(self):
         with mock.patch('pybktree.BKTree') as mock_tree:
             with mock.patch(CORE+'_closest', return_value=(None, None)):
-                core.image_grouping(self.images, 0)
+                list(core.image_grouping(self.images, 0))
 
         mock_tree.assert_called_once_with(core.hamming, self.images)
 
     def test_BKTree_raise_TypeError(self):
         with mock.patch('pybktree.BKTree', side_effect=TypeError):
             with self.assertRaises(TypeError):
-                core.image_grouping(self.images, 0)
+                list(core.image_grouping(self.images, 0))
 
     def test_find_called_with_image_and_sensitivity_args(self):
         sens = 0
         with mock.patch('pybktree.BKTree', return_value=self.tree):
             with mock.patch(CORE+'_closest',
                             return_value=(None, None)) as mock_closest_call:
-                core.image_grouping(self.images, sens)
+                list(core.image_grouping(self.images, sens))
 
         calls = [mock.call(self.tree, self.image1, sens),
                  mock.call(self.tree, self.image2, sens)]
@@ -168,7 +170,7 @@ class TestFuncImageGrouping(TestCase):
     def test_loop_continue_if_there_is_no_closest_image(self, mock_group):
         with mock.patch('pybktree.BKTree', return_value=self.tree):
             with mock.patch(CORE+'_closest', return_value=(None, None)):
-                core.image_grouping(self.images, 0)
+                list(core.image_grouping(self.images, 0))
 
         mock_group.assert_not_called()
 
@@ -177,10 +179,10 @@ class TestFuncImageGrouping(TestCase):
         closest2 = (19, mock.Mock())
         with mock.patch('pybktree.BKTree', return_value=self.tree):
             with mock.patch(CORE+'_closest', side_effect=[closest1, closest2]):
-                res = core.image_grouping(self.images, 0)
+                res = list(core.image_grouping(self.images, 0))
 
-        self.assertListEqual(res, [[self.image1, closest1[1]],
-                                   [self.image2, closest2[1]]])
+        self.assertListEqual(res[-1], [[self.image1, closest1[1]],
+                                       [self.image2, closest2[1]]])
 
     def test_return_if_image_in_checked_and_closest_not_in_checked(self):
         closest1 = (17, self.image2)
@@ -188,9 +190,10 @@ class TestFuncImageGrouping(TestCase):
         closest2[1].hash = 2
         with mock.patch('pybktree.BKTree', return_value=self.tree):
             with mock.patch(CORE+'_closest', side_effect=[closest1, closest2]):
-                res = core.image_grouping(self.images, 0)
+                res = list(core.image_grouping(self.images, 0))
 
-        self.assertListEqual(res, [[self.image1, self.image2, closest2[1]]])
+        self.assertListEqual(res[-1], [[self.image1, self.image2,
+                                        closest2[1]]])
 
     def test_return_if_image_not_in_checked_and_closest_in_checked(self):
         closest1 = (17, mock.Mock())
@@ -198,9 +201,10 @@ class TestFuncImageGrouping(TestCase):
         closest1[1].hash = 2
         with mock.patch('pybktree.BKTree', return_value=self.tree):
             with mock.patch(CORE+'_closest', side_effect=[closest1, closest2]):
-                res = core.image_grouping(self.images, 0)
+                res = list(core.image_grouping(self.images, 0))
 
-        self.assertListEqual(res, [[self.image1, closest1[1], self.image2]])
+        self.assertListEqual(res[-1], [[self.image1, closest1[1],
+                                        self.image2]])
 
 
 class TestFuncClosest(TestCase):

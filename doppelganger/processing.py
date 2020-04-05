@@ -243,11 +243,19 @@ class ImageProcessing:
 
     def _image_grouping(self, images: Collection[core.Image]) \
         -> List[core.Group]:
-        image_groups = core.image_grouping(images, self.sensitivity)
+        grouping_gen = core.image_grouping(images, self.sensitivity)
+
+        image_groups = []
+        for image_groups in grouping_gen:
+            if self.interrupt:
+                raise InterruptProcessing
+
+            # Slower than showing only the result number of the found
+            # duplicate images but show progress
+            duplicates_found = str(sum(len(g) for g in image_groups))
+            self.signals.update_info.emit('duplicates', duplicates_found)
 
         self.signals.update_info.emit('image_groups', str(len(image_groups)))
-        self.signals.update_info.emit('duplicates',
-                                      str(sum(len(g) for g in image_groups)))
         self._update_progress_bar(65)
 
         return image_groups
@@ -277,7 +285,6 @@ class ImageProcessing:
 
     def _is_interrupted(self) -> None:
         self.interrupt = True
-        core.image_grouping.interrupted = True
 
     def _update_progress_bar(self, value: float) -> None:
         self.progress_bar_value = value

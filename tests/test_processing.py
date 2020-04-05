@@ -460,21 +460,28 @@ class TestMethodImageGrouping(TestClassImageProcessing):
 
         mock_group.assert_called_once_with(self.imgs, self.proc.sensitivity)
 
-    @mock.patch(CORE+'image_grouping', return_value=[['img']])
+    @mock.patch(CORE+'image_grouping', return_value=(gs for gs in [[['img']]]))
     def test_return_core_image_grouping_result(self, mock_group):
         res = self.proc._image_grouping(self.imgs)
 
         self.assertEqual(res, [['img']])
 
-    @mock.patch(CORE+'image_grouping', return_value=[['img1', 'img2']])
+    @mock.patch(CORE+'image_grouping', return_value=(gs for gs in [[['img']]]))
+    def test_raise_InterruptProcessing(self, mock_group):
+        self.proc.interrupt = True
+        with self.assertRaises(exception.InterruptProcessing):
+            self.proc._image_grouping(self.imgs)
+
+    @mock.patch(CORE+'image_grouping',
+                return_value=(gs for gs in [[['img1', 'img2']]]))
     def test_emits_update_info_signal_with_proper_args(self, mock_group):
         spy = QtTest.QSignalSpy(self.proc.signals.update_info)
         self.proc._image_grouping(self.imgs)
 
-        self.assertEqual(spy[0][0], 'image_groups')
-        self.assertEqual(spy[0][1], '1')
-        self.assertEqual(spy[1][0], 'duplicates')
-        self.assertEqual(spy[1][1], '2')
+        self.assertEqual(spy[0][0], 'duplicates')
+        self.assertEqual(spy[0][1], '2')
+        self.assertEqual(spy[1][0], 'image_groups')
+        self.assertEqual(spy[1][1], '1')
 
     @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
     @mock.patch(CORE+'image_grouping')

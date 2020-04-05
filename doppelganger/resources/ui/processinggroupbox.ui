@@ -84,6 +84,16 @@
        </widget>
       </item>
       <item>
+       <widget class="QLabel" name="duplicatesLbl">
+        <property name="text">
+         <string>Duplicate images found ... 0</string>
+        </property>
+        <property name="alias" stdset="0">
+         <string>duplicates</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QLabel" name="dupGroupLbl">
         <property name="minimumSize">
          <size>
@@ -102,16 +112,6 @@
         </property>
         <property name="alias" stdset="0">
          <string>image_groups</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="duplicatesLbl">
-        <property name="text">
-         <string>Duplicate images ... 0</string>
-        </property>
-        <property name="alias" stdset="0">
-         <string>duplicates</string>
         </property>
        </widget>
       </item>
