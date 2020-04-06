@@ -158,8 +158,7 @@ class ImageProcessing:
             not_cached = self._check_cache(paths, cache)
 
             if not_cached:
-                hashes = self._imap(core.Image.dhash, not_cached,
-                                    'remaining_images')
+                hashes = self._calculate_hashes(not_cached)
                 cache = self._extend_cache(cache, not_cached, hashes)
                 core.save_cache(str(self.CACHE_FILE), cache)
 
@@ -240,6 +239,27 @@ class ImageProcessing:
         self._update_progress_bar(55)
 
         return cache
+
+    def _calculate_hashes(self, paths: Collection[core.ImagePath]) \
+        -> List[core.Hash]:
+        processed: List[core.Hash] = []
+
+        if not paths:
+            return processed
+
+        hashes_gen = core.calculate_hashes(paths)
+        progress_step = 35 / len(paths)
+
+        for i, dhash in enumerate(hashes_gen):
+            if self.interrupt:
+                raise InterruptProcessing
+
+            processed.append(dhash)
+
+            self.signals.update_info.emit('remaining_images', str(i + 1))
+            self._update_progress_bar(self.progress_bar_value + progress_step)
+
+        return processed
 
     def _image_grouping(self, images: Collection[core.Image]) \
         -> List[core.Group]:

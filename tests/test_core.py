@@ -426,6 +426,34 @@ class TestFuncSaveCache(TestCase):
             core.save_cache(self.CACHE_FILE, self.cache)
 
 
+class TestFuncCalculateHashes(TestCase):
+
+    def setUp(self):
+        self.mock_Pool = mock.MagicMock()
+        self.mock_context_obj = mock.Mock()
+        self.mock_Pool.__enter__.return_value = self.mock_context_obj
+
+    def test_args_imap_called_with(self):
+        paths = ['path']
+        self.mock_context_obj.imap.return_value = (h for h in ['hash'])
+
+        with mock.patch(CORE+'Pool', return_value=self.mock_Pool):
+            list(core.calculate_hashes(paths))
+
+        self.mock_context_obj.imap.assert_called_once_with(core.Image.dhash,
+                                                           paths)
+
+    def test_imap_result(self):
+        paths = ['path1', 'path2']
+        hashes = ['hash1', 'hash2']
+        self.mock_context_obj.imap.return_value = (h for h in hashes)
+
+        with mock.patch(CORE+'Pool', return_value=self.mock_Pool):
+            res = list(core.calculate_hashes(paths))
+
+        self.assertListEqual(res, hashes)
+
+
 class TestClassImage(TestCase):
 
     def setUp(self):

@@ -76,7 +76,7 @@
       <item>
        <widget class="QLabel" name="remainingPicLbl">
         <property name="text">
-         <string>Not cached images left ... 0</string>
+         <string>New hashes calculated ... 0</string>
         </property>
         <property name="alias" stdset="0">
          <string>remaining_images</string>

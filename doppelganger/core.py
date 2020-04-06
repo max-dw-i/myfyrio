@@ -236,20 +236,18 @@ def save_cache(cache_file: CachePath, cache: Cache) -> None:
     except OSError as e:
         raise OSError(e)
 
-def calculating(paths: Iterable[ImagePath]) -> List[Optional[Hash]]:
-    '''Calculate the hashes of images with :paths:
+def calculate_hashes(paths: Iterable[ImagePath]) \
+    -> Generator[Optional[Hash], None, None]:
+    '''Calculate and yield hashes of images. Calculating is parallel
+    and utilises all CPU cores
 
-    :param paths: paths of the images which hashes are not calculated yet,
-    :return: list with calculated hashes, Hash can be "None"
+    :param paths: paths of images,
+    :yield: hash of an image with a path from :paths:
     '''
 
     with Pool() as p:
-        hashes = p.map(Image.dhash, paths)
-    return hashes
-
-
-class InterruptProcessing(Exception):
-    pass
+        for dhash in p.imap(Image.dhash, paths):
+            yield dhash
 
 
 class Sort:
@@ -503,7 +501,7 @@ if __name__ == '__main__':
 
     print('Starting to calculate hashes...')
     if not_cached:
-        hashes = calculating(not_cached)
+        hashes = list(calculate_hashes(not_cached))
         cache = extend_cache(cache, not_cached, hashes)
         save_cache(cache_file, cache)
     print('All the hashes have been calculated')

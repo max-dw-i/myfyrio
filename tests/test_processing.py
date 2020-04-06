@@ -447,6 +447,51 @@ class TestMethodExtendCache(TestClassImageProcessing):
         mock_bar.assert_called_once_with(55)
 
 
+class TestMethodCalculateHashes(TestClassImageProcessing):
+
+    def setUp(self):
+        super().setUp()
+
+        self.paths = ['path']
+        self.hashes = ['hash']
+        self.gen = (path for path in self.hashes)
+
+    def test_return_empty_list_if_pass_empty_collection(self):
+        res = self.proc._calculate_hashes([])
+
+        self.assertListEqual(res, [])
+
+    def test_emit_update_info(self):
+        label = 'remaining_images'
+        spy = QtTest.QSignalSpy(self.proc.signals.update_info)
+        with mock.patch(CORE+'calculate_hashes', return_value=self.gen):
+            self.proc._calculate_hashes(self.paths)
+
+        self.assertEqual(spy[0][0], label)
+        self.assertEqual(spy[0][1], '1')
+
+    @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
+    def test_update_prog_bar_called_with_current_val_plus_step(self, mock_bar):
+        self.proc.progress_bar_value = 21
+        with mock.patch(CORE+'calculate_hashes', return_value=self.gen):
+            self.proc._calculate_hashes(self.paths)
+
+        # step == 35 / len(collection) == 35 in this case
+        mock_bar.assert_called_once_with(56)
+
+    def test_func_result(self):
+        with mock.patch(CORE+'calculate_hashes', return_value=self.gen):
+            res = self.proc._calculate_hashes(self.paths)
+
+        self.assertListEqual(res, self.hashes)
+
+    def test_raise_InterruptProcessing_if_interrupt_attr_is_True(self):
+        self.proc.interrupt = True
+        with mock.patch(CORE+'calculate_hashes', return_value=self.gen):
+            with self.assertRaises(exception.InterruptProcessing):
+                self.proc._calculate_hashes(self.paths)
+
+
 class TestMethodImageGrouping(TestClassImageProcessing):
 
     def setUp(self):
