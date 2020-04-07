@@ -541,32 +541,67 @@ class TestMethodMakeThumbnails(TestClassImageProcessing):
     def setUp(self):
         super().setUp()
 
-        self.img_groups = [[mock.Mock()], [mock.Mock()]]
+        self.img_groups = [[mock.Mock()]]
+        self.thumbnails = ['thumb1']
 
-    @mock.patch(PROCESSING+'ImageProcessing._imap')
-    def test_args_imap_called_with(self, mock_imap):
-        self.proc._make_thumbnails(self.img_groups)
+        self.func = mock.Mock()
+        self.collection = ['item']
+        self.label = 'label'
 
-        mock_imap.assert_called_once_with(
+        self.mock_Pool = mock.MagicMock()
+        self.mock_context_obj = mock.Mock()
+        self.mock_Pool.__enter__.return_value = self.mock_context_obj
+        self.imap_return = (th for th in self.thumbnails)
+        self.mock_context_obj.imap.return_value = self.imap_return
+
+    def test_return_empty_list_if_pass_empty_collection(self):
+        res = self.proc._make_thumbnails([])
+
+        self.assertListEqual(res, [])
+
+    def test_args_imap_called_with(self):
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
+            self.proc._make_thumbnails(self.img_groups)
+
+        self.mock_context_obj.imap.assert_called_once_with(
             self.proc._thumbnail_args_unpacker,
-            [(self.img_groups[0][0], self.proc.conf['size']),
-             (self.img_groups[1][0], self.proc.conf['size'])],
-            'thumbnails'
+            [(self.img_groups[0][0], self.proc.conf['size'])]
         )
 
-    @mock.patch(PROCESSING+'ImageProcessing._imap')
-    def test_return_same_image_groups(self, mock_imap):
-        res = self.proc._make_thumbnails(self.img_groups)
+    def test_raise_InterruptProcessing_if_interrupt_attr_is_True(self):
+        self.proc.interrupt = True
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
+            with self.assertRaises(exception.InterruptProcessing):
+                self.proc._make_thumbnails(self.img_groups)
 
-        self.assertEqual(res[0][0], self.img_groups[0][0])
-        self.assertEqual(res[1][0], self.img_groups[1][0])
+    def test_emit_update_info(self):
+        spy = QtTest.QSignalSpy(self.proc.signals.update_info)
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
+            self.proc._make_thumbnails(self.img_groups)
 
-    @mock.patch(PROCESSING+'ImageProcessing._imap', return_value=['t1', 't2'])
-    def test_assign_thumbnails_to_image_attrs(self, mock_imap):
-        self.proc._make_thumbnails(self.img_groups)
+        self.assertEqual(spy[0][0], 'thumbnails')
+        self.assertEqual(spy[0][1], '1')
 
-        self.assertEqual(self.img_groups[0][0].thumbnail, 't1')
-        self.assertEqual(self.img_groups[1][0].thumbnail, 't2')
+    @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
+    def test_update_prog_bar_called_with_current_val_plus_step(self, mock_bar):
+        self.proc.progress_bar_value = 21
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
+            self.proc._make_thumbnails(self.img_groups)
+
+        # step == 35 / len(collection) == 35 in this case
+        mock_bar.assert_called_once_with(56)
+
+    def test_return_same_image_groups(self):
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
+            res = self.proc._make_thumbnails(self.img_groups)
+
+        self.assertListEqual(res, self.img_groups)
+
+    def test_assign_thumbnails_to_image_attrs(self):
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
+            self.proc._make_thumbnails(self.img_groups)
+
+        self.assertEqual(self.img_groups[0][0].thumbnail, self.thumbnails[0])
 
 
 class TestMethodUpdateProgressBar(TestClassImageProcessing):
@@ -586,58 +621,6 @@ class TestMethodUpdateProgressBar(TestClassImageProcessing):
         self.proc._update_progress_bar(self.value)
 
         self.assertEqual(spy[0][0], self.value)
-
-
-class TestMethodImap(TestClassImageProcessing):
-
-    def setUp(self):
-        super().setUp()
-
-        self.func = mock.Mock()
-        self.collection = ['item']
-        self.label = 'label'
-
-        self.mock_Pool = mock.MagicMock()
-        mock_context_obj = mock.Mock()
-        self.mock_Pool.__enter__.return_value = mock_context_obj
-        self.imap_return = ['return' for item in self.collection]
-        mock_context_obj.imap.return_value = self.imap_return
-
-    def test_return_empty_list_if_pass_empty_collection(self):
-        res = self.proc._imap(self.func, [], self.label)
-
-        self.assertListEqual(res, [])
-
-    def test_emit_update_info_with_passed_label_arg(self):
-        spy = QtTest.QSignalSpy(self.proc.signals.update_info)
-        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            self.proc._imap(self.func, self.collection, self.label)
-
-        self.assertEqual(spy[0][0], self.label)
-        self.assertEqual(spy[0][1], '1')
-        self.assertEqual(spy[1][0], self.label)
-        self.assertEqual(spy[1][1], '0')
-
-    @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
-    def test_update_prog_bar_called_with_current_val_plus_step(self, mock_bar):
-        self.proc.progress_bar_value = 21
-        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            self.proc._imap(self.func, self.collection, self.label)
-
-        # step == 35 / len(collection) == 35 in this case
-        mock_bar.assert_called_once_with(56)
-
-    def test_return_imap_result(self):
-        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            res = self.proc._imap(self.func, self.collection, self.label)
-
-        self.assertListEqual(res, self.imap_return)
-
-    def test_raise_InterruptProcessing_if_interrupt_attr_is_True(self):
-        self.proc.interrupt = True
-        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            with self.assertRaises(exception.InterruptProcessing):
-                self.proc._imap(self.func, self.collection, self.label)
 
 
 class TestMethodRun(TestClassImageProcessing):

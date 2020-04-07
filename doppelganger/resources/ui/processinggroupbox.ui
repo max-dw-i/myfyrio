@@ -118,7 +118,7 @@
       <item>
        <widget class="QLabel" name="thumbnailsLbl">
         <property name="text">
-         <string>Thumbnails to make left ... 0</string>
+         <string>Thumbnails made ... 0</string>
         </property>
         <property name="alias" stdset="0">
          <string>thumbnails</string>

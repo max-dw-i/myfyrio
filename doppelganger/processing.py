@@ -282,20 +282,31 @@ class ImageProcessing:
 
     def _make_thumbnails(self, image_groups: List[core.Group]) \
         -> List[core.Group]:
+        thumbnails: List[Optional[QtCore.QByteArray]] = []
+        if not image_groups:
+            return thumbnails
+
         # 'Flat' list is processed better in parallel
         flat = [(image, self.conf['size'])
                 for group in image_groups for image in group]
-        thumbnails = self._imap(self._thumbnail_args_unpacker, flat,
-                                'thumbnails')
 
-        # Go through already formed list with groups of duplicate images
-        # and assign thumbnails to the corresponding attributes. It's easy
-        # because the original image order is preserved in 'flat'
-        j = 0
-        for group in image_groups:
-            for image in group:
-                image.thumbnail = thumbnails[j]
-                j += 1
+        progress_step = 35 / len(flat)
+
+        with Pool() as p:
+            thumbnails_gen = p.imap(self._thumbnail_args_unpacker, flat)
+            for i, th in enumerate(thumbnails_gen):
+                if self.interrupt:
+                    raise InterruptProcessing
+
+                thumbnails.append(th)
+
+                self.signals.update_info.emit('thumbnails', str(i + 1))
+                self._update_progress_bar(self.progress_bar_value
+                                          + progress_step)
+
+        for (image, _), th in zip(flat, thumbnails):
+            image.thumbnail = th
+
         return image_groups
 
     @staticmethod
@@ -309,25 +320,3 @@ class ImageProcessing:
     def _update_progress_bar(self, value: float) -> None:
         self.progress_bar_value = value
         self.signals.update_progressbar.emit(self.progress_bar_value)
-
-    def _imap(self, func: Callable[[Any], core.T], collection: Collection[Any],
-              label: str) -> List[core.T]:
-        processed: List[core.T] = []
-        num = len(collection)
-        self.signals.update_info.emit(label, str(len(collection)))
-
-        try:
-            step = 35 / num
-        except ZeroDivisionError:
-            return processed
-
-        with Pool() as p:
-            for i, elem in enumerate(p.imap(func, collection)):
-                processed.append(elem)
-
-                self.signals.update_info.emit(label, str(num-i-1))
-                self._update_progress_bar(self.progress_bar_value + step)
-
-                if self.interrupt:
-                    raise InterruptProcessing
-        return processed
