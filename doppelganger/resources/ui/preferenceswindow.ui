@@ -18,7 +18,7 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -376,19 +376,6 @@
              </property>
              <property name="conf_param" stdset="0">
               <string>subfolders</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="betweenDirsChk">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="text">
-              <string>Only between chosen folders</string>
-             </property>
-             <property name="conf_param" stdset="0">
-              <string>between_dirs</string>
              </property>
             </widget>
            </item>
