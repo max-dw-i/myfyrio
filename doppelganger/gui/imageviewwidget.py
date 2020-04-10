@@ -60,9 +60,8 @@ class InfoLabel(QtWidgets.QLabel):
         line = ''
 
         for c in text:
-            # We have 4 margins 9px each (I guess) so we take 40
             width = fontMetrics.size(QtCore.Qt.TextSingleLine, line+c).width()
-            if width > self.widget_width - 40:
+            if width > self.widget_width - 10:
                 wrapped_text += line + '\n'
                 line = c
             else:
@@ -106,6 +105,7 @@ class ImageInfoWidget(QtWidgets.QWidget):
 
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setAlignment(QtCore.Qt.AlignBottom)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
 
     def render(self) -> None:
@@ -241,6 +241,7 @@ class DuplicateWidget(QtWidgets.QWidget):
         self.setFixedWidth(conf['size'])
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setAlignment(QtCore.Qt.AlignTop)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
 
     def render(self) -> None:
@@ -370,6 +371,7 @@ class ImageGroupWidget(QtWidgets.QWidget):
 
         self.layout = QtWidgets.QHBoxLayout(self)
         self.layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+        self.layout.setSpacing(10)
         self.setLayout(self.layout)
 
     def render(self, image_group: Iterable[core.Image]) -> None:
@@ -435,6 +437,7 @@ class ImageViewWidget(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
+        self.layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
     def render(self, image_groups: Iterable[core.Group]) -> None:
         '''Create and render "ImageGroupWidget"s

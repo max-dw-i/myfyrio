@@ -91,7 +91,7 @@ class TestInfoLabelMethodWordWrap(TestInfoLabel):
 
         self.assertEqual(res, '\nt\ne\ns\nt')
 
-    @mock.patch('PyQt5.QtCore.QSize.width', return_value=200 - 40 - 1)
+    @mock.patch('PyQt5.QtCore.QSize.width', return_value=200 - 10)
     def test_word_wrap_one_line(self, mock_width):
         res = self.w._wordWrap('test')
 
@@ -137,6 +137,12 @@ class TestImageInfoWidgetMethodInit(TestImageInfoWidget):
         self.assertIsNone(self.w.imagePathLabel)
 
     def test_layout(self):
+        margins = self.w.layout.contentsMargins()
+        self.assertEqual(margins.top(), 0)
+        self.assertEqual(margins.right(), 0)
+        self.assertEqual(margins.bottom(), 0)
+        self.assertEqual(margins.left(), 0)
+
         self.assertIsInstance(self.w.layout, QtWidgets.QVBoxLayout)
         self.assertEqual(self.w.layout.alignment(), QtCore.Qt.AlignBottom)
 
@@ -439,6 +445,12 @@ class TestDuplicateWidgetMethodInit(TestDuplicateWidget):
         self.assertEqual(self.w.maximumWidth(), self.conf['size'])
 
     def test_layout(self):
+        margins = self.w.layout.contentsMargins()
+        self.assertEqual(margins.top(), 0)
+        self.assertEqual(margins.right(), 0)
+        self.assertEqual(margins.bottom(), 0)
+        self.assertEqual(margins.left(), 0)
+
         self.assertIsInstance(self.w.layout, QtWidgets.QVBoxLayout)
         self.assertEqual(self.w.layout.alignment(), QtCore.Qt.AlignTop)
 
@@ -739,6 +751,7 @@ class TestImageGroupWidgetMethodInit(TestImageGroupWidget):
         self.assertListEqual(self.w.widgets, [])
 
     def test_widget_layout(self):
+        self.assertEqual(self.w.layout.spacing(), 10)
         self.assertIsInstance(self.w.layout, QtWidgets.QHBoxLayout)
         self.assertEqual(self.w.layout.alignment(),
                          QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
@@ -884,6 +897,8 @@ class TestImageViewWidgetMethodInit(TestImageViewWidget):
         self.assertEqual(margins.right(), 0)
         self.assertEqual(margins.bottom(), 0)
         self.assertEqual(self.w.layout.spacing(), 0)
+        self.assertEqual(self.w.layout.alignment(),
+                         QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
 
 class TestImageViewWidgetMethodRender(TestImageViewWidget):
