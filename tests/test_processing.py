@@ -39,6 +39,7 @@ if app is None:
 # pylint: disable=unused-argument,missing-class-docstring
 
 CORE = 'doppelganger.core.'
+CACHE = 'doppelganger.cache.'
 PROCESSING = 'doppelganger.processing.'
 
 
@@ -346,27 +347,33 @@ class TestMethodFindImages(TestClassImageProcessing):
 
 class TestMethodLoadCache(TestClassImageProcessing):
 
-    @mock.patch(CORE+'load_cache', return_value={'path': 'hash'})
-    def test_return_core_load_cache_result(self, mock_cache):
-        res = self.proc._load_cache()
+    def setUp(self):
+        super().setUp()
 
-        self.assertEqual(res, {'path': 'hash'})
+        self.mock_Cache = mock.Mock()
 
-    @mock.patch(CORE+'load_cache', side_effect=EOFError)
-    def test_return_empty_dict_if_core_load_cache_EOFErrores(self, mock_cache):
-        res = self.proc._load_cache()
+    def test_return_Cache_object(self):
+        with mock.patch(PROCESSING+'Cache', return_value=self.mock_Cache):
+            res = self.proc._load_cache()
 
-        self.assertDictEqual(res, {})
+        self.assertIs(res, self.mock_Cache)
 
-    @mock.patch(CORE+'load_cache', side_effect=OSError)
-    def test_raise_OSError_if_core_load_cache_EOFErrores(self, mock_cache):
-        with self.assertRaises(OSError):
+    def test_args_Cache_load_called_with(self):
+        with mock.patch(PROCESSING+'Cache', return_value=self.mock_Cache):
             self.proc._load_cache()
 
+        self.mock_Cache.load.assert_called_once_with(str(self.proc.CACHE_FILE))
+
+    def test_raise_OSError_if_core_load_cache_EOFErrores(self):
+        self.mock_Cache.load.side_effect = OSError
+        with mock.patch(PROCESSING+'Cache', return_value=self.mock_Cache):
+            with self.assertRaises(OSError):
+                self.proc._load_cache()
+
     @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
-    @mock.patch(CORE+'load_cache')
-    def test_update_progress_bar_called_with_10(self, mock_find, mock_bar):
-        self.proc._load_cache()
+    def test_update_progress_bar_called_with_10(self, mock_bar):
+        with mock.patch(PROCESSING+'Cache', return_value=self.mock_Cache):
+            self.proc._load_cache()
 
         mock_bar.assert_called_once_with(10)
 
@@ -376,43 +383,32 @@ class TestMethodCheckCache(TestClassImageProcessing):
     def setUp(self):
         super().setUp()
 
-        self.paths = ['path']
+        self.paths = ['path', 'path_not_in_cache']
         self.cache = {'path': 'hash'}
 
-    @mock.patch(CORE+'check_cache')
-    def test_core_check_cache_called_with_paths_and_cache_args(self, mock_ch):
-        self.proc._check_cache(self.paths, self.cache)
-
-        mock_ch.assert_called_once_with(self.paths, self.cache)
-
-    @mock.patch(CORE+'check_cache', return_value=['not_cached'])
-    def test_return_core_check_cache_result(self, mock_ch):
+    def test_return_core_check_cache_result(self):
         res = self.proc._check_cache(self.paths, self.cache)
 
-        self.assertEqual(res, ['not_cached'])
+        self.assertEqual(res, self.paths[1:])
 
-    @mock.patch(CORE+'check_cache', return_value=['not_cached'])
-    def test_emits_update_info_signal_with_found_in_cache_arg(self, mock_ch):
+    def test_emits_update_info_signal_with_found_in_cache_arg(self):
         spy = QtTest.QSignalSpy(self.proc.signals.update_info)
         self.proc._check_cache(self.paths, self.cache)
 
         self.assertEqual(len(spy), 1)
         self.assertEqual(spy[0][0], 'found_in_cache')
-        self.assertEqual(spy[0][1], '0')
+        self.assertEqual(spy[0][1], '1')
 
     @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
-    @mock.patch(CORE+'check_cache', return_value=['not_cached'])
-    def test_update_progress_bar_called_with_15_if_not_cached(self, mock_ch,
-                                                              mock_bar):
+    def test_update_progress_bar_called_with_15_if_not_cached(self, mock_bar):
         self.proc._check_cache(self.paths, self.cache)
 
         mock_bar.assert_called_once_with(15)
 
     @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
-    @mock.patch(CORE+'check_cache', return_value=[])
-    def test_update_progress_bar_called_with_55_if_cached(self, mock_ch,
-                                                          mock_bar):
-        self.proc._check_cache(self.paths, self.cache)
+    def test_update_progress_bar_called_with_55_if_cached(self, mock_bar):
+        paths = self.paths[:1]
+        self.proc._check_cache(paths, self.cache)
 
         mock_bar.assert_called_once_with(55)
 

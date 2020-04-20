@@ -27,6 +27,7 @@ from PyQt5 import QtCore, QtGui
 from doppelganger import config, core, signals
 from doppelganger.exception import InterruptProcessing, ThumbnailError
 from doppelganger.logger import Logger
+from doppelganger.cache import Cache
 
 logger = Logger.getLogger('processing')
 
@@ -160,7 +161,7 @@ class ImageProcessing:
             if not_cached:
                 hashes = self._calculate_hashes(not_cached)
                 cache = self._extend_cache(cache, not_cached, hashes)
-                core.save_cache(str(self.CACHE_FILE), cache)
+                cache.save(str(self.CACHE_FILE))
 
             images = [core.Image(path, cache[path])
                       for path in paths if path in cache]
@@ -201,21 +202,22 @@ class ImageProcessing:
         self._update_progress_bar(5)
         return paths
 
-    def _load_cache(self) -> core.Cache:
+    def _load_cache(self) -> Cache:
         try:
-            cached_hashes = core.load_cache(str(self.CACHE_FILE))
-        except EOFError as e:
-            cached_hashes = {}
+            cache = Cache()
+            cache.load(str(self.CACHE_FILE))
+        except (EOFError, FileNotFoundError) as e:
+            pass
         except OSError as e:
             raise OSError(e)
 
         self._update_progress_bar(10)
 
-        return cached_hashes
+        return cache
 
     def _check_cache(self, paths: Collection[core.ImagePath],
-                     cache: core.Cache) -> List[core.ImagePath]:
-        not_cached = core.check_cache(paths, cache)
+                     cache: Cache) -> List[core.ImagePath]:
+        not_cached = [path for path in paths if path not in cache]
 
         num_of_cached = len(paths) - len(not_cached)
         self.signals.update_info.emit('found_in_cache', str(num_of_cached))
@@ -226,8 +228,8 @@ class ImageProcessing:
 
         return not_cached
 
-    def _extend_cache(self, cache: core.Cache, paths: Iterable[core.ImagePath],
-                      hashes: List[Optional[core.Hash]]) -> core.Cache:
+    def _extend_cache(self, cache: Cache, paths: Iterable[core.ImagePath],
+                      hashes: List[Optional[core.Hash]]) -> Cache:
         for i, path in enumerate(paths):
             dhash = hashes[i]
             if dhash is None:

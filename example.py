@@ -23,6 +23,7 @@ This module provides an example of using the 'Doppelgänger' core features
 import pathlib
 
 from doppelganger import core
+from doppelganger.cache import Cache
 
 print('This is a demonstration of finding duplicate (similar) images')
 print('It might take some time, Be patient')
@@ -45,15 +46,16 @@ print('Searching images in the folder...')
 paths = set(core.find_image([folders]))
 print(f'There are {len(paths)} images in the folder')
 
-cache = core.load_cache(cache_file)
-not_cached = core.check_cache(paths, cache)
+cache = Cache()
+cache.load(cache_file)
+not_cached = [path for path in paths if path not in cache]
 print(f'{len(paths)-len(not_cached)} images have been found in the cache')
 
 print('Starting to calculate hashes...')
 if not_cached:
     hashes = list(core.calculate_hashes(not_cached))
-    cache = core.extend_cache(cache, not_cached, hashes)
-    core.save_cache(cache_file, cache)
+    cache.update({p: h for p, h in zip(not_cached, hashes) if h is not None})
+    cache.save(cache_file)
 print('All the hashes have been calculated')
 
 images = [core.Image(path, cache[path]) for path in paths if path in cache]

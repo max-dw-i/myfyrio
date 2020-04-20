@@ -23,12 +23,11 @@ This module provides core functions for processing images and find duplicates
 from __future__ import annotations
 
 import os
-import pickle
 from enum import Enum
 from multiprocessing import Pool
 from pathlib import Path
 from typing import (Collection, Dict, Generator, Iterable, List, Optional,
-                    Sequence, Tuple, TypeVar, Union)
+                    Tuple, TypeVar, Union)
 
 import dhash as dhashlib
 import pybktree
@@ -143,70 +142,6 @@ def _add_new_group(img1: Image, img2: Image, checked: Dict[Image, int],
     image_groups.append([img1, img2])
     checked[img1] = len(image_groups) - 1
     checked[img2] = len(image_groups) - 1
-
-def load_cache(cache_file: CachePath) -> Cache:
-    '''Load the cache with earlier calculated hashes
-
-    :param cache_file: path to the cache file,
-    :return: dictionary with pairs "ImagePath: Hash",
-    :raise EOFError: the cache file might be corrupted (or empty),
-    :raise OSError: if there's some problem while opening cache file
-    '''
-
-    try:
-        with open(cache_file, 'rb') as f:
-            cache = pickle.load(f)
-    except FileNotFoundError:
-        cache = {}
-    except EOFError:
-        raise EOFError('The cache file might be corrupted (or empty)')
-    except OSError as e:
-        raise OSError(e)
-    return cache
-
-def check_cache(paths: Iterable[ImagePath], cache: Cache) -> List[ImagePath]:
-    '''Check which images are not cached
-
-    :param paths: full paths of images,
-    :param cache: dict with pairs "ImagePath: Hash",
-    :return: list with the paths of not cached images
-    '''
-
-    not_cached = []
-    for path in paths:
-        if path not in cache:
-            not_cached.append(path)
-    return not_cached
-
-def extend_cache(cache: Cache, paths: Iterable[ImagePath],
-                 hashes: Sequence[Optional[Hash]]) -> Cache:
-    '''Populate cache with new hashes
-
-    :param cache: dict with pairs "ImagePath: Hash",
-    :param paths: paths of new images,
-    :param hashes: new hashes,
-    :return: dict with pairs "ImagePath: Hash" (updated cache)
-    '''
-
-    for i, path in enumerate(paths):
-        dhash = hashes[i]
-        if dhash is not None:
-            cache[path] = dhash
-    return cache
-
-def save_cache(cache_file: CachePath, cache: Cache) -> None:
-    '''Save cache on the disk
-
-    :param cache_file: path to the cache file,
-    :param cache: dict with pairs "ImagePath: Hash",
-    :raise OSError: if there's some problem while opening cache file
-    '''
-
-    try:
-        with open(cache_file, 'wb') as f:
-            pickle.dump(cache, f)
-    except OSError as e:
-        raise OSError(e)
 
 def calculate_hashes(paths: Iterable[ImagePath]) \
     -> Generator[Optional[Hash], None, None]:
@@ -426,7 +361,6 @@ class Image:
 ########################## Types ##################################
 
 FilePath = str # Path to a file
-CachePath = FilePath # Path to the cache file
 FolderPath = FilePath # Path to a folder
 ImagePath = FilePath # Path to an image
 Hash = int # Perceptual hash of an image
@@ -436,7 +370,6 @@ Suffix = str # '.jpg', '.png', etc. (with a dot)
 Width = int # Width of a image
 Height = int # Height of a image
 FileSize = Union[int, float] # Size of a file
-Cache = Dict[ImagePath, Hash] # Cache containing image hashes
 Group = List[Image] # Group of similar images
 
 T = TypeVar('T')
