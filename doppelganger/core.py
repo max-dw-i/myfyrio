@@ -15,33 +15,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
-
-This file incorporates work covered by the following copyright and
-permission notice:
-
-    MIT License
-
-    Copyright (c) 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
-
-    Permission is hereby granted, free of charge, to any person obtaining
-    a copy of this software and associated documentation files
-    (the "Software"), to deal in the Software without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish,
-    distribute, sublicense, and/or sell copies of the Software, and to permit
-    persons to whom the Software is furnished to do so, subject to
-    the following conditions:
-
-        The above copyright notice and this permission notice shall be
-        included in all copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-    DEALINGS IN THE SOFTWARE.
-
 -------------------------------------------------------------------------------
 
 This module provides core functions for processing images and find duplicates
@@ -50,7 +23,6 @@ This module provides core functions for processing images and find duplicates
 from __future__ import annotations
 
 import os
-import pathlib
 import pickle
 from enum import Enum
 from multiprocessing import Pool
@@ -470,60 +442,3 @@ Group = List[Image] # Group of similar images
 T = TypeVar('T')
 
 ###################################################################
-
-
-if __name__ == '__main__':
-
-    print('This is a demonstration of finding duplicate (similar) images')
-    print('It might take some time, Be patient')
-    print('------------------------')
-
-    msg = 'Type the path of the folder you want to find duplicate images in\n'
-    folders = input(msg)
-    msg = ('Type the searching sensitivity (a value '
-           'between 0 and 20 is recommended)\n')
-    sensitivity = input(msg)
-    msg = ('Type the path of the folder you want to save the cache file in. '
-           'Press "Enter" if you want to save it in the working directory\n')
-    cache_folder = input(msg)
-    if cache_folder:
-        cache_file = str(pathlib.Path(cache_folder) / 'cache.p')
-    else:
-        cache_file = 'cache.p'
-    print('------------------------')
-    print('Searching images in the folder...')
-    paths = set(find_image([folders]))
-    print(f'There are {len(paths)} images in the folder')
-
-    cache = load_cache(cache_file)
-    not_cached = check_cache(paths, cache)
-    print(f'{len(paths)-len(not_cached)} images have been found in the cache')
-
-    print('Starting to calculate hashes...')
-    if not_cached:
-        hashes = list(calculate_hashes(not_cached))
-        cache = extend_cache(cache, not_cached, hashes)
-        save_cache(cache_file, cache)
-    print('All the hashes have been calculated')
-
-    images = [Image(path, cache[path]) for path in paths if path in cache]
-
-    print('Starting to compare images...')
-    image_groups = list(image_grouping(images, int(sensitivity)))[-1]
-    print(f'{len(image_groups)} duplicate image groups have been found')
-
-    print('Sorting the images by similarity rate in descending order...')
-    s = Sort(image_groups)
-    s.sort()
-    print('Done')
-    print('------------------------')
-
-    for i, group in enumerate(image_groups):
-        print(f'Group {i+1}:')
-        print('------------------------')
-        for image in group:
-            print(image)
-        print('------------------------')
-
-    print('That is it')
-    input('Press any key to continue...')
