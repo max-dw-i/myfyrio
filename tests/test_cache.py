@@ -33,7 +33,7 @@ class TestClassCache(TestCase):
 class TestInitMethod(TestClassCache):
 
     def test_assign_empty_dict_to_attr_data(self):
-        self.assertDictEqual(self.c._data, {})
+        self.assertDictEqual(self.c.data, {})
 
 
 class TestMethodLoad(TestClassCache):
@@ -52,7 +52,7 @@ class TestMethodLoad(TestClassCache):
         with mock.patch('builtins.open', mock.mock_open()):
             self.c.load(self.CACHE_FILE)
 
-        self.assertEqual(self.c._data, 'hashes')
+        self.assertEqual(self.c.data, 'hashes')
 
     @mock.patch('builtins.open', side_effect=FileNotFoundError)
     def test_raise_FileNotFoundError_if_FileNotFoundError(self, mock_open):
@@ -82,7 +82,7 @@ class TestMethodSave(TestClassCache):
         super().setUp()
 
         self.cache = {'path1': 'hash1'}
-        self.c._data = self.cache
+        self.c.data = self.cache
 
     @mock.patch('pickle.dump')
     def test_args_open_called_with(self, mock_dump):

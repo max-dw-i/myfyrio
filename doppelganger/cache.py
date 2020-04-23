@@ -21,9 +21,7 @@ Module implementing cache for keeping image hashes
 '''
 
 import pickle
-from typing import Dict
-
-from doppelganger.core import Hash, ImagePath
+from collections import UserDict
 
 ########################## Types ##################################
 
@@ -32,15 +30,12 @@ CacheFile = str # Path to the cache file
 ###################################################################
 
 
-class Cache:
+class Cache(UserDict):
     '''Represent "cache" containing image hashes. Cache is a dictionary with
     pairs "ImagePath: Hash". Cache is empty when a new instance is created
     '''
 
-    def __init__(self) -> None:
-        self._data: Dict[ImagePath, Hash] = {}
-
-    def load(self, file: CacheFile):
+    def load(self, file: CacheFile) -> None:
         '''Load the cache with earlier calculated hashes
 
         :param file: path to the cache file,
@@ -59,7 +54,7 @@ class Cache:
         except OSError as e:
             raise OSError(e)
         else:
-            self._data = cache
+            self.data = cache
 
     def save(self, file: CacheFile) -> None:
         '''Save cache on the disk
@@ -70,27 +65,6 @@ class Cache:
 
         try:
             with open(file, 'wb') as f:
-                pickle.dump(self._data, f)
+                pickle.dump(self.data, f)
         except OSError as e:
             raise OSError(e)
-
-    def update(self, new_hashes: Dict[ImagePath, Hash]):
-        '''Update the cache with new hashes
-
-        :param new_hashes: dict with pairs "ImagePath: Hash"
-        '''
-
-        self._data.update(new_hashes)
-
-    def __contains__(self, path: ImagePath) -> bool:
-        if path in self._data:
-            return True
-        return False
-
-    def __getitem__(self, path: ImagePath) -> Hash:
-        if path not in self._data:
-            raise KeyError(f'Path "{path}" is not in cache')
-        return self._data[path]
-
-    def __setitem__(self, path: ImagePath, image_hash: Hash) -> None:
-        self._data[path] = image_hash
