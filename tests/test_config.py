@@ -53,6 +53,11 @@ class TestConfig(TestCase):
             'size_format': 1,
             'subfolders': True,
             'close_confirmation': False,
+            'filter_img_size': False,
+            'min_width': 0,
+            'max_width': 1000000,
+            'min_height': 0,
+            'max_height': 1000000,
         }
 
         self.assertEqual(self.c.data, DEFAULT_CONFIG)

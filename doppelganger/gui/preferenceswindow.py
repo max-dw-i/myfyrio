@@ -89,7 +89,7 @@ def setVal(widget: Widget, val: Value) -> None:
         widget.setValue(val)
     if isinstance(widget, QtWidgets.QComboBox):
         widget.setCurrentIndex(val)
-    if isinstance(widget, QtWidgets.QCheckBox):
+    if isinstance(widget, (QtWidgets.QCheckBox, QtWidgets.QGroupBox)):
         widget.setChecked(val)
 
 def val(widget: Widget) -> Value:
@@ -103,7 +103,7 @@ def val(widget: Widget) -> Value:
         v = widget.value()
     if isinstance(widget, QtWidgets.QComboBox):
         v = widget.currentIndex()
-    if isinstance(widget, QtWidgets.QCheckBox):
+    if isinstance(widget, (QtWidgets.QCheckBox, QtWidgets.QGroupBox)):
         v = widget.isChecked()
 
     return v
@@ -132,14 +132,13 @@ class PreferencesWindow(QtWidgets.QMainWindow):
         self.setWindowModality(QtCore.Qt.ApplicationModal)
 
     def _gather_widgets(self) -> List[Widget]:
-        widgets = []
         widget_types = [QtWidgets.QComboBox, QtWidgets.QCheckBox,
-                        QtWidgets.QSpinBox]
+                        QtWidgets.QSpinBox, QtWidgets.QGroupBox]
+        widgets = []
 
         for w_type in widget_types:
-            w_found = self.findChildren(w_type)
-            for w in w_found: # rewrite when every is enabled
-                if w.isEnabled():
+            for w in self.findChildren(w_type):
+                if w.property('conf_param') is not None:
                     widgets.append(w)
         return widgets
 
@@ -169,8 +168,8 @@ class PreferencesWindow(QtWidgets.QMainWindow):
         self.close()
 
 
-#################################Types##################################
+###################################Types#######################################
 Widget = Union[QtWidgets.QSpinBox, QtWidgets.QComboBox,
-               QtWidgets.QCheckBox] # widget changing preferences
-Value = Union[int, str]             # value of widget
-########################################################################
+               QtWidgets.QCheckBox, QtWidgets.QGroupBox] # preference widgets
+Value = Union[int, str] # values of preference widgets
+###############################################################################

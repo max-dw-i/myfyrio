@@ -291,7 +291,12 @@ class TestClassImageProcessing(TestCase):
         self.sensitivity = 0
         self.CONF = {'sort': 0,
                      'subfolders': True,
-                     'size': 200}
+                     'size': 200,
+                     'filter_img_size': False,
+                     'min_width': 5,
+                     'max_width': 10,
+                     'min_height': 5,
+                     'max_height': 10}
         self.proc = processing.ImageProcessing(self.mw_signals, self.folders,
                                                self.sensitivity, self.CONF)
 
@@ -309,38 +314,87 @@ class TestMethodInit(TestClassImageProcessing):
 
 class TestMethodFindImages(TestClassImageProcessing):
 
-    @mock.patch(CORE+'find_image')
-    def test_args_core_find_images_called_with(self, mock_find):
-        self.proc._find_images()
+    def setUp(self):
+        super().setUp()
+
+        self.mock_image = mock.Mock()
+        self.mock_image.width = 5
+        self.mock_image.height = 5
+        self.found_images = (img for img in [self.mock_image])
+
+    def test_args_core_find_images_called_with(self):
+        with mock.patch(CORE+'find_image') as mock_find:
+            self.proc._find_images()
 
         mock_find.assert_called_once_with(self.folders,
                                           self.CONF['subfolders'])
 
-    @mock.patch(CORE+'find_image', return_value=(path for path in ['path']))
-    def test_return_core_find_images_result(self, mock_paths):
-        res = self.proc._find_images()
+    def test_return_if_no_image_filter_size(self):
+        self.mock_image.width = 100
+        self.mock_image.height = 100
+        with mock.patch(CORE+'find_image', return_value=self.found_images):
+            res = self.proc._find_images()
 
-        self.assertSetEqual(res, {'path'})
+        self.assertSetEqual(res, {self.mock_image})
 
-    @mock.patch(CORE+'find_image', return_value=(path for path in ['path']))
-    def test_raise_InterruptProcessing_if_attr_interrupt_True(self, mock_find):
+    def test_return_if_image_filter_size_and_image_fits(self):
+        self.CONF['filter_img_size'] = True
+        with mock.patch(CORE+'find_image', return_value=self.found_images):
+            res = self.proc._find_images()
+
+        self.assertSetEqual(res, {self.mock_image})
+
+    def test_return_if_image_filter_size_and_too_small_image_width(self):
+        self.CONF['filter_img_size'] = True
+        self.mock_image.width = 4
+        with mock.patch(CORE+'find_image', return_value=self.found_images):
+            res = self.proc._find_images()
+
+        self.assertSetEqual(res, set())
+
+    def test_return_if_image_filter_size_and_too_big_image_width(self):
+        self.CONF['filter_img_size'] = True
+        self.mock_image.width = 11
+        with mock.patch(CORE+'find_image', return_value=self.found_images):
+            res = self.proc._find_images()
+
+        self.assertSetEqual(res, set())
+
+    def test_return_if_image_filter_size_and_too_small_image_height(self):
+        self.CONF['filter_img_size'] = True
+        self.mock_image.height = 4
+        with mock.patch(CORE+'find_image', return_value=self.found_images):
+            res = self.proc._find_images()
+
+        self.assertSetEqual(res, set())
+
+    def test_return_if_image_filter_size_and_too_big_image_height(self):
+        self.CONF['filter_img_size'] = True
+        self.mock_image.height = 11
+        with mock.patch(CORE+'find_image', return_value=self.found_images):
+            res = self.proc._find_images()
+
+        self.assertSetEqual(res, set())
+
+    def test_raise_InterruptProcessing_if_attr_interrupt_True(self):
         self.proc.interrupt = True
-        with self.assertRaises(exception.InterruptProcessing):
-            self.proc._find_images()
+        with mock.patch(CORE+'find_image', return_value=self.found_images):
+            with self.assertRaises(exception.InterruptProcessing):
+                self.proc._find_images()
 
-    @mock.patch(CORE+'find_image', return_value=(path for path in ['path']))
-    def test_emits_update_info_signal_with_loaded_images_arg(self, mock_find):
+    def test_emits_update_info_signal_with_loaded_images_arg(self):
         spy = QtTest.QSignalSpy(self.proc.signals.update_info)
-        self.proc._find_images()
+        with mock.patch(CORE+'find_image', return_value=self.found_images):
+            self.proc._find_images()
 
         self.assertEqual(len(spy), 1)
         self.assertEqual(spy[0][0], 'loaded_images')
         self.assertEqual(spy[0][1], '1')
 
     @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
-    @mock.patch(CORE+'find_image')
-    def test_update_progress_bar_called_with_5(self, mock_find, mock_bar):
-        self.proc._find_images()
+    def test_update_progress_bar_called_with_5(self, mock_bar):
+        with mock.patch(CORE+'find_image'):
+            self.proc._find_images()
 
         mock_bar.assert_called_once_with(5)
 

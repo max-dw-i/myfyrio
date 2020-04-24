@@ -189,16 +189,23 @@ class ImageProcessing:
                                         'processing images')
 
     def _find_images(self) -> Set[core.Image]:
+        filter_imgs = self.conf['filter_img_size']
+        min_w, max_w = self.conf['min_width'], self.conf['max_width']
+        min_h, max_h = self.conf['min_height'], self.conf['max_height']
+
         images = set()
         img_gen = core.find_image(self.folders, self.conf['subfolders'])
         for img in img_gen:
             if self.interrupt:
                 raise InterruptProcessing
 
-            # Slower than showing the result number (len(images))
-            # but show progress (better UX)
-            images.add(img)
-            self.signals.update_info.emit('loaded_images', str(len(images)))
+            if not filter_imgs or (min_w <= img.width <= max_w
+                                   and min_h <= img.height <= max_h):
+                images.add(img)
+                # Slower than showing the result number
+                # but show progress (better UX)
+                self.signals.update_info.emit('loaded_images',
+                                              str(len(images)))
 
         self._update_progress_bar(5)
 

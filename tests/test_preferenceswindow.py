@@ -149,6 +149,15 @@ class TestSetValFunc(TestCase):
 
         self.assertEqual(w.isChecked(), val)
 
+    def test_QGroupBox(self):
+        w = QtWidgets.QGroupBox()
+        w.setCheckable(True)
+        w.setChecked(False)
+        val = True
+        preferenceswindow.setVal(w, val)
+
+        self.assertEqual(w.isChecked(), val)
+
 
 class TestValFunc(TestCase):
 
@@ -177,6 +186,15 @@ class TestValFunc(TestCase):
 
         self.assertEqual(res, val)
 
+    def test_QGroupBox(self):
+        w = QtWidgets.QGroupBox()
+        w.setCheckable(True)
+        val = True
+        w.setChecked(val)
+        res = preferenceswindow.val(w)
+
+        self.assertEqual(res, val)
+
 
 class TestPreferencesForm(TestCase):
 
@@ -196,6 +214,23 @@ class TestPreferencesForm(TestCase):
             if isinstance(w, QtWidgets.QComboBox):
                 w.setCurrentIndex(0)
 
+
+class TestMethodGatherWidgets(TestPreferencesForm):
+
+    def test_all_widgets_of_proper_classes(self):
+        classes = (QtWidgets.QComboBox, QtWidgets.QCheckBox,
+                   QtWidgets.QSpinBox, QtWidgets.QGroupBox)
+
+        for w in self.w.widgets:
+            self.assertIsInstance(w, classes)
+
+    def test_all_widgets_have_property_conf_param(self):
+        for w in self.w.widgets:
+            self.assertIsNotNone(w.property('conf_param'))
+
+
+class TestMethodUpdatePrefs(TestPreferencesForm):
+
     def test_update_prefs(self):
         conf = {
             'delete_dirs': True,
@@ -206,13 +241,21 @@ class TestPreferencesForm(TestCase):
             'size': 666,
             'sort': 3,
             'subfolders': True,
-            'close_confirmation': True
+            'close_confirmation': True,
+            'filter_img_size': True,
+            'min_width': 13,
+            'max_width': 66,
+            'min_height': 66,
+            'max_height': 567,
         }
         self.w.update_prefs(conf)
 
         for w in self.w.widgets:
             self.assertEqual(preferenceswindow.val(w),
                              conf[w.property('conf_param')])
+
+
+class TestMethodGatherPrefs(TestPreferencesForm):
 
     def test_gather_prefs(self):
         data = {'delete_dirs': False,
@@ -223,11 +266,19 @@ class TestPreferencesForm(TestCase):
                 'sort': 0,
                 'size_format': 0,
                 'subfolders': False,
-                'close_confirmation': False}
+                'close_confirmation': False,
+                'filter_img_size': False,
+                'min_width': 100,
+                'max_width': 100,
+                'min_height': 100,
+                'max_height': 100,}
 
         self.w.gather_prefs()
 
         self.assertDictEqual(self.w.conf, data)
+
+
+class TestMethodSaveBtnClick(TestPreferencesForm):
 
     @mock.patch('doppelganger.gui.preferenceswindow.save_config')
     def test_saveBtn_click_call_gather_prefs(self, mock_save):
@@ -251,6 +302,8 @@ class TestPreferencesForm(TestCase):
 
         mock_close.assert_called_once()
 
+
+class TestMethodCancelBtnClick(TestPreferencesForm):
 
     @mock.patch('PyQt5.QtWidgets.QMainWindow.close')
     def test_cancelBtn_click(self, mock_close):
