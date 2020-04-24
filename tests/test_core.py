@@ -81,17 +81,19 @@ class TestFuncFindImage(TestCase):
 
         self.assertListEqual(res, [])
 
-    def test_return_image_path(self):
+    def test_return_proper_Image_obj(self):
+        img_path = 'img_path'
         self.mock_path.exists.return_value = True
         image_path = mock.MagicMock()
         image_path.is_file.return_value = True
         image_path.suffix = '.png'
-        image_path.__str__.return_value = 'image'
+        image_path.__str__.return_value = img_path
         self.mock_path.glob.return_value = [image_path]
         with mock.patch(CORE+'Path', return_value=self.mock_path):
             res = list(core.find_image(['folder'], recursive=False))
 
-        self.assertListEqual(res, ['image'])
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0].path, 'img_path')
 
 
 class TestFuncImageGrouping(TestCase):
@@ -121,7 +123,7 @@ class TestFuncImageGrouping(TestCase):
             with mock.patch(CORE+'_closest', return_value=(None, None)):
                 list(core.image_grouping(self.images, 0))
 
-        mock_tree.assert_called_once_with(core.hamming, self.images)
+        mock_tree.assert_called_once_with(core.Image.hamming, self.images)
 
     def test_BKTree_raise_TypeError(self):
         with mock.patch('pybktree.BKTree', side_effect=TypeError):
@@ -227,23 +229,22 @@ class TestFuncAddImgToExistingGroup(TestCase):
         self.mock_img_not_in = mock.Mock()
         self.mock_img_not_in.hash = 487
 
-    @mock.patch(CORE+'hamming')
-    def test_image_added_to_proper_group(self, mock_hamming):
+    def test_image_added_to_proper_group(self):
         core._add_img_to_existing_group(self.mock_image, self.mock_img_not_in,
                                         self.checked, self.image_groups)
 
         self.assertListEqual(self.image_groups, [[self.mock_image,
                                                   self.mock_img_not_in]])
 
-    @mock.patch(CORE+'hamming', return_value=999)
-    def test_assign_distance_to_image_difference_attr(self, mock_hamming):
+    def test_assign_distance_to_image_difference_attr(self):
+        dist = 999
+        self.mock_image.hamming.return_value = dist
         core._add_img_to_existing_group(self.mock_image, self.mock_img_not_in,
                                         self.checked, self.image_groups)
 
-        self.assertEqual(self.mock_img_not_in.difference, 999)
+        self.assertEqual(self.mock_img_not_in.difference, dist)
 
-    @mock.patch(CORE+'hamming')
-    def test_checked_dict_changed_properly(self, mock_hamming):
+    def test_checked_dict_changed_properly(self):
         core._add_img_to_existing_group(self.mock_image, self.mock_img_not_in,
                                         self.checked, self.image_groups)
 
@@ -281,71 +282,59 @@ class TestFuncAddNewGroup(TestCase):
                                             self.mock_closest_img: 0})
 
 
-class TestFuncCalculateHashes(TestCase):
-
-    def setUp(self):
-        self.mock_Pool = mock.MagicMock()
-        self.mock_context_obj = mock.Mock()
-        self.mock_Pool.__enter__.return_value = self.mock_context_obj
-
-    def test_args_imap_called_with(self):
-        paths = ['path']
-        self.mock_context_obj.imap.return_value = (h for h in ['hash'])
-
-        with mock.patch(CORE+'Pool', return_value=self.mock_Pool):
-            list(core.calculate_hashes(paths))
-
-        self.mock_context_obj.imap.assert_called_once_with(core.Image.dhash,
-                                                           paths)
-
-    def test_imap_result(self):
-        paths = ['path1', 'path2']
-        hashes = ['hash1', 'hash2']
-        self.mock_context_obj.imap.return_value = (h for h in hashes)
-
-        with mock.patch(CORE+'Pool', return_value=self.mock_Pool):
-            res = list(core.calculate_hashes(paths))
-
-        self.assertListEqual(res, hashes)
-
-
 class TestClassImage(TestCase):
 
     def setUp(self):
-        self.image = core.Image('image.png', dhash='hash')
+        self.image = core.Image('image.png')
 
 
-class TestMethodDhash(TestClassImage):
+class TestMethodCalculateDhash(TestClassImage):
 
     def setUp(self):
-        self.mock_image = mock.Mock()
+        super().setUp()
 
-    def test_return_if_open_raise_OSError(self):
+        self.mock_PILimage = mock.Mock()
+
+    def test_assign_to_attr_dhash_if_open_raise_OSError(self):
         with mock.patch(CORE+'PILImage.open', side_effect=OSError):
-            dhash = core.Image.dhash('image')
+            self.image.calculate_dhash()
 
-        self.assertIsNone(dhash)
+        self.assertEqual(self.image.dhash, -1)
+
+    @mock.patch('dhash.dhash_int')
+    def test_PILImage_open_called_with_Image_path(self, mock_hash):
+        with mock.patch(CORE+'PILImage.open') as mock_open:
+            self.image.calculate_dhash()
+
+        mock_open.assert_called_once_with(self.image.path)
 
     @mock.patch('dhash.dhash_int')
     def test_dhash_int_called_with_pil_open_return(self, mock_hash):
-        with mock.patch(CORE+'PILImage.open', return_value=self.mock_image):
-            core.Image.dhash('image')
+        with mock.patch(CORE+'PILImage.open', return_value=self.mock_PILimage):
+            self.image.calculate_dhash()
 
-        mock_hash.assert_called_once_with(self.mock_image)
+        mock_hash.assert_called_once_with(self.mock_PILimage)
 
     @mock.patch('dhash.dhash_int')
     def test_image_closed(self, mock_hash):
-        with mock.patch(CORE+'PILImage.open', return_value=self.mock_image):
-            core.Image.dhash('image')
+        with mock.patch(CORE+'PILImage.open', return_value=self.mock_PILimage):
+            self.image.calculate_dhash()
 
-        self.mock_image.close.assert_called_once_with()
+        self.mock_PILimage.close.assert_called_once_with()
 
     @mock.patch('dhash.dhash_int', return_value='hash')
-    def test_dhash_return_hash(self, mock_hash):
+    def test_assign_found_dhash_to_attr_dhash(self, mock_hash):
         with mock.patch(CORE+'PILImage.open'):
-            dhash = core.Image.dhash('image')
+            self.image.calculate_dhash()
 
-        self.assertEqual(dhash, 'hash')
+        self.assertEqual(self.image.dhash, 'hash')
+
+    @mock.patch('dhash.dhash_int', return_value='hash')
+    def test_return_attr_dhash(self, mock_hash):
+        with mock.patch(CORE+'PILImage.open'):
+            res = self.image.calculate_dhash()
+
+        self.assertEqual(res, self.image.dhash)
 
 
 class TestMethodDimensions(TestClassImage):
@@ -584,28 +573,28 @@ class TestMethodDelParentDir(TestClassImage):
 class TestSort(TestCase):
 
     def setUp(self):
-        self.img1 = core.Image('test3', 'hash1')
+        self.img1 = core.Image('test3')
         self.img1.difference = 5
         self.img1.size = 3072
         self.img1._width = 4
         self.img1._height = 6
-        self.img2 = core.Image('test1', 'hash2')
+        self.img2 = core.Image('test1')
         self.img2.difference = 0
         self.img2.size = 1024
         self.img2._width = 1
         self.img2._height = 1
-        self.img3 = core.Image('test2', 'hash3')
+        self.img3 = core.Image('test2')
         self.img3.difference = 3
         self.img3.size = 2048
         self.img3._width = 5
         self.img3._height = 3
-        self.img_groups = [[self.img1, self.img2, self.img3]]
+        self.img_group = [self.img1, self.img2, self.img3]
 
     def test_similarity_sort(self):
-        s = core.Sort(self.img_groups)
+        s = core.Sort(self.img_group)
         s.sort(0)
 
-        self.assertListEqual(self.img_groups[0],
+        self.assertListEqual(self.img_group,
                              [self.img2, self.img3, self.img1])
 
     def test_size_sort(self):
@@ -614,22 +603,22 @@ class TestSort(TestCase):
         sort results
         '''
 
-        s = core.Sort(self.img_groups)
+        s = core.Sort(self.img_group)
         s.sort(1)
 
-        self.assertListEqual(self.img_groups[0],
+        self.assertListEqual(self.img_group,
                              [self.img1, self.img3, self.img2])
 
     def test_dimensions_sort(self):
-        s = core.Sort(self.img_groups)
+        s = core.Sort(self.img_group)
         s.sort(2)
 
-        self.assertListEqual(self.img_groups[0],
+        self.assertListEqual(self.img_group,
                              [self.img1, self.img3, self.img2])
 
     def test_path_sort(self):
-        s = core.Sort(self.img_groups)
+        s = core.Sort(self.img_group)
         s.sort(3)
 
-        self.assertListEqual(self.img_groups[0],
+        self.assertListEqual(self.img_group,
                              [self.img2, self.img3, self.img1])

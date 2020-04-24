@@ -24,10 +24,9 @@ from __future__ import annotations
 
 import os
 from enum import Enum
-from multiprocessing import Pool
 from pathlib import Path
 from typing import (Collection, Dict, Generator, Iterable, List, Optional,
-                    Tuple, TypeVar, Union)
+                    Tuple, Union)
 
 import dhash as dhashlib
 import pybktree
@@ -38,12 +37,13 @@ from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def find_image(folders: Iterable[FolderPath],
-               recursive: bool = True) -> Generator[ImagePath, None, None]:
-    '''Find next image in :folders: and yield its path
+               recursive: bool = True) -> Generator[Image, None, None]:
+    '''Find next image in :folders: and yield its representation
+    as "Image" object
 
     :param folders: paths of the folders,
     :param recursive: recursive search (include subfolders),
-    :yield: full path of the next image,
+    :yield: next image as "Image" object,
     :raise FileNotFoundError: any of the folders does not exist
     '''
 
@@ -57,17 +57,7 @@ def find_image(folders: Iterable[FolderPath],
 
         for filename in p.glob(pattern):
             if filename.is_file() and filename.suffix in IMG_SUFFIXES:
-                yield str(filename)
-
-def hamming(image1: Image, image2: Image) -> Distance:
-    '''Calculate the Hamming distance between two images
-
-    :param image1: the first image,
-    :param image2: the second image,
-    :return: Hamming distance
-    '''
-
-    return dhashlib.get_num_bits_different(image1.hash, image2.hash)
+                yield Image(str(filename))
 
 def image_grouping(images: Collection[Image], sensitivity: Sensitivity) \
     -> Generator[List[Group], None, None]:
@@ -89,7 +79,7 @@ def image_grouping(images: Collection[Image], sensitivity: Sensitivity) \
         yield image_groups
 
     try:
-        bktree = pybktree.BKTree(hamming, images)
+        bktree = pybktree.BKTree(Image.hamming, images)
     except TypeError:
         raise TypeError('The hashes must be integers')
 
@@ -131,8 +121,8 @@ def _add_img_to_existing_group(img_in_group: Image, img_not_in_group: Image,
                                checked: Dict[Image, int],
                                image_groups: List[Group]):
     group_num = checked[img_in_group]
-    img_not_in_group.difference = hamming(image_groups[group_num][0],
-                                          img_not_in_group)
+    first_img = image_groups[group_num][0]
+    img_not_in_group.difference = first_img.hamming(img_not_in_group)
     image_groups[group_num].append(img_not_in_group)
     checked[img_not_in_group] = group_num
 
@@ -143,28 +133,15 @@ def _add_new_group(img1: Image, img2: Image, checked: Dict[Image, int],
     checked[img1] = len(image_groups) - 1
     checked[img2] = len(image_groups) - 1
 
-def calculate_hashes(paths: Iterable[ImagePath]) \
-    -> Generator[Optional[Hash], None, None]:
-    '''Calculate and yield hashes of images. Calculating is parallel
-    and utilises all CPU cores
-
-    :param paths: paths of images,
-    :yield: hash of an image with a path from :paths:
-    '''
-
-    with Pool() as p:
-        for dhash in p.imap(Image.dhash, paths):
-            yield dhash
-
 
 class Sort:
     '''Custom sort for duplicate images (already grouped)'''
 
-    def __init__(self, image_groups: Iterable[Group]) -> None:
-        self.image_groups = image_groups
+    def __init__(self, images: Group) -> None:
+        self.images = images
 
     def sort(self, sort_type: int = 0) -> None:
-        '''Sort duplicate image groups
+        '''Sort duplicate image group
 
         :param sort_type: 0 - sort by similarity rate
                               in descending order,
@@ -176,30 +153,26 @@ class Sort:
                               in ascending order
         '''
 
-        if sort_type == 0:
-            self._similarity_sort()
-        if sort_type == 1:
-            self._filesize_sort()
-        if sort_type == 2:
-            self._dimensions_sort()
-        if sort_type == 3:
-            self._path_sort()
+        sort_funcs = {
+            0: self._similarity_sort,
+            1: self._filesize_sort,
+            2: self._dimensions_sort,
+            3: self._path_sort
+        }
+
+        sort_funcs[sort_type]()
 
     def _similarity_sort(self) -> None:
-        for group in self.image_groups:
-            group.sort(key=lambda x: x.difference)
+        self.images.sort(key=lambda x: x.difference)
 
     def _filesize_sort(self) -> None:
-        for group in self.image_groups:
-            group.sort(key=Image.filesize, reverse=True)
+        self.images.sort(key=Image.filesize, reverse=True)
 
     def _dimensions_sort(self) -> None:
-        for group in self.image_groups:
-            group.sort(key=self._dimensions_product, reverse=True)
+        self.images.sort(key=self._dimensions_product, reverse=True)
 
     def _path_sort(self) -> None:
-        for group in self.image_groups:
-            group.sort(key=lambda img: img.path)
+        self.images.sort(key=lambda img: img.path)
 
     @staticmethod
     def _dimensions_product(image: Image) -> int:
@@ -217,9 +190,9 @@ class SizeFormat(Enum):
 class Image:
     '''Class representing images'''
 
-    def __init__(self, path: ImagePath, dhash: Hash) -> None:
+    def __init__(self, path: ImagePath) -> None:
         self.path = path
-        self.hash = dhash
+        self.dhash: Optional[Hash] = None
         # Difference between the hash of the image
         # and the hash of the 1st image in the group
         self.difference = 0
@@ -229,22 +202,41 @@ class Image:
         self._width: Width = None
         self._height: Height = None
 
-    @staticmethod
-    def dhash(path: ImagePath) -> Optional[Hash]:
-        '''Calculate the perceptual hash of the image using lib "dhash"
+    def calculate_dhash(self) -> Hash:
+        '''Return perceptual hash of the image and assign it
+        to attribute "dhash"
 
-        :param path: path of an image,
-        :return: the hash of the image or None if there's any problem
+        :return: perceptual hash or -1 if the hash
+                 cannot be calculated
         '''
 
         try:
-            image = PILImage.open(path)
+            image = PILImage.open(self.path)
         except OSError:
-            dhash = None
+            self.dhash = -1
         else:
-            dhash = dhashlib.dhash_int(image)
+            self.dhash = dhashlib.dhash_int(image)
             image.close()
-        return dhash
+        return self.dhash
+
+    def dhash_parallel(self) -> Image:
+        '''Calculate hash and return "Image" object itself.
+        It is used with library "multiprocessing"
+
+        :return: "Image" object (self)
+        '''
+
+        self.calculate_dhash()
+        return self
+
+    def hamming(self, image: Image) -> Distance:
+        '''Calculate the Hamming distance between two images
+
+        :param image: the second image,
+        :return: Hamming distance
+        '''
+
+        return dhashlib.get_num_bits_different(self.dhash, image.dhash)
 
     def _set_dimensions(self) -> None:
         try:
@@ -357,6 +349,14 @@ class Image:
     def __str__(self) -> str:
         return self.path
 
+    def __eq__(self, image: object) -> bool:
+        if not isinstance(image, Image):
+            return NotImplemented
+        return self.path == image.path
+
+    def __hash__(self) -> int:
+        return hash(self.path)
+
 
 ########################## Types ##################################
 
@@ -371,7 +371,5 @@ Width = int # Width of a image
 Height = int # Height of a image
 FileSize = Union[int, float] # Size of a file
 Group = List[Image] # Group of similar images
-
-T = TypeVar('T')
 
 ###################################################################

@@ -141,11 +141,11 @@ class ImageProcessing:
         self.sensitivity = sensitivity
         self.conf = conf
 
-        # If a user's clicked button 'Stop' in the main (GUI) thread,
-        # 'interrupt' flag is changed to True
         mw_signals.interrupted.connect(self._is_interrupted)
         self.signals = signals.Signals()
 
+        # If a user's clicked button 'Stop' in the main (GUI) thread,
+        # 'interrupt' flag is changed to True
         self.interrupt = False
         self.errors = False
         self.progress_bar_value: float = 0.0
@@ -154,21 +154,22 @@ class ImageProcessing:
         '''Main processing function'''
 
         try:
-            paths = self._find_images()
+            images = self._find_images()
             cache = self._load_cache()
-            not_cached = self._check_cache(paths, cache)
+            cached, not_cached = self._check_cache(images, cache)
 
             if not_cached:
-                hashes = self._calculate_hashes(not_cached)
-                cache = self._extend_cache(cache, not_cached, hashes)
+                calculated = self._calculate_hashes(not_cached)
+                cache = self._update_cache(cache, calculated)
                 cache.save(str(self.CACHE_FILE))
+                cached.extend(calculated)
 
-            images = [core.Image(path, cache[path])
-                      for path in paths if path in cache]
-            image_groups = self._image_grouping(images)
+            image_groups = self._image_grouping(cached)
 
-            s = core.Sort(image_groups)
-            s.sort(self.conf['sort'])
+            sort_type = self.conf['sort']
+            for group in image_groups:
+                s = core.Sort(group)
+                s.sort(sort_type)
 
             similarity_rate(image_groups)
 
@@ -187,20 +188,21 @@ class ImageProcessing:
                 self.signals.error.emit('Something went wrong while '
                                         'processing images')
 
-    def _find_images(self) -> Set[core.ImagePath]:
-        paths = set()
-        path_gen = core.find_image(self.folders, self.conf['subfolders'])
-        for i, path in enumerate(path_gen):
+    def _find_images(self) -> Set[core.Image]:
+        images = set()
+        img_gen = core.find_image(self.folders, self.conf['subfolders'])
+        for img in img_gen:
             if self.interrupt:
                 raise InterruptProcessing
 
-            # Slower than showing the result number (len(paths))
-            # but show progress (better UI)
-            self.signals.update_info.emit('loaded_images', str(i+1))
-            paths.add(path)
+            # Slower than showing the result number (len(images))
+            # but show progress (better UX)
+            images.add(img)
+            self.signals.update_info.emit('loaded_images', str(len(images)))
 
         self._update_progress_bar(5)
-        return paths
+
+        return images
 
     def _load_cache(self) -> Cache:
         try:
@@ -215,53 +217,64 @@ class ImageProcessing:
 
         return cache
 
-    def _check_cache(self, paths: Collection[core.ImagePath],
-                     cache: Cache) -> List[core.ImagePath]:
-        not_cached = [path for path in paths if path not in cache]
+    def _check_cache(self, images: Collection[core.Image], cache: Cache) \
+        -> Tuple[List[core.Image], List[core.Image]]:
+        cached = []
+        not_cached = []
 
-        num_of_cached = len(paths) - len(not_cached)
-        self.signals.update_info.emit('found_in_cache', str(num_of_cached))
+        for img in images:
+            dhash = cache.get(img.path, None)
+            if dhash is None:
+                not_cached.append(img)
+            else:
+                img.dhash = dhash
+                cached.append(img)
+
+        self.signals.update_info.emit('found_in_cache', str(len(cached)))
         if not_cached:
             self._update_progress_bar(15)
         else:
             self._update_progress_bar(55)
 
-        return not_cached
+        return cached, not_cached
 
-    def _extend_cache(self, cache: Cache, paths: Iterable[core.ImagePath],
-                      hashes: List[Optional[core.Hash]]) -> Cache:
-        for i, path in enumerate(paths):
-            dhash = hashes[i]
-            if dhash is None:
-                logger.error(f'Hash of {path} cannot be calculated')
+    def _update_cache(self, cache: Cache, images: Iterable[core.Image]) \
+        -> Cache:
+        for img in images:
+            dhash = img.dhash
+            img_path = img.path
+            if dhash == -1:
+                logger.error(f'Hash of {img_path} cannot be calculated')
                 self.errors = True
             else:
-                cache[path] = dhash
+                cache[img_path] = dhash
 
         self._update_progress_bar(55)
 
         return cache
 
-    def _calculate_hashes(self, paths: Collection[core.ImagePath]) \
-        -> List[core.Hash]:
-        processed: List[core.Hash] = []
+    def _calculate_hashes(self, images: Collection[core.Image]) \
+        -> List[core.Image]:
+        hashed_images: List[core.Image] = []
 
-        if not paths:
-            return processed
+        if not images:
+            return hashed_images
 
-        hashes_gen = core.calculate_hashes(paths)
-        progress_step = 35 / len(paths)
+        progress_step = 35 / len(images)
 
-        for i, dhash in enumerate(hashes_gen):
-            if self.interrupt:
-                raise InterruptProcessing
+        with Pool() as p:
+            img_gen = p.imap(core.Image.dhash_parallel, images)
+            for i, img in enumerate(img_gen):
+                if self.interrupt:
+                    raise InterruptProcessing
 
-            processed.append(dhash)
+                hashed_images.append(img)
 
-            self.signals.update_info.emit('remaining_images', str(i + 1))
-            self._update_progress_bar(self.progress_bar_value + progress_step)
+                self.signals.update_info.emit('remaining_images', str(i+1))
+                self._update_progress_bar(self.progress_bar_value
+                                          + progress_step)
 
-        return processed
+        return hashed_images
 
     def _image_grouping(self, images: Collection[core.Image]) \
         -> List[core.Group]:

@@ -383,13 +383,18 @@ class TestMethodCheckCache(TestClassImageProcessing):
     def setUp(self):
         super().setUp()
 
-        self.paths = ['path', 'path_not_in_cache']
+        self.mock_img1 = mock.Mock()
+        self.mock_img1.path = 'path'
+        self.mock_img2 = mock.Mock()
+        self.mock_img2.path = 'path_not_in_cache'
+        self.paths = [self.mock_img1, self.mock_img2]
         self.cache = {'path': 'hash'}
 
-    def test_return_core_check_cache_result(self):
-        res = self.proc._check_cache(self.paths, self.cache)
+    def test_return_proper_lists(self):
+        cached, not_cached = self.proc._check_cache(self.paths, self.cache)
 
-        self.assertEqual(res, self.paths[1:])
+        self.assertListEqual(cached, [self.mock_img1])
+        self.assertListEqual(not_cached, [self.mock_img2])
 
     def test_emits_update_info_signal_with_found_in_cache_arg(self):
         spy = QtTest.QSignalSpy(self.proc.signals.update_info)
@@ -413,32 +418,36 @@ class TestMethodCheckCache(TestClassImageProcessing):
         mock_bar.assert_called_once_with(55)
 
 
-class TestMethodExtendCache(TestClassImageProcessing):
+class TestMethodUpdateCache(TestClassImageProcessing):
 
     def setUp(self):
         super().setUp()
 
         self.cache = {'path': 'hash'}
-        self.paths = ['path2']
-        self.hashes = ['hash2']
+        self.mock_img = mock.Mock()
+        self.mock_img.path = 'path2'
+        self.mock_img.dhash = 'hash2'
+        self.images = [self.mock_img]
 
-    def test_hash_added_to_cache_if_it_is_not_None(self):
-        res = self.proc._extend_cache(self.cache, self.paths, self.hashes)
+    def test_hash_added_to_cache_if_it_is_not_minus_1(self):
+        res = self.proc._update_cache(self.cache, self.images)
 
         self.assertDictEqual(res, {'path': 'hash', 'path2': 'hash2'})
 
-    def test_log_error_if_hash_is_None(self):
+    def test_log_error_if_hash_is_minus_1(self):
+        self.mock_img.dhash = -1
         with self.assertLogs('main.processing', 'ERROR'):
-            self.proc._extend_cache(self.cache, self.paths, [None])
+            self.proc._update_cache(self.cache, self.images)
 
-    def test_set_error_attr_to_True_if_hash_is_None(self):
-        self.proc._extend_cache(self.cache, self.paths, [None])
+    def test_set_error_attr_to_True_if_hash_is_minus_1(self):
+        self.mock_img.dhash = -1
+        self.proc._update_cache(self.cache, self.images)
 
         self.assertTrue(self.proc.errors)
 
     @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
     def test_update_progress_bar_called_with_55(self, mock_bar):
-        self.proc._extend_cache(self.cache, self.paths, self.hashes)
+        self.proc._update_cache(self.cache, self.images)
 
         mock_bar.assert_called_once_with(55)
 
@@ -448,9 +457,15 @@ class TestMethodCalculateHashes(TestClassImageProcessing):
     def setUp(self):
         super().setUp()
 
-        self.paths = ['path']
-        self.hashes = ['hash']
-        self.gen = (path for path in self.hashes)
+        self.mock_img = mock.Mock()
+        self.mock_img = 'path'
+        self.images = [self.mock_img]
+
+        self.mock_Pool = mock.MagicMock()
+        self.mock_context_obj = mock.Mock()
+        self.mock_Pool.__enter__.return_value = self.mock_context_obj
+        self.imap_return = (h for h in self.images)
+        self.mock_context_obj.imap.return_value = self.imap_return
 
     def test_return_empty_list_if_pass_empty_collection(self):
         res = self.proc._calculate_hashes([])
@@ -458,34 +473,33 @@ class TestMethodCalculateHashes(TestClassImageProcessing):
         self.assertListEqual(res, [])
 
     def test_emit_update_info(self):
-        label = 'remaining_images'
         spy = QtTest.QSignalSpy(self.proc.signals.update_info)
-        with mock.patch(CORE+'calculate_hashes', return_value=self.gen):
-            self.proc._calculate_hashes(self.paths)
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
+            self.proc._calculate_hashes(self.images)
 
-        self.assertEqual(spy[0][0], label)
+        self.assertEqual(spy[0][0], 'remaining_images')
         self.assertEqual(spy[0][1], '1')
 
     @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
     def test_update_prog_bar_called_with_current_val_plus_step(self, mock_bar):
         self.proc.progress_bar_value = 21
-        with mock.patch(CORE+'calculate_hashes', return_value=self.gen):
-            self.proc._calculate_hashes(self.paths)
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
+            self.proc._calculate_hashes(self.images)
 
         # step == 35 / len(collection) == 35 in this case
         mock_bar.assert_called_once_with(56)
 
     def test_func_result(self):
-        with mock.patch(CORE+'calculate_hashes', return_value=self.gen):
-            res = self.proc._calculate_hashes(self.paths)
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
+            res = self.proc._calculate_hashes(self.images)
 
-        self.assertListEqual(res, self.hashes)
+        self.assertListEqual(res, self.images)
 
     def test_raise_InterruptProcessing_if_interrupt_attr_is_True(self):
         self.proc.interrupt = True
-        with mock.patch(CORE+'calculate_hashes', return_value=self.gen):
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
             with self.assertRaises(exception.InterruptProcessing):
-                self.proc._calculate_hashes(self.paths)
+                self.proc._calculate_hashes(self.images)
 
 
 class TestMethodImageGrouping(TestClassImageProcessing):
