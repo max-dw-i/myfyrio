@@ -195,10 +195,13 @@ class TestImageInfoWidgetMethodSetSimilarityLabel(TestImageInfoWidget):
 
     @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
     def test_args_SimilarityLabel_called_with(self, mock_add):
+        similarity = 66
+        self.mock_image.similarity.return_value = similarity
         with mock.patch(VIEW+'SimilarityLabel') as mock_label:
             self.w._setSimilarityLabel()
 
-        mock_label.assert_called_once_with('0%', self.conf['size'], self.w)
+        mock_label.assert_called_once_with(f'{similarity}%', self.conf['size'],
+                                           self.w)
 
     @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
     def test_SimilarityLabel_added_to_layout(self, mock_add):
@@ -471,7 +474,7 @@ class TestDuplicateWidgetMethodRender(TestDuplicateWidget):
                             return_value=self.mock_inf_w):
                 self.w.render()
 
-        mock_thumb.assert_called_once_with(self.mock_image.thumbnail,
+        mock_thumb.assert_called_once_with(self.mock_image.thumb,
                                            self.conf['size'], self.w)
 
     @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')

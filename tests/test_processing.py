@@ -19,7 +19,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 import logging
 from unittest import TestCase, mock
 
-from PyQt5 import QtCore, QtTest, QtWidgets
+from PyQt5 import QtTest, QtWidgets
 
 from doppelganger import exception, processing, signals
 
@@ -41,246 +41,6 @@ if app is None:
 CORE = 'doppelganger.core.'
 CACHE = 'doppelganger.cache.'
 PROCESSING = 'doppelganger.processing.'
-
-
-class TestFuncThumbnailFunc(TestCase):
-
-    def setUp(self):
-        self.img = mock.Mock()
-        self.img.path = 'path'
-        self.img.suffix = '.png'
-        self.size = 222
-
-        self.w, self.h = 111, 111
-        self.DIM = PROCESSING + '_scaling_dimensions'
-        self.IMG = PROCESSING + '_scaled_image'
-        self.BA = PROCESSING + '_QImage_to_QByteArray'
-
-    def test_scaling_dimensions_called_with_image_and_size_args(self):
-        with mock.patch(self.DIM, return_value=(self.w, self.h)) as mock_dim:
-            with mock.patch(self.IMG):
-                with mock.patch(self.BA):
-                    processing.thumbnail(self.img, self.size)
-
-        mock_dim.assert_called_once_with(self.img, self.size)
-
-    def test_args_scaled_image_called_with(self):
-        with mock.patch(self.DIM, return_value=(self.w, self.h)):
-            with mock.patch(self.IMG) as mock_scaled_img:
-                with mock.patch(self.BA):
-                    processing.thumbnail(self.img, self.size)
-
-        mock_scaled_img.assert_called_once_with(self.img.path, self.w, self.h)
-
-    def test_args_QImage_to_QByteArray_called_with(self):
-        qimage = 'image'
-        with mock.patch(self.DIM, return_value=(self.w, self.h)):
-            with mock.patch(self.IMG, return_value=qimage):
-                with mock.patch(self.BA) as mock_ba:
-                    processing.thumbnail(self.img, self.size)
-
-        mock_ba.assert_called_once_with(qimage, 'PNG')
-
-    def test_return_QImage_to_QByteArray_result(self):
-        ba_image = 'QByteArray_image'
-        with mock.patch(self.DIM, return_value=(self.w, self.h)):
-            with mock.patch(self.IMG):
-                with mock.patch(self.BA, return_value=ba_image):
-                    res = processing.thumbnail(self.img, self.size)
-
-        self.assertEqual(res, ba_image)
-
-    def test_log_error_if_raise_OSError(self):
-        with mock.patch(self.DIM, side_effect=OSError):
-            with self.assertLogs('main.processing', 'ERROR'):
-                processing.thumbnail(self.img, self.size)
-
-    def test_log_error_if_raise_ThumbnailError(self):
-        with mock.patch(self.DIM, return_value=(self.w, self.h)):
-            with mock.patch(self.IMG, side_effect=exception.ThumbnailError):
-                with self.assertLogs('main.processing', 'ERROR'):
-                    processing.thumbnail(self.img, self.size)
-
-    def test_return_None_if_raise_OSError(self):
-        with mock.patch(self.DIM, side_effect=OSError):
-            res = processing.thumbnail(self.img, self.size)
-
-        self.assertIsNone(res)
-
-    def test_return_None_if_raise_ThumbnailError(self):
-        with mock.patch(self.DIM, return_value=(self.w, self.h)):
-            with mock.patch(self.IMG, side_effect=exception.ThumbnailError):
-                res = processing.thumbnail(self.img, self.size)
-
-        self.assertIsNone(res)
-
-class TestFuncScalingDimensionsFunc(TestCase):
-
-    def setUp(self):
-        self.mock_image = mock.Mock()
-
-    def test_return_if_pass_square_image(self):
-        self.mock_image.width = 5
-        self.mock_image.height = 5
-        new_size = processing._scaling_dimensions(self.mock_image, 10)
-
-        self.assertEqual(new_size[0], 10)
-        self.assertEqual(new_size[1], 10)
-
-    def test_return_if_pass_portrait_image(self):
-        self.mock_image.width = 1
-        self.mock_image.height = 5
-        new_size = processing._scaling_dimensions(self.mock_image, 10)
-
-        self.assertEqual(new_size[0], 2)
-        self.assertEqual(new_size[1], 10)
-
-    def test_return_if_pass_landscape_image(self):
-        self.mock_image.width = 5
-        self.mock_image.height = 1
-        new_size = processing._scaling_dimensions(self.mock_image, 10)
-
-        self.assertEqual(new_size[0], 10)
-        self.assertEqual(new_size[1], 2)
-
-
-class TestFuncScaledImageFunc(TestCase):
-
-    def setUp(self):
-        self.path = 'path'
-        self.width = 1
-        self.height = 2
-
-        self.QIR = 'PyQt5.QtGui.QImageReader'
-        self.reader = mock.Mock()
-        self.reader.canRead.return_value = True
-        self.image = mock.Mock()
-        self.image.isNull.return_value = False
-        self.reader.read.return_value = self.image
-
-    def test_QImageReader_called_with_path_arg(self):
-        with mock.patch(self.QIR, return_value=self.reader) as mock_QIR:
-            processing._scaled_image(self.path, self.width, self.height)
-
-        mock_QIR.assert_called_once_with(self.path)
-
-    def test_format_from_content(self):
-        from_content = self.reader.setDecideFormatFromContent
-        with mock.patch(self.QIR, return_value=self.reader):
-            processing._scaled_image(self.path, self.width, self.height)
-
-        from_content.assert_called_once_with(True)
-
-    def test_scaling_size_set(self):
-        with mock.patch(self.QIR, return_value=self.reader):
-            processing._scaled_image(self.path, self.width, self.height)
-
-        self.reader.setScaledSize.assert_called_once()
-
-    def test_raise_ThumbnailError_if_canRead_False(self):
-        self.reader.canRead.return_value = False
-        with mock.patch(self.QIR, return_value=self.reader):
-            with self.assertRaises(exception.ThumbnailError):
-                processing._scaled_image(self.path, self.width, self.height)
-
-    def test_return_image_if_isNull_False(self):
-        with mock.patch(self.QIR, return_value=self.reader):
-            res = processing._scaled_image(self.path, self.width, self.height)
-
-        self.assertEqual(res, self.image)
-
-    def test_raise_ThumbnailError_if_isNull_True(self):
-        self.image.isNull.return_value = True
-        with mock.patch(self.QIR, return_value=self.reader):
-            with self.assertRaises(exception.ThumbnailError):
-                processing._scaled_image(self.path, self.width, self.height)
-
-
-class TestFuncQImageToQByteArrayFunc(TestCase):
-
-    def setUp(self):
-        self.img = mock.Mock()
-        self.ba = mock.Mock()
-        self.buf = mock.Mock()
-        self.buf.open.return_value = True
-        self.img.save.return_value = True
-
-        self.BUF = 'PyQt5.QtCore.QBuffer'
-        self.BA = 'PyQt5.QtCore.QByteArray'
-
-    def test_QBuffer_called_with_QByteArray_arg(self):
-        with mock.patch(self.BA, return_value=self.ba):
-            with mock.patch(self.BUF, return_value=self.buf) as mock_buf:
-                processing._QImage_to_QByteArray(self.img, 'PNG')
-
-        mock_buf.assert_called_once_with(self.ba)
-
-    def test_QBuffer_open_called_with_WriteOnly(self):
-        with mock.patch(self.BA, return_value=self.ba):
-            with mock.patch(self.BUF, return_value=self.buf):
-                processing._QImage_to_QByteArray(self.img, 'PNG')
-
-        self.buf.open.assert_called_once_with(QtCore.QIODevice.WriteOnly)
-
-    def test_raise_ThumbnailError_if_QByteArray_open_return_False(self):
-        self.buf.open.return_value = False
-        with mock.patch(self.BA, return_value=self.ba):
-            with mock.patch(self.BUF, return_value=self.buf):
-                with self.assertRaises(exception.ThumbnailError):
-                    processing._QImage_to_QByteArray(self.img, 'PNG')
-
-    def test_args_QImage_save_called_with(self):
-        with mock.patch(self.BA, return_value=self.ba):
-            with mock.patch(self.BUF, return_value=self.buf):
-                processing._QImage_to_QByteArray(self.img, 'PNG')
-
-        self.img.save.assert_called_once_with(self.buf, 'PNG', 100)
-
-    def test_raise_ThumbnailError_if_QImage_save_return_False(self):
-        self.img.save.return_value = False
-        with mock.patch(self.BA, return_value=self.ba):
-            with mock.patch(self.BUF, return_value=self.buf):
-                with self.assertRaises(exception.ThumbnailError):
-                    processing._QImage_to_QByteArray(self.img, 'PNG')
-
-    def test_QBuffer_closed(self):
-        with mock.patch(self.BA, return_value=self.ba):
-            with mock.patch(self.BUF, return_value=self.buf):
-                processing._QImage_to_QByteArray(self.img, 'PNG')
-
-        self.buf.close.assert_called_once_with()
-
-    def test_return_iamge_in_QByteArray_format(self):
-        with mock.patch(self.BA, return_value=self.ba):
-            with mock.patch(self.BUF, return_value=self.buf):
-                res = processing._QImage_to_QByteArray(self.img, 'PNG')
-
-        self.assertEqual(res, self.ba)
-
-
-class TestFuncSimilarityRate(TestCase):
-
-    def setUp(self):
-        self.img_group = [[mock.Mock()]]
-        self.img = self.img_group[0][0]
-
-    def test_similarity_rate_100(self):
-        self.img.difference = 0
-        processing.similarity_rate(self.img_group)
-
-        self.assertEqual(self.img.difference, 100)
-
-    def test_similarity_rate_0(self):
-        self.img.difference = 128
-        processing.similarity_rate(self.img_group)
-
-        self.assertEqual(self.img.difference, 0)
-
-    def test_similarity_rate(self):
-        self.img.difference = 64
-        processing.similarity_rate(self.img_group)
-
-        self.assertEqual(self.img.difference, 50)
 
 
 class TestClassImageProcessing(TestCase):
@@ -665,7 +425,39 @@ class TestMethodMakeThumbnails(TestClassImageProcessing):
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
             self.proc._make_thumbnails(self.img_groups)
 
-        self.assertEqual(self.img_groups[0][0].thumbnail, self.thumbnails[0])
+        self.assertEqual(self.img_groups[0][0].thumb, self.thumbnails[0])
+
+
+class TestMethodThumbnailArgsUnpacker(TestClassImageProcessing):
+
+    def setUp(self):
+        super().setUp()
+
+        self.mock_image = mock.Mock()
+        self.size = 333
+
+    def test_Image_thumbnail_called_with_size_arg(self):
+        self.proc._thumbnail_args_unpacker((self.mock_image, self.size))
+
+        self.mock_image.thumbnail.assert_called_once_with(self.size)
+
+    def test_return_Image_thumbnail_result(self):
+        thumbnail = 'thumbnail'
+        self.mock_image.thumbnail.return_value = thumbnail
+        res = self.proc._thumbnail_args_unpacker((self.mock_image, self.size))
+
+        self.assertEqual(res, thumbnail)
+
+    def test_log_if_Image_thumbnail_raise_OSError(self):
+        self.mock_image.thumbnail.side_effect = OSError
+        with self.assertLogs('main.processing', 'ERROR'):
+            self.proc._thumbnail_args_unpacker((self.mock_image, self.size))
+
+    def test_return_None_if_Image_thumbnail_raise_OSError(self):
+        self.mock_image.thumbnail.side_effect = OSError
+        res = self.proc._thumbnail_args_unpacker((self.mock_image, self.size))
+
+        self.assertIsNone(res)
 
 
 class TestMethodUpdateProgressBar(TestClassImageProcessing):

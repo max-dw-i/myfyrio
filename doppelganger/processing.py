@@ -22,85 +22,14 @@ from multiprocessing import Pool
 from typing import (Any, Callable, Collection, Iterable, List, Optional, Set,
                     Tuple)
 
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore
 
 from doppelganger import config, core, signals
-from doppelganger.exception import InterruptProcessing, ThumbnailError
+from doppelganger.exception import InterruptProcessing
 from doppelganger.logger import Logger
 from doppelganger.cache import Cache
 
 logger = Logger.getLogger('processing')
-
-def thumbnail(image: core.Image, size: int) -> Optional[QtCore.QByteArray]:
-    '''Make thumbnail of :image:
-
-    :param image: image whose thumbnail is returned,
-    :param size: the biggest dimension of the image after being scaled,
-    :return: "QByteArray" object or None if there's any problem
-    '''
-
-    try:
-        width, height = _scaling_dimensions(image, size)
-        qimg = _scaled_image(image.path, width, height)
-        ba_img = _QImage_to_QByteArray(qimg, image.suffix[1:].upper())
-    except (OSError, ThumbnailError) as e:
-        logger.error(e)
-        return None
-
-    return ba_img
-
-def _scaling_dimensions(image: core.Image, size: int) -> Tuple[int, int]:
-    width, height = image.width, image.height
-    biggest_dim = width if width >= height else height
-    new_width, new_height = (width * size // biggest_dim,
-                             height * size // biggest_dim)
-    return new_width, new_height
-
-def _scaled_image(path: core.ImagePath, width: int,
-                  height: int) -> QtGui.QImage:
-    reader = QtGui.QImageReader(path)
-    reader.setDecideFormatFromContent(True)
-    reader.setScaledSize(QtCore.QSize(width, height))
-
-    if not reader.canRead():
-        raise ThumbnailError(f'{path} cannot be read')
-
-    img = reader.read()
-
-    if img.isNull():
-        e = reader.errorString()
-        raise ThumbnailError(e)
-    return img
-
-def _QImage_to_QByteArray(image: QtGui.QImage, suffix: str) \
-    -> Optional[QtCore.QByteArray]:
-    ba = QtCore.QByteArray()
-    buf = QtCore.QBuffer(ba)
-
-    if not buf.open(QtCore.QIODevice.WriteOnly):
-        raise ThumbnailError('Something went wrong while opening buffer')
-
-    if not image.save(buf, suffix, 100):
-        raise ThumbnailError('Something went wrong while saving image '
-                             'into buffer')
-
-    buf.close()
-    return ba
-
-def similarity_rate(image_groups: List[core.Group]):
-    '''To compare images, hamming distance between their
-    hashes is found (difference). It is easier for a user
-    to compare similarities'''
-
-    for group in image_groups:
-        for image in group:
-            diff = image.difference
-            if diff:
-                # hash is a 128-bit vector
-                image.difference = int((1 - diff / 128) * 100)
-                # if difference == 0, then similarity == 100
-            else:
-                image.difference = 100
 
 
 class Worker(QtCore.QRunnable):
@@ -170,8 +99,6 @@ class ImageProcessing:
             for group in image_groups:
                 s = core.Sort(group)
                 s.sort(sort_type)
-
-            similarity_rate(image_groups)
 
             image_groups = self._make_thumbnails(image_groups)
 
@@ -327,14 +254,22 @@ class ImageProcessing:
                                           + progress_step)
 
         for (image, _), th in zip(flat, thumbnails):
-            image.thumbnail = th
+            image.thumb = th
 
         return image_groups
 
     @staticmethod
-    def _thumbnail_args_unpacker(image: Tuple[core.Image, int]) \
-        -> Optional[QtCore.QByteArray]:
-        return thumbnail(image[0], image[1])
+    def _thumbnail_args_unpacker(thumbnail_args: Tuple[core.Image, int]) \
+        -> QtCore.QByteArray:
+        image, size = thumbnail_args[0], thumbnail_args[1]
+
+        try:
+            th = image.thumbnail(size)
+        except OSError as e:
+            logger.error(e)
+            th = None
+
+        return th
 
     def _is_interrupted(self) -> None:
         self.interrupt = True

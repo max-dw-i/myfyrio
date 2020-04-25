@@ -32,6 +32,7 @@ import dhash as dhashlib
 import pybktree
 from PIL import Image as PILImage
 from PIL import ImageFile
+from PyQt5 import QtCore, QtGui
 
 # Crazy hack not to get error 'IOError: image file is truncated...'
 ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -196,11 +197,11 @@ class Image:
         # Difference between the hash of the image
         # and the hash of the 1st image in the group
         self.difference = 0
-        self.thumbnail = None
-        self.suffix: Suffix = Path(path).suffix # '.jpg', '.png', etc.
+        self.thumb = None
         self.size: FileSize = None
         self._width: Width = None
         self._height: Height = None
+        self._suffix: Suffix = None
 
     def calculate_dhash(self) -> Hash:
         '''Return perceptual hash of the image and assign it
@@ -220,8 +221,9 @@ class Image:
         return self.dhash
 
     def dhash_parallel(self) -> Image:
-        '''Calculate hash and return "Image" object itself.
-        It is used with library "multiprocessing"
+        '''Calculate hash and return "Image" object itself with
+        the hash assigned to attribute "dhash". It is used with
+        library "multiprocessing"
 
         :return: "Image" object (self)
         '''
@@ -237,6 +239,84 @@ class Image:
         '''
 
         return dhashlib.get_num_bits_different(self.dhash, image.dhash)
+
+    def similarity(self) -> int:
+        '''To compare images, hamming distance between their
+        hashes is found (difference). It is easier for a user
+        to see how similar the images are
+
+        :return: similarity rate (in %)
+        '''
+
+        diff = self.difference
+
+        if diff == 0:
+            # if difference == 0, then similarity == 100
+            return 100
+        # hash is a 128-bit vector
+        return int((1 - diff / 128) * 100)
+
+    def thumbnail(self, size: int) -> QtCore.QByteArray:
+        '''Make image thumbnail, assign it to attribute "thumb"
+        and return it
+
+        :param size: the biggest dimension (width or height) of
+                     the image after having been scaled,
+        :return: thumbnail as "QByteArray" object,
+        :raise OSError: something went wrong while making thumbnail
+        '''
+
+        width, height = self._scaling_dimensions(size)
+        qimg = self.scaled(width, height)
+        self.thumb = self._QImage_to_QByteArray(qimg, self.suffix.upper())
+
+        return self.thumb
+
+    def _scaling_dimensions(self, size: int) -> Tuple[Width, Height]:
+        width, height = self.width, self.height
+        biggest_dim = width if width >= height else height
+        new_width, new_height = (width * size // biggest_dim,
+                                 height * size // biggest_dim)
+        return new_width, new_height
+
+    def scaled(self, width: Width, height: Height) -> QtGui.QImage:
+        '''Scale image and return it
+
+        :param width: width of the scaled image,
+        :param height: height of the scaled image,
+        :return: scaled image as "QImage" object,
+        :raise OSError: image cannot be read
+        '''
+
+        path = self.path
+        reader = QtGui.QImageReader(path)
+        reader.setScaledSize(QtCore.QSize(width, height))
+
+        if not reader.canRead():
+            raise OSError(f'{path} cannot be read')
+
+        img = reader.read()
+
+        if img.isNull():
+            e = reader.errorString()
+            raise OSError(e)
+        return img
+
+    @staticmethod
+    def _QImage_to_QByteArray(image: QtGui.QImage, suffix: str) \
+        -> Optional[QtCore.QByteArray]:
+        ba = QtCore.QByteArray()
+        buf = QtCore.QBuffer(ba)
+
+        if not buf.open(QtCore.QIODevice.WriteOnly):
+            raise OSError('Something went wrong while opening buffer')
+
+        if not image.save(buf, suffix, 100):
+            raise OSError('Something went wrong while saving image '
+                          'into buffer')
+
+        buf.close()
+        return ba
 
     def _set_dimensions(self) -> None:
         try:
@@ -293,6 +373,17 @@ class Image:
 
         formatted_size = round(self.size / size_format.value, 1)
         return formatted_size
+
+    @property
+    def suffix(self) -> Suffix:
+        '''Return image suffix (format)
+
+        :return: image suffix (e.g. 'jpg', 'png', etc.)
+        '''
+
+        if self._suffix is None:
+            self._suffix = Path(self.path).suffix[1:]
+        return self._suffix
 
     def delete(self) -> None:
         '''Delete the image from the disk
@@ -366,7 +457,7 @@ ImagePath = FilePath # Path to an image
 Hash = int # Perceptual hash of an image
 Distance = int # Distance between 2 hashes
 Sensitivity = int # Max 'Distance' when images are considered similar
-Suffix = str # '.jpg', '.png', etc. (with a dot)
+Suffix = str # 'jpg', 'png', etc.
 Width = int # Width of a image
 Height = int # Height of a image
 FileSize = Union[int, float] # Size of a file

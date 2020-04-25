@@ -120,7 +120,8 @@ class ImageInfoWidget(QtWidgets.QWidget):
             self._setImagePathLabel()
 
     def _setSimilarityLabel(self) -> None:
-        self.similarityLabel = SimilarityLabel(f'{self.image.difference}%',
+        similarity = self.image.similarity()
+        self.similarityLabel = SimilarityLabel(f'{similarity}%',
                                                self.conf['size'], self)
         self.layout.addWidget(self.similarityLabel)
 
@@ -247,7 +248,7 @@ class DuplicateWidget(QtWidgets.QWidget):
     def render(self) -> None:
         '''Create and render "ThumbnailWidget" and "ImageInfoWidget"'''
 
-        self.imageLabel = ThumbnailWidget(self.image.thumbnail,
+        self.imageLabel = ThumbnailWidget(self.image.thumb,
                                           self.conf['size'], self)
         self.layout.addWidget(self.imageLabel)
         self.imageLabel.render()
