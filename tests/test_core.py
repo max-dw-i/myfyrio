@@ -563,38 +563,26 @@ class TestMethodQImageToQByteArrayFunc(TestClassImage):
 
 class TestMethodSetDimensions(TestClassImage):
 
-    def setUp(self):
-        super().setUp()
-
-        self.width = 333
-        self.height = 444
-        self.mock_img = mock.Mock()
-        self.mock_img.size = (self.width, self.height)
-
-    def test_pil_open_called_with_image_path(self):
-        with mock.patch(CORE + 'PILImage.open',
-                        return_value=self.mock_img) as mock_pil:
+    def test_QImageReader_called_with_path_arg(self):
+        with mock.patch('PyQt5.QtGui.QImageReader') as mock_qimg_reader:
             self.image._set_dimensions()
 
-        mock_pil.assert_called_once_with(self.image.path)
+        mock_qimg_reader.assert_called_once_with(self.image.path)
 
-    def test_raise_OSError_if_pil_open_raise_OSError(self):
-        with mock.patch(CORE + 'PILImage.open', side_effect=OSError):
-            with self.assertRaises(OSError):
-                self.image._set_dimensions()
+    def test_width_and_height_assigned_to_proper_attrs(self):
+        width = 333
+        height = 444
+        mock_qimg = mock.Mock()
+        mock_qsize = mock.Mock()
+        mock_qimg.size.return_value = mock_qsize
+        mock_qsize.width.return_value = width
+        mock_qsize.height.return_value = height
 
-    def test_dims_assigned_to_image_attrs(self):
-        with mock.patch(CORE + 'PILImage.open', return_value=self.mock_img):
+        with mock.patch('PyQt5.QtGui.QImageReader', return_value=mock_qimg):
             self.image._set_dimensions()
 
-        self.assertEqual(self.image._width, self.width)
-        self.assertEqual(self.image._height, self.height)
-
-    def test_close_called_on_opened_image(self):
-        with mock.patch(CORE + 'PILImage.open', return_value=self.mock_img):
-            self.image._set_dimensions()
-
-        self.mock_img.close.assert_called_once_with()
+        self.assertEqual(self.image._width, width)
+        self.assertEqual(self.image._height, height)
 
 
 class TestPropertyWidth(TestClassImage):

@@ -55,12 +55,8 @@ from typing import (Collection, Dict, Generator, Iterable, List, Optional,
                     Tuple, Union)
 
 import pybktree
-from PIL import Image as PILImage
-from PIL import ImageFile
 from PyQt5 import QtCore, QtGui
 
-# Crazy hack not to get error 'IOError: image file is truncated...'
-ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 def find_image(folders: Iterable[FolderPath],
                recursive: bool = True) -> Generator[Image, None, None]:
@@ -364,20 +360,15 @@ class Image:
         return ba
 
     def _set_dimensions(self) -> None:
-        try:
-            image = PILImage.open(self.path)
-        except OSError:
-            raise OSError(f'Cannot get the dimensions of {self.path}')
-        else:
-            self._width, self._height = image.size
-            image.close()
+        image = QtGui.QImageReader(self.path)
+        size = image.size()
+        self._width, self._height = size.width(), size.height()
 
     @property
     def width(self) -> Width:
         '''Return width of the image
 
-        :return: width,
-        :raise OSError: problem with opening the image
+        :return: width
         '''
 
         if self._width is None:
@@ -388,8 +379,7 @@ class Image:
     def height(self) -> Width:
         '''Return height of the image
 
-        :return: height,
-        :raise OSError: problem with opening the image
+        :return: height
         '''
 
         if self._height is None:

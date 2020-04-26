@@ -1,3 +1,2 @@
 PyQt5==5.12.2
-pillow==6.1.0
 pybktree==1.1
