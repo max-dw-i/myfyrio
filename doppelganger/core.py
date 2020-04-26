@@ -15,6 +15,32 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
+
+This file incorporates work covered by the following copyright and
+permission notice:
+
+    MIT License
+
+    Copyright (c) 2016 Jetsetter
+
+    Permission is hereby granted, free of charge, to any person obtaining a
+    copy of this software and associated documentation files (the "Software"),
+    to deal in the Software without restriction, including without limitation
+    the rights to use, copy, modify, merge, publish, distribute, sublicense,
+    and/or sell copies of the Software, and to permit persons to whom
+    the Software is furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in
+    all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+    DEALINGS IN THE SOFTWARE.
+
 -------------------------------------------------------------------------------
 
 This module provides core functions for processing images and find duplicates
@@ -28,7 +54,6 @@ from pathlib import Path
 from typing import (Collection, Dict, Generator, Iterable, List, Optional,
                     Tuple, Union)
 
-import dhash as dhashlib
 import pybktree
 from PIL import Image as PILImage
 from PIL import ImageFile
@@ -207,18 +232,38 @@ class Image:
         '''Return perceptual hash of the image and assign it
         to attribute "dhash"
 
-        :return: perceptual hash or -1 if the hash
-                 cannot be calculated
+        :return: perceptual hash or -1 if the hash cannot be calculated
         '''
 
+        SIZE = 8 # Hash-vector size is 2 * (SIZE ** 2)
+
         try:
-            image = PILImage.open(self.path)
+            qimg = self.scaled(SIZE+1, SIZE+1)
         except OSError:
             self.dhash = -1
         else:
-            self.dhash = dhashlib.dhash_int(image)
-            image.close()
+            grey = qimg.convertToFormat(QtGui.QImage.Format_Grayscale8)
+            self.dhash = self._form_hash(grey, SIZE)
+
         return self.dhash
+
+    @staticmethod
+    def _form_hash(image: QtGui.QImage, size: int) -> Hash:
+        # Code is taken from library "dhash" except the "PyQt" parts
+        row_hash, col_hash = 0, 0
+        for y in range(size):
+            for x in range(size):
+                current_pixel = QtGui.qGray(image.pixel(x, y))
+                right_pixel = QtGui.qGray(image.pixel(x+1, y))
+                down_pixel = QtGui.qGray(image.pixel(x, y+1))
+
+                row_bit = current_pixel < right_pixel
+                row_hash = row_hash << 1 | row_bit
+
+                col_bit = current_pixel < down_pixel
+                col_hash = col_hash << 1 | col_bit
+
+        return row_hash << (size * size) | col_hash
 
     def dhash_parallel(self) -> Image:
         '''Calculate hash and return "Image" object itself with
@@ -238,7 +283,7 @@ class Image:
         :return: Hamming distance
         '''
 
-        return dhashlib.get_num_bits_different(self.dhash, image.dhash)
+        return bin(self.dhash ^ image.dhash).count('1')
 
     def similarity(self) -> int:
         '''To compare images, hamming distance between their

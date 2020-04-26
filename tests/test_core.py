@@ -18,7 +18,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 from unittest import TestCase, mock
 
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui
 
 from doppelganger import core
 
@@ -295,45 +295,54 @@ class TestMethodCalculateDhash(TestClassImage):
     def setUp(self):
         super().setUp()
 
-        self.mock_PILimage = mock.Mock()
+        self.mock_Qimage = mock.Mock()
 
-    def test_assign_to_attr_dhash_if_open_raise_OSError(self):
-        with mock.patch(CORE+'PILImage.open', side_effect=OSError):
+    def test_Image_scaled_called_with_size_9(self):
+        with mock.patch(CORE+'Image.scaled') as mock_scaled:
+            with mock.patch(CORE+'Image._form_hash'):
+                self.image.calculate_dhash()
+
+        mock_scaled.assert_called_once_with(9, 9)
+
+    def test_scaled_img_converted_to_greyscale(self):
+        with mock.patch(CORE+'Image.scaled', return_value=self.mock_Qimage):
+            with mock.patch(CORE+'Image._form_hash'):
+                self.image.calculate_dhash()
+
+        self.mock_Qimage.convertToFormat.assert_called_once_with(
+            QtGui.QImage.Format_Grayscale8
+        )
+
+    def test_form_hash_called_with_grey_img_and_size_8(self):
+        self.mock_Qimage.convertToFormat.return_value = 'grey_img'
+        with mock.patch(CORE+'Image.scaled', return_value=self.mock_Qimage):
+            with mock.patch(CORE+'Image._form_hash') as mock_hash:
+                self.image.calculate_dhash()
+
+        mock_hash.assert_called_once_with('grey_img', 8)
+
+    def test_form_hash_result_assigned_to_attr_dhash(self):
+        with mock.patch(CORE+'Image.scaled', return_value=self.mock_Qimage):
+            with mock.patch(CORE+'Image._form_hash', return_value='hash'):
+                self.image.calculate_dhash()
+
+        self.assertEqual(self.image.dhash, 'hash')
+
+    def test_return_attr_dhash(self):
+        with mock.patch(CORE+'Image.scaled', return_value=self.mock_Qimage):
+            with mock.patch(CORE+'Image._form_hash', return_value='hash'):
+                res = self.image.calculate_dhash()
+
+        self.assertEqual(res, self.image.dhash)
+
+    def test_assign_minus_1_to_attr_dhash_if_Image_scaled_raise_OSError(self):
+        with mock.patch(CORE+'Image.scaled', side_effect=OSError):
             self.image.calculate_dhash()
 
         self.assertEqual(self.image.dhash, -1)
 
-    @mock.patch('dhash.dhash_int')
-    def test_PILImage_open_called_with_Image_path(self, mock_hash):
-        with mock.patch(CORE+'PILImage.open') as mock_open:
-            self.image.calculate_dhash()
-
-        mock_open.assert_called_once_with(self.image.path)
-
-    @mock.patch('dhash.dhash_int')
-    def test_dhash_int_called_with_pil_open_return(self, mock_hash):
-        with mock.patch(CORE+'PILImage.open', return_value=self.mock_PILimage):
-            self.image.calculate_dhash()
-
-        mock_hash.assert_called_once_with(self.mock_PILimage)
-
-    @mock.patch('dhash.dhash_int')
-    def test_image_closed(self, mock_hash):
-        with mock.patch(CORE+'PILImage.open', return_value=self.mock_PILimage):
-            self.image.calculate_dhash()
-
-        self.mock_PILimage.close.assert_called_once_with()
-
-    @mock.patch('dhash.dhash_int', return_value='hash')
-    def test_assign_found_dhash_to_attr_dhash(self, mock_hash):
-        with mock.patch(CORE+'PILImage.open'):
-            self.image.calculate_dhash()
-
-        self.assertEqual(self.image.dhash, 'hash')
-
-    @mock.patch('dhash.dhash_int', return_value='hash')
-    def test_return_attr_dhash(self, mock_hash):
-        with mock.patch(CORE+'PILImage.open'):
+    def test_return_attr_dhash_if_Image_scaled_raise_OSError(self):
+        with mock.patch(CORE+'Image.scaled', side_effect=OSError):
             res = self.image.calculate_dhash()
 
         self.assertEqual(res, self.image.dhash)
@@ -685,7 +694,7 @@ class TestPropertySuffix(TestClassImage):
 
     def test_args_Path_called_with_if_attr_suffix_is_None(self):
         with mock.patch(CORE+'Path') as mock_Path:
-            self.image.suffix
+            self.image.suffix # pylint: disable=pointless-statement
 
         mock_Path.assert_called_once_with(self.image.path)
 
@@ -694,7 +703,7 @@ class TestPropertySuffix(TestClassImage):
         mock_Path = mock.Mock()
         mock_Path.suffix = dot_suffix
         with mock.patch(CORE+'Path', return_value=mock_Path):
-            self.image.suffix
+            self.image.suffix # pylint: disable=pointless-statement
 
         self.assertEqual(self.image.suffix, dot_suffix[1:])
 
