@@ -153,21 +153,3 @@ class TestProcessingGroupBox(TestCase):
         self.w.startProcessing()
 
         self.assertTrue(self.w.stopBtn.isEnabled())
-
-    def test_stopProcessing_enable_startBtn(self):
-        self.w.startBtn.setEnabled(False)
-        self.w.stopProcessing()
-
-        self.assertTrue(self.w.startBtn.isEnabled())
-
-    def test_stopProcessing_disable_stopBtn(self):
-        self.w.stopBtn.setEnabled(True)
-        self.w.stopProcessing()
-
-        self.assertFalse(self.w.stopBtn.isEnabled())
-
-    def test_stopProcessing_set_progress_bar_0(self):
-        self.w.processProg.setValue(13)
-        self.w.stopProcessing()
-
-        self.assertEqual(self.w.processProg.value(), 100)

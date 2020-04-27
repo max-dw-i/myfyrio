@@ -63,6 +63,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.threadpool = QtCore.QThreadPool()
 
         self.interrupted = False
+        self.processing_run = False
         self._setInterruptionMsgBox()
 
         self._setImageViewWidget()
@@ -169,7 +170,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.delFolderAction.setEnabled(False)
 
     def switchStartBtn(self) -> None:
-        if self.pathsGrp.pathsList.count():
+        if self.pathsGrp.pathsList.count() and not self.processing_run:
             self.processingGrp.startBtn.setEnabled(True)
         else:
             self.processingGrp.startBtn.setEnabled(False)
@@ -205,6 +206,7 @@ class MainWindow(QtWidgets.QMainWindow):
         return p
 
     def startProcessing(self) -> None:
+        self.processing_run = True
         self.imageViewWidget.clear()
         self.actionsGrp.autoSelectBtn.setEnabled(False)
         self.autoSelectAction.setEnabled(False)
@@ -217,11 +219,14 @@ class MainWindow(QtWidgets.QMainWindow):
     def stopProcessing(self) -> None:
         self.signals.interrupted.emit()
         self.interrupted = True
-        self.processingGrp.stopBtn.setEnabled(False)
         self.interruptionMsg.exec()
 
     def processingFinished(self) -> None:
-        self.processingGrp.stopProcessing()
+        self.processing_run = False
+        self.switchStartBtn()
+        self.processingGrp.stopBtn.setEnabled(False)
+        self.processingGrp.processProg.setValue(100)
+
         if self.imageViewWidget.widgets:
             self.actionsGrp.autoSelectBtn.setEnabled(True)
             self.autoSelectAction.setEnabled(True)

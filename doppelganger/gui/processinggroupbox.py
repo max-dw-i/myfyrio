@@ -65,10 +65,3 @@ class ProcessingGroupBox(QtWidgets.QGroupBox):
         self._clearWidget()
         self.startBtn.setEnabled(False)
         self.stopBtn.setEnabled(True)
-
-    def stopProcessing(self) -> None:
-        '''Prepare all the widgets after image processing'''
-
-        self.startBtn.setEnabled(True)
-        self.stopBtn.setEnabled(False)
-        self.processProg.setValue(100)

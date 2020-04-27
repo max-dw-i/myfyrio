@@ -58,6 +58,7 @@ class TestMainFormMethodInit(TestMainForm):
                          QtWidgets.QMessageBox.NoButton)
 
         self.assertFalse(self.w.interrupted)
+        self.assertFalse(self.w.processing_run)
 
 
 class TestMainFormMethodSwitchDelFolderAction(TestMainForm):
@@ -83,12 +84,21 @@ class TestMainFormMethodSwitchStartBtn(TestMainForm):
 
     PATCH_COUNT = 'PyQt5.QtWidgets.QListWidget.count'
 
-    def test_startBtn_enabled_if_there_are_paths(self):
+    def test_startBtn_enabled_if_there_are_paths_and_not_processing_run(self):
         self.w.processingGrp.startBtn.setEnabled(False)
+        self.w.processing_run = False
         with mock.patch(self.PATCH_COUNT, return_value=1):
             self.w.switchStartBtn()
 
         self.assertTrue(self.w.processingGrp.startBtn.isEnabled())
+
+    def test_startBtn_disabled_if_there_are_paths_and_processing_run(self):
+        self.w.processingGrp.startBtn.setEnabled(False)
+        self.w.processing_run = True
+        with mock.patch(self.PATCH_COUNT, return_value=1):
+            self.w.switchStartBtn()
+
+        self.assertFalse(self.w.processingGrp.startBtn.isEnabled())
 
     def test_startBtnn_disabled_if_there_are_no_paths(self):
         self.w.processingGrp.startBtn.setEnabled(True)
@@ -127,6 +137,13 @@ class TestMainFormMethodSetImageProcessingObj(TestMainForm):
 
 
 class TestMainFormMethodStartProcessing(TestMainForm):
+
+    @mock.patch('PyQt5.QtCore.QThreadPool.start')
+    def test_attr_processing_run_set_to_True(self, mock_pool):
+        self.w.processing_run = False
+        self.w.startProcessing()
+
+        self.assertTrue(self.w.processing_run)
 
     @mock.patch('PyQt5.QtCore.QThreadPool.start')
     def test_ImageViewWidget_clear_called(self, mock_pool):
@@ -176,11 +193,6 @@ class TestMainFormMethodStopProcessing(TestMainForm):
         self.w.stopProcessing()
 
         self.assertTrue(self.w.interrupted)
-
-    def test_stopBtn_disabled(self):
-        self.w.stopProcessing()
-
-        self.assertFalse(self.w.processingGrp.stopBtn.isEnabled())
 
     def test_show_msg_bos(self):
         self.w.stopProcessing()
@@ -438,67 +450,76 @@ class TestMainFormMethodRender(TestMainForm):
 
 class TestMainFormMethodProcessingFinished(TestMainForm):
 
-    PATCH_STOP = PROC_GRP_BOX + 'ProcessingGroupBox.stopProcessing'
+    def test_attr_processing_run_set_to_False(self):
+        self.w.processing_run = True
+        self.w.processingFinished()
 
-    def test_ProcessingGroupBox_stopProcessing_called(self):
-        with mock.patch(self.PATCH_STOP) as mock_stop_call:
+        self.assertFalse(self.w.processing_run)
+
+    def test_switchStartBtn_called(self):
+        with mock.patch(MAIN_WINDOW+'MainWindow.switchStartBtn') as mock_btn:
             self.w.processingFinished()
 
-        mock_stop_call.assert_called_once_with()
+        mock_btn.assert_called_once_with()
+
+    def test_stopBtn_disabled(self):
+        self.w.processingGrp.stopBtn.setEnabled(True)
+        self.w.processingFinished()
+
+        self.assertFalse(self.w.processingGrp.stopBtn.isEnabled())
+
+    def test_progressBar_set_to_100(self):
+        self.w.processingGrp.processProg.setValue(0)
+        self.w.processingFinished()
+
+        self.assertEqual(self.w.processingGrp.processProg.value(), 100)
 
     def test_autoSelectBtn_enabled_if_images_rendered(self):
         self.w.actionsGrp.autoSelectBtn.setEnabled(False)
         self.w.imageViewWidget.widgets = ['group_widget']
-        with mock.patch(self.PATCH_STOP):
-            self.w.processingFinished()
+        self.w.processingFinished()
 
         self.assertTrue(self.w.actionsGrp.autoSelectBtn.isEnabled())
 
     def test_autoselect_menu_action_enabled_if_images_rendered(self):
         self.w.autoSelectAction.setEnabled(False)
         self.w.imageViewWidget.widgets = ['group_widget']
-        with mock.patch(self.PATCH_STOP):
-            self.w.processingFinished()
+        self.w.processingFinished()
 
         self.assertTrue(self.w.autoSelectAction.isEnabled())
 
     def test_autoSelectBtn_disabled_if_images_not_rendered(self):
         self.w.actionsGrp.autoSelectBtn.setEnabled(False)
         self.w.imageViewWidget.widgets = []
-        with mock.patch(self.PATCH_STOP):
-            self.w.processingFinished()
+        self.w.processingFinished()
 
         self.assertFalse(self.w.actionsGrp.autoSelectBtn.isEnabled())
 
     def test_autoselect_menu_action_disabled_if_images_not_rendered(self):
         self.w.autoSelectAction.setEnabled(False)
         self.w.imageViewWidget.widgets = []
-        with mock.patch(self.PATCH_STOP):
-            self.w.processingFinished()
+        self.w.processingFinished()
 
         self.assertFalse(self.w.autoSelectAction.isEnabled())
 
     def test_change_interrupted_attr_to_False_if_it_is_True(self):
         self.w.interrupted = True
         self.w.interruptionMsg = mock.Mock()
-        with mock.patch(self.PATCH_STOP):
-            self.w.processingFinished()
+        self.w.processingFinished()
 
         self.assertFalse(self.w.interrupted)
 
     def test_interruptionMsg_box_text_changed_if_interrupted_attr_True(self):
         self.w.interrupted = True
         self.w.interruptionMsg = mock.Mock()
-        with mock.patch(self.PATCH_STOP):
-            self.w.processingFinished()
+        self.w.processingFinished()
 
         self.w.interruptionMsg.setText.assert_called_once()
 
     def test_Ok_btn_set_on_interruptionMsg_box_if_interrupted_attr_True(self):
         self.w.interrupted = True
         self.w.interruptionMsg = mock.Mock()
-        with mock.patch(self.PATCH_STOP):
-            self.w.processingFinished()
+        self.w.processingFinished()
 
         self.w.interruptionMsg.setStandardButtons.assert_called_once_with(
             QtWidgets.QMessageBox.Ok
@@ -506,23 +527,20 @@ class TestMainFormMethodProcessingFinished(TestMainForm):
 
     def test_interrupted_attr_stay_False_if_it_is_False(self):
         self.w.interrupted = False
-        with mock.patch(self.PATCH_STOP):
-            self.w.processingFinished()
+        self.w.processingFinished()
 
         self.assertFalse(self.w.interrupted)
 
     def test_interruptionMsg_box_setText_not_called_if_interrupted_False(self):
         self.w.interrupted = False
         self.w.interruptionMsg = mock.Mock()
-        with mock.patch(self.PATCH_STOP):
-            self.w.processingFinished()
+        self.w.processingFinished()
 
         self.w.interruptionMsg.setText.assert_not_called()
 
     def test_Ok_btn_not_set_on_interruptionMsg_box_if_interrupted_False(self):
         self.w.interrupted = False
         self.w.interruptionMsg = mock.Mock()
-        with mock.patch(self.PATCH_STOP):
-            self.w.processingFinished()
+        self.w.processingFinished()
 
         self.w.interruptionMsg.setStandardButtons.assert_not_called()
