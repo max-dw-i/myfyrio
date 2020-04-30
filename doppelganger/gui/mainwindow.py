@@ -21,7 +21,6 @@ Module implementing window "Main"
 '''
 
 import webbrowser
-from typing import Iterable
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
@@ -30,7 +29,7 @@ from doppelganger.gui import (actionsgroupbox, imageviewwidget, pathsgroupbox,
                               processinggroupbox, sensitivitygroupbox)
 from doppelganger.gui.aboutwindow import AboutWindow
 from doppelganger.gui.preferenceswindow import PreferencesWindow
-from doppelganger.resources.manager import Image, UI, resource
+from doppelganger.resources.manager import UI, Image, resource
 
 
 def errorMessage(msg: str) -> None:
@@ -289,13 +288,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.imageViewWidget.move(new_dst)
             self.switchImgActionsAndBtns()
 
-    def render(self, image_groups: Iterable[core.Group]) -> None:
-        if image_groups:
-            self.imageViewWidget.render(image_groups)
+    def render(self, image_group: core.Group) -> None:
+        if image_group:
+            self.imageViewWidget.render(image_group)
 
-            for group_w in self.imageViewWidget.widgets:
-                for dup_w in group_w.widgets:
-                    dup_w.signals.clicked.connect(self.switchImgActionsAndBtns)
+            for dup_w in self.imageViewWidget.widgets[-1].widgets:
+                dup_w.signals.clicked.connect(self.switchImgActionsAndBtns)
         else:
             msg_box = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Information,

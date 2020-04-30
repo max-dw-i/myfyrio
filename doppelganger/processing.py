@@ -19,15 +19,14 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 import pathlib
 import sys
 from multiprocessing import Pool
-from typing import (Any, Callable, Collection, Iterable, List, Optional, Set,
-                    Tuple)
+from typing import Any, Callable, Collection, Iterable, List, Set, Tuple
 
 from PyQt5 import QtCore
 
 from doppelganger import config, core, signals
+from doppelganger.cache import Cache
 from doppelganger.exception import InterruptProcessing
 from doppelganger.logger import Logger
-from doppelganger.cache import Cache
 
 logger = Logger.getLogger('processing')
 
@@ -84,6 +83,10 @@ class ImageProcessing:
 
         try:
             images = self._find_images()
+            if not images:
+                self.signals.result.emit([])
+                return
+
             cache = self._load_cache()
             cached, not_cached = self._check_cache(images, cache)
 
@@ -94,15 +97,16 @@ class ImageProcessing:
                 cached.extend(calculated)
 
             image_groups = self._image_grouping(cached)
+            if not image_groups:
+                self.signals.result.emit([])
+                return
 
             sort_type = self.conf['sort']
             for group in image_groups:
                 s = core.Sort(group)
                 s.sort(sort_type)
 
-            image_groups = self._make_thumbnails(image_groups)
-
-            self.signals.result.emit(image_groups)
+            self._make_thumbnails(image_groups)
         except InterruptProcessing:
             logger.info('Image processing has been interrupted '
                         'by the user')
@@ -191,9 +195,6 @@ class ImageProcessing:
         -> List[core.Image]:
         hashed_images: List[core.Image] = []
 
-        if not images:
-            return hashed_images
-
         progress_step = 35 / len(images)
 
         with Pool() as p:
@@ -229,17 +230,13 @@ class ImageProcessing:
 
         return image_groups
 
-    def _make_thumbnails(self, image_groups: List[core.Group]) \
-        -> List[core.Group]:
-        thumbnails: List[Optional[QtCore.QByteArray]] = []
-        if not image_groups:
-            return thumbnails
-
+    def _make_thumbnails(self, image_groups: List[core.Group]) -> None:
         # 'Flat' list is processed better in parallel
-        flat = [(image, self.conf['size'])
-                for group in image_groups for image in group]
+        size = self.conf['size']
+        flat = [(image, size) for group in image_groups for image in group]
 
         progress_step = 35 / len(flat)
+        group_index, img_index = 0, 0
 
         with Pool() as p:
             thumbnails_gen = p.imap(self._thumbnail_args_unpacker, flat)
@@ -247,16 +244,18 @@ class ImageProcessing:
                 if self.interrupt:
                     raise InterruptProcessing
 
-                thumbnails.append(th)
+                image_groups[group_index][img_index].thumb = th
+                if len(image_groups[group_index]) == img_index + 1:
+                    self.signals.result.emit(image_groups[group_index])
+
+                    group_index += 1
+                    img_index = 0
+                else:
+                    img_index += 1
 
                 self.signals.update_info.emit('thumbnails', str(i + 1))
                 self._update_progress_bar(self.progress_bar_value
                                           + progress_step)
-
-        for (image, _), th in zip(flat, thumbnails):
-            image.thumb = th
-
-        return image_groups
 
     @staticmethod
     def _thumbnail_args_unpacker(thumbnail_args: Tuple[core.Image, int]) \

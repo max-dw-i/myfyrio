@@ -909,14 +909,14 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
     def setUp(self):
         super().setUp()
 
-        self.image_groups = [['image']]
+        self.image_group = ['image']
         self.mock_group_w = mock.Mock()
 
     @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
     def test_args_ImageGroupWidget_called_with(self, mock_add):
         with mock.patch(VIEW+'ImageGroupWidget',
                         return_value=self.mock_group_w) as mock_widg:
-            self.w.render(self.image_groups)
+            self.w.render(self.image_group)
 
         mock_widg.assert_called_once_with(self.conf, self.w)
 
@@ -924,7 +924,7 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
     def test_ImageGroupWidget_added_to_widgets_attr(self, mock_add):
         with mock.patch(VIEW+'ImageGroupWidget',
                         return_value=self.mock_group_w):
-            self.w.render(self.image_groups)
+            self.w.render(self.image_group)
 
         self.assertListEqual(self.w.widgets, [self.mock_group_w])
 
@@ -932,7 +932,7 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
     def test_ImageGroupWidget_added_to_layout(self, mock_add):
         with mock.patch(VIEW+'ImageGroupWidget',
                         return_value=self.mock_group_w):
-            self.w.render(self.image_groups)
+            self.w.render(self.image_group)
 
         mock_add.assert_called_once_with(self.mock_group_w)
 
@@ -940,9 +940,9 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
     def test_ImageGroupWidget_render_called(self, mock_add):
         with mock.patch(VIEW+'ImageGroupWidget',
                         return_value=self.mock_group_w):
-            self.w.render(self.image_groups)
+            self.w.render(self.image_group)
 
-        self.mock_group_w.render.assert_called_once_with(self.image_groups[0])
+        self.mock_group_w.render.assert_called_once_with(self.image_group)
 
 
 class TestImageViewWidgetMethodHasSelectedWidgets(TestImageViewWidget):

@@ -440,17 +440,16 @@ class ImageViewWidget(QtWidgets.QWidget):
         self.layout.setSpacing(0)
         self.layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
-    def render(self, image_groups: Iterable[core.Group]) -> None:
-        '''Create and render "ImageGroupWidget"s
+    def render(self, image_group: core.Group) -> None:
+        '''Create and render "ImageGroupWidget"
 
-        :param image_groups: groups of similar images
+        :param image_group: group of similar images
         '''
 
-        for group in image_groups:
-            widget = ImageGroupWidget(self.conf, self)
-            self.widgets.append(widget)
-            self.layout.addWidget(widget)
-            widget.render(group)
+        widget = ImageGroupWidget(self.conf, self)
+        widget.render(image_group)
+        self.widgets.append(widget)
+        self.layout.addWidget(widget)
 
     def hasSelectedWidgets(self) -> bool:
         '''Check if there are selected "DuplicateWidget"s

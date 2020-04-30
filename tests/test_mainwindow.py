@@ -433,11 +433,14 @@ class TestMainFormMethodRender(TestMainForm):
 
     def test_ImageViewWidget_called_if_duplicates_found(self):
         PATCH_RENDER = IMAGE_VIEW_WIDGET + 'ImageViewWidget.render'
-        img_groups = [['image']]
+        img_group = ['image']
+        mock_widget = mock.Mock()
+        mock_widget.widgets = []
+        self.w.imageViewWidget.widgets.append(mock_widget)
         with mock.patch(PATCH_RENDER) as mock_render_call:
-            self.w.render(img_groups)
+            self.w.render(img_group)
 
-        mock_render_call.assert_called_once_with(img_groups)
+        mock_render_call.assert_called_once_with(img_group)
 
     def test_msg_box_called_if_no_duplicates_found(self):
         PATCH_BOX = 'PyQt5.QtWidgets.QMessageBox'

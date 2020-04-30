@@ -281,11 +281,6 @@ class TestMethodCalculateHashes(TestClassImageProcessing):
         self.imap_return = (h for h in self.images)
         self.mock_context_obj.imap.return_value = self.imap_return
 
-    def test_return_empty_list_if_pass_empty_collection(self):
-        res = self.proc._calculate_hashes([])
-
-        self.assertListEqual(res, [])
-
     def test_emit_update_info(self):
         spy = QtTest.QSignalSpy(self.proc.signals.update_info)
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
@@ -378,11 +373,6 @@ class TestMethodMakeThumbnails(TestClassImageProcessing):
         self.imap_return = (th for th in self.thumbnails)
         self.mock_context_obj.imap.return_value = self.imap_return
 
-    def test_return_empty_list_if_pass_empty_collection(self):
-        res = self.proc._make_thumbnails([])
-
-        self.assertListEqual(res, [])
-
     def test_args_imap_called_with(self):
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
             self.proc._make_thumbnails(self.img_groups)
@@ -397,6 +387,24 @@ class TestMethodMakeThumbnails(TestClassImageProcessing):
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
             with self.assertRaises(exception.InterruptProcessing):
                 self.proc._make_thumbnails(self.img_groups)
+
+    def test_assign_thumbnails_to_image_attrs(self):
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
+            self.proc._make_thumbnails(self.img_groups)
+
+        self.assertEqual(self.img_groups[0][0].thumb, self.thumbnails[0])
+
+    def test_emit_image_groups(self):
+        # Add another group
+        self.img_groups.append([mock.Mock()])
+        self.thumbnails.append('thumb2')
+        spy = QtTest.QSignalSpy(self.proc.signals.result)
+        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
+            self.proc._make_thumbnails(self.img_groups)
+
+        self.assertEqual(len(spy), 2)
+        self.assertListEqual(spy[0][0], self.img_groups[0])
+        self.assertListEqual(spy[1][0], self.img_groups[1])
 
     def test_emit_update_info(self):
         spy = QtTest.QSignalSpy(self.proc.signals.update_info)
@@ -414,18 +422,6 @@ class TestMethodMakeThumbnails(TestClassImageProcessing):
 
         # step == 35 / len(collection) == 35 in this case
         mock_bar.assert_called_once_with(56)
-
-    def test_return_same_image_groups(self):
-        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            res = self.proc._make_thumbnails(self.img_groups)
-
-        self.assertListEqual(res, self.img_groups)
-
-    def test_assign_thumbnails_to_image_attrs(self):
-        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            self.proc._make_thumbnails(self.img_groups)
-
-        self.assertEqual(self.img_groups[0][0].thumb, self.thumbnails[0])
 
 
 class TestMethodThumbnailArgsUnpacker(TestClassImageProcessing):
