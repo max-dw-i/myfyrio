@@ -24,7 +24,7 @@ Module implementing widgets rendering duplicate images found
 import pathlib
 import subprocess
 import sys
-from typing import Callable, Iterable, List, Optional
+from typing import Callable, Iterable, List
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -45,11 +45,15 @@ class InfoLabel(QtWidgets.QLabel):
         self.widget_width = widget_width
 
         self.setAlignment(QtCore.Qt.AlignHCenter)
+
         self.setText(text)
 
-    def setText(self, text: str):
+    def setText(self, text: str) -> None:
         new_text = self._wordWrap(text)
+
         super().setText(new_text)
+
+        self.updateGeometry()
 
     def _wordWrap(self, text: str) -> str:
         '''QLabel wraps words only at word-breaks but we need
@@ -77,6 +81,14 @@ class SimilarityLabel(InfoLabel):
 class ImageSizeLabel(InfoLabel):
     '''Widget viewing info about size of an image'''
 
+    def __init__(self, width: core.Width, height: core.Height,
+                 file_size: core.FileSize, size_format: core.SizeFormat,
+                 widget_width: int, parent: QtWidgets.QWidget = None) -> None:
+        units = str(size_format).split('.')[-1]
+        text = f'{width}x{height}, {file_size} {units}'
+
+        super().__init__(text, widget_width, parent)
+
 
 class ImagePathLabel(InfoLabel):
     '''Widget viewing the path of an image'''
@@ -84,86 +96,8 @@ class ImagePathLabel(InfoLabel):
     def __init__(self, path: core.ImagePath, widget_width: int,
                  parent: QtWidgets.QWidget = None) -> None:
         path = QtCore.QFileInfo(path).canonicalFilePath()
+
         super().__init__(path, widget_width, parent)
-
-
-class ImageInfoWidget(QtWidgets.QWidget):
-    '''Widget showing info about the image (its similarity
-    rate, size and path)
-    '''
-
-    def __init__(self, image: core.Image, conf: config.Conf,
-                 parent: QtWidgets.QWidget = None) -> None:
-        super().__init__(parent)
-
-        self.image = image
-        self.conf = conf
-
-        self.similarityLabel: Optional[SimilarityLabel] = None
-        self.imageSizeLabel: Optional[ImageSizeLabel] = None
-        self.imagePathLabel: Optional[ImagePathLabel] = None
-
-        self.layout = QtWidgets.QVBoxLayout(self)
-        self.layout.setAlignment(QtCore.Qt.AlignBottom)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(self.layout)
-
-    def render(self) -> None:
-        '''Create and render widgets "SimilarityLabel",
-        "ImageSizeLabel", "ImagePathLabel"'''
-
-        if self.conf['show_similarity']:
-            self._setSimilarityLabel()
-        if self.conf['show_size']:
-            self._setImageSizeLabel()
-        if self.conf['show_path']:
-            self._setImagePathLabel()
-
-    def _setSimilarityLabel(self) -> None:
-        similarity = self.image.similarity()
-        self.similarityLabel = SimilarityLabel(f'{similarity}%',
-                                               self.conf['size'], self)
-        self.layout.addWidget(self.similarityLabel)
-
-    def _setImageSizeLabel(self) -> None:
-        sizeInfo = self._sizeInfo()
-        self.imageSizeLabel = ImageSizeLabel(sizeInfo, self.conf['size'], self)
-        self.layout.addWidget(self.imageSizeLabel)
-
-    def _setImagePathLabel(self) -> None:
-        self.imagePathLabel = ImagePathLabel(self.image.path,
-                                             self.conf['size'], self)
-        self.layout.addWidget(self.imagePathLabel)
-
-    @staticmethod
-    def _sizeformatIntToEnum(int_sizeformat):
-        dispatcher = {
-            0: core.SizeFormat.B,
-            1: core.SizeFormat.KB,
-            2: core.SizeFormat.MB
-        }
-        return dispatcher[int_sizeformat]
-
-    def _sizeInfo(self) -> str:
-        try:
-            width, height = self.image.width, self.image.height
-        except OSError as e:
-            logger.error(e)
-            width, height = (0, 0)
-
-        enum_sizeformat = self._sizeformatIntToEnum(self.conf['size_format'])
-
-        try:
-            filesize = self.image.filesize(enum_sizeformat)
-        except OSError as e:
-            logger.error(e)
-            filesize = 0
-
-        units = {0: 'B',
-                 1: 'KB',
-                 2: 'MB'}[self.conf['size_format']]
-
-        return f'{width}x{height}, {filesize} {units}'
 
 
 class ThumbnailWidget(QtWidgets.QLabel):
@@ -176,15 +110,12 @@ class ThumbnailWidget(QtWidgets.QLabel):
         self.thumbnail = thumbnail
         self.size = size
 
-        self.pixmap: Optional[QtGui.QPixmap] = None
-
         self.setAlignment(QtCore.Qt.AlignHCenter)
-
-    def render(self) -> None:
-        '''Create and render "Pixmap" with the thumbnail'''
 
         self.pixmap = self._QByteArrayToQPixmap()
         self.setPixmap(self.pixmap)
+
+        self.updateGeometry()
 
     def _QByteArrayToQPixmap(self) -> QtGui.QPixmap:
         # Pixmap can read BMP, GIF, JPG, JPEG, PNG, PBM, PGM, PPM, XBM, XPM
@@ -236,26 +167,65 @@ class DuplicateWidget(QtWidgets.QWidget):
         self.selected = False
         self.signals = signals.Signals()
 
-        self.imageLabel: Optional[ThumbnailWidget] = None
-        self.infoLabel: Optional[ImageInfoWidget] = None
+        self.setFixedWidth(self.conf['size'])
 
-        self.setFixedWidth(conf['size'])
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setAlignment(QtCore.Qt.AlignTop)
         self.layout.setContentsMargins(0, 0, 0, 0)
+
+        self.imageLabel = self._setThumbnailWidget()
+        if self.conf['show_similarity']:
+            self.similarityLabel = self._setSimilarityLabel()
+        if self.conf['show_size']:
+            self.imageSizeLabel = self._setImageSizeLabel()
+        if self.conf['show_path']:
+            self.imagePathLabel = self._setImagePathLabel()
+
         self.setLayout(self.layout)
 
-    def render(self) -> None:
-        '''Create and render "ThumbnailWidget" and "ImageInfoWidget"'''
+    def _setThumbnailWidget(self) -> ThumbnailWidget:
+        imageLabel = ThumbnailWidget(self.image.thumb, self.conf['size'])
+        self.layout.addWidget(imageLabel)
+        self.updateGeometry()
 
-        self.imageLabel = ThumbnailWidget(self.image.thumb,
-                                          self.conf['size'], self)
-        self.layout.addWidget(self.imageLabel)
-        self.imageLabel.render()
+        return imageLabel
 
-        self.infoLabel = ImageInfoWidget(self.image, self.conf, self)
-        self.layout.addWidget(self.infoLabel)
-        self.infoLabel.render()
+    def _setSimilarityLabel(self) -> SimilarityLabel:
+        similarity = self.image.similarity()
+        similarityLabel = SimilarityLabel(f'{similarity}%', self.conf['size'])
+        self.layout.addWidget(similarityLabel)
+        self.updateGeometry()
+
+        return similarityLabel
+
+    def _setImageSizeLabel(self) -> ImageSizeLabel:
+        try:
+            width, height = self.image.width, self.image.height
+        except OSError as e:
+            logger.error(e)
+            width, height = (0, 0)
+
+        size_format = core.SizeFormat(self.conf['size_format'])
+
+        try:
+            filesize = self.image.filesize(size_format)
+        except OSError as e:
+            logger.error(e)
+            filesize = 0
+
+        imageSizeLabel = ImageSizeLabel(width, height, filesize,
+                                        size_format, self.conf['size'])
+        self.layout.addWidget(imageSizeLabel)
+        self.updateGeometry()
+
+        return imageSizeLabel
+
+    def _setImagePathLabel(self) -> ImagePathLabel:
+        imagePathLabel = ImagePathLabel(self.image.path, self.conf['size'])
+        self.layout.addWidget(imagePathLabel)
+        self.updateGeometry()
+
+        return imagePathLabel
 
     def openImage(self) -> None:
         '''Open the image in the OS default image viewer'''
@@ -363,29 +333,28 @@ class DuplicateWidget(QtWidgets.QWidget):
 class ImageGroupWidget(QtWidgets.QWidget):
     '''Widget grouping similar images together'''
 
-    def __init__(self, conf: config.Conf, parent: QtWidgets.QWidget = None) \
-        -> None:
+    def __init__(self, image_group: Iterable[core.Image], conf: config.Conf,
+                 parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
 
         self.conf = conf
+        self.image_group = image_group
         self.widgets: List[DuplicateWidget] = []
 
         self.layout = QtWidgets.QHBoxLayout(self)
         self.layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
         self.layout.setSpacing(10)
+
+        self._setDuplicateWidgets()
+
         self.setLayout(self.layout)
 
-    def render(self, image_group: Iterable[core.Image]) -> None:
-        '''Create and render "DuplicateWidget"s
-
-        :param image_group: group of similar images
-        '''
-
-        for image in image_group:
-            dupl_w = DuplicateWidget(image, self.conf, self)
+    def _setDuplicateWidgets(self) -> None:
+        for image in self.image_group:
+            dupl_w = DuplicateWidget(image, self.conf)
             self.widgets.append(dupl_w)
             self.layout.addWidget(dupl_w)
-            dupl_w.render()
+            self.updateGeometry()
 
     def selectedWidgets(self) -> List[DuplicateWidget]:
         '''Return selected "DuplicateWidget"s
@@ -435,10 +404,11 @@ class ImageViewWidget(QtWidgets.QWidget):
         self.conf = conf
         self.widgets: List[ImageGroupWidget] = []
 
-        self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout = QtWidgets.QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         self.layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+        self.setLayout(self.layout)
 
     def render(self, image_group: core.Group) -> None:
         '''Create and render "ImageGroupWidget"
@@ -446,10 +416,10 @@ class ImageViewWidget(QtWidgets.QWidget):
         :param image_group: group of similar images
         '''
 
-        widget = ImageGroupWidget(self.conf, self)
-        widget.render(image_group)
+        widget = ImageGroupWidget(image_group, self.conf)
         self.widgets.append(widget)
         self.layout.addWidget(widget)
+        self.updateGeometry()
 
     def hasSelectedWidgets(self) -> bool:
         '''Check if there are selected "DuplicateWidget"s

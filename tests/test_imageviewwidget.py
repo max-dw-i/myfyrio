@@ -82,6 +82,14 @@ class TestInfoLabelMethodSetText(TestInfoLabel):
 
         mock_set_call.assert_called_once_with(wrapped)
 
+    def test_updateGeometry_called(self):
+        QLabel = 'PyQt5.QtWidgets.QLabel.'
+        with mock.patch(QLabel+'setText'):
+            with mock.patch(QLabel+'updateGeometry') as mock_upd_call:
+                self.w.setText(self.text)
+
+        mock_upd_call.assert_called_once_with()
+
 
 class TestInfoLabelMethodWordWrap(TestInfoLabel):
 
@@ -98,6 +106,19 @@ class TestInfoLabelMethodWordWrap(TestInfoLabel):
         self.assertEqual(res, 'test')
 
 
+class ImageSizeLabel(TestCase):
+
+    @mock.patch(VIEW+'InfoLabel.__init__')
+    def test_init(self, mock_init):
+        w, h = 100, 200
+        file_size = 222
+        size_format = SizeFormat.MB
+        widget_width = 55
+        imageviewwidget.ImageSizeLabel(w, h, file_size, size_format,
+                                       widget_width)
+
+        mock_init.assert_called_once_with('100x200, 222 MB', 55, None)
+
 class ImagePathLabel(TestCase):
 
     @mock.patch(VIEW+'InfoLabel.__init__')
@@ -112,197 +133,18 @@ class ImagePathLabel(TestCase):
         mock_qfile.canonicalFilePath.assert_called_once_with()
 
 
-class TestImageInfoWidget(TestCase):
-
-    def setUp(self):
-        self.mock_image = mock.Mock()
-        self.mock_image.difference = 0
-        self.mock_image.path = 'path'
-        self.conf = {'size': 200,
-                     'show_similarity': False,
-                     'show_size': False,
-                     'show_path': False,
-                     'size_format': 1}
-        self.w = imageviewwidget.ImageInfoWidget(self.mock_image, self.conf)
-
-
-class TestImageInfoWidgetMethodInit(TestImageInfoWidget):
-
-    def test_init_values(self):
-        self.assertEqual(self.w.image, self.mock_image)
-        self.assertEqual(self.w.conf, self.conf)
-
-        self.assertIsNone(self.w.similarityLabel)
-        self.assertIsNone(self.w.imageSizeLabel)
-        self.assertIsNone(self.w.imagePathLabel)
-
-    def test_layout(self):
-        margins = self.w.layout.contentsMargins()
-        self.assertEqual(margins.top(), 0)
-        self.assertEqual(margins.right(), 0)
-        self.assertEqual(margins.bottom(), 0)
-        self.assertEqual(margins.left(), 0)
-
-        self.assertIsInstance(self.w.layout, QtWidgets.QVBoxLayout)
-        self.assertEqual(self.w.layout.alignment(), QtCore.Qt.AlignBottom)
-
-
-class TestImageInfoWidgetMethodRender(TestImageInfoWidget):
-
-    @mock.patch(VIEW+'ImageInfoWidget._setImagePathLabel')
-    @mock.patch(VIEW+'ImageInfoWidget._setImageSizeLabel')
-    @mock.patch(VIEW+'ImageInfoWidget._setSimilarityLabel')
-    def test_nothing_called_if_conf_says_so(self, mock_sim,
-                                            mock_size, mock_path):
-        self.w.render()
-
-        mock_sim.assert_not_called()
-        mock_size.assert_not_called()
-        mock_path.assert_not_called()
-
-    @mock.patch(VIEW+'ImageInfoWidget._setImagePathLabel')
-    @mock.patch(VIEW+'ImageInfoWidget._setImageSizeLabel')
-    @mock.patch(VIEW+'ImageInfoWidget._setSimilarityLabel')
-    def test_setSimilarityLabel_called_if_conf_says_so(self, mock_sim,
-                                                       mock_size, mock_path):
-        self.w.conf['show_similarity'] = True
-        self.w.render()
-
-        mock_sim.assert_called_once_with()
-
-    @mock.patch(VIEW+'ImageInfoWidget._setImagePathLabel')
-    @mock.patch(VIEW+'ImageInfoWidget._setImageSizeLabel')
-    @mock.patch(VIEW+'ImageInfoWidget._setSimilarityLabel')
-    def test_setImageSizeLabel_called_if_conf_says_so(self, mock_sim,
-                                                      mock_size, mock_path):
-        self.w.conf['show_size'] = True
-        self.w.render()
-
-        mock_size.assert_called_once_with()
-
-    @mock.patch(VIEW+'ImageInfoWidget._setImagePathLabel')
-    @mock.patch(VIEW+'ImageInfoWidget._setImageSizeLabel')
-    @mock.patch(VIEW+'ImageInfoWidget._setSimilarityLabel')
-    def test_setImagePathLabel_called_if_conf_says_so(self, mock_sim,
-                                                      mock_size, mock_path):
-        self.w.conf['show_path'] = True
-        self.w.render()
-
-        mock_path.assert_called_once_with()
-
-
-class TestImageInfoWidgetMethodSetSimilarityLabel(TestImageInfoWidget):
-
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_args_SimilarityLabel_called_with(self, mock_add):
-        similarity = 66
-        self.mock_image.similarity.return_value = similarity
-        with mock.patch(VIEW+'SimilarityLabel') as mock_label:
-            self.w._setSimilarityLabel()
-
-        mock_label.assert_called_once_with(f'{similarity}%', self.conf['size'],
-                                           self.w)
-
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_SimilarityLabel_added_to_layout(self, mock_add):
-        label = 'similarity_label'
-        with mock.patch(VIEW+'SimilarityLabel', return_value=label):
-            self.w._setSimilarityLabel()
-
-        mock_add.assert_called_once_with(label)
-
-
-class TestImageInfoWidgetMethodSetImageSizeLabel(TestImageInfoWidget):
-
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_args_ImageSizeLabel_called_with(self, mock_add):
-        with mock.patch(VIEW+'ImageSizeLabel') as mock_label:
-            with mock.patch(VIEW+'ImageInfoWidget._sizeInfo',
-                            return_value='size_info'):
-                self.w._setImageSizeLabel()
-
-        mock_label.assert_called_once_with('size_info', self.conf['size'],
-                                           self.w)
-
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_ImageSizeLabel_added_to_layout(self, mock_add):
-        label = 'size_label'
-        with mock.patch(VIEW+'ImageSizeLabel', return_value=label):
-            with mock.patch(VIEW+'ImageInfoWidget._sizeInfo'):
-                self.w._setImageSizeLabel()
-
-        mock_add.assert_called_once_with(label)
-
-
-class TestImageInfoWidgetMethodSetImagePathLabel(TestImageInfoWidget):
-
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_args_ImagePathLabel_called_with(self, mock_add):
-        with mock.patch(VIEW+'ImagePathLabel') as mock_label:
-            self.w._setImagePathLabel()
-
-        mock_label.assert_called_once_with(self.mock_image.path,
-                                           self.conf['size'], self.w)
-
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_ImagePathLabel_added_to_layout(self, mock_add):
-        label = 'path_label'
-        with mock.patch(VIEW+'ImagePathLabel', return_value=label):
-            self.w._setImagePathLabel()
-
-        mock_add.assert_called_once_with(label)
-
-
-class TestImageInfoWidgetMethodSizeInfo(TestImageInfoWidget):
-
-    def setUp(self):
-        super().setUp()
-
-        type(self.mock_image).width = mock.PropertyMock(return_value=22)
-        type(self.mock_image).height = mock.PropertyMock(return_value=33)
-        self.mock_image.filesize.return_value = 44
-
-    def test_log_error_if_image_width_raise_OSError(self):
-        type(self.mock_image).width = mock.PropertyMock(side_effect=OSError)
-        with self.assertLogs('main.widgets', 'ERROR'):
-            self.w._sizeInfo()
-
-    def test_log_error_if_image_height_raise_OSError(self):
-        type(self.mock_image).height = mock.PropertyMock(side_effect=OSError)
-        with self.assertLogs('main.widgets', 'ERROR'):
-            self.w._sizeInfo()
-
-    def test_log_error_if_image_filesize_raise_OSError(self):
-        self.mock_image.filesize.side_effect = OSError
-        with self.assertLogs('main.widgets', 'ERROR'):
-            self.w._sizeInfo()
-
-    def test_filesize_called_with_enum_arg(self):
-        self.w._sizeInfo()
-        call_args = self.mock_image.filesize.call_args[0]
-
-        self.assertIsInstance(call_args[0], SizeFormat)
-
-    def test_return_if_funcs_raise_OSError(self):
-        type(self.mock_image).width = mock.PropertyMock(side_effect=OSError)
-        self.mock_image.filesize.side_effect = OSError
-        res = self.w._sizeInfo()
-
-        self.assertEqual(res, '0x0, 0 KB')
-
-    def test_return_if_funcs_are_ok(self):
-        res = self.w._sizeInfo()
-
-        self.assertEqual(res, '22x33, 44 KB')
-
-
 class TestThumbnailWidget(TestCase):
+
+    ThW = VIEW + 'ThumbnailWidget.'
 
     def setUp(self):
         self.mock_thumbnail = mock.Mock()
         self.size = 333
-        self.w = imageviewwidget.ThumbnailWidget(self.mock_thumbnail,
-                                                 self.size)
+
+        with mock.patch(self.ThW+'_QByteArrayToQPixmap'):
+            with mock.patch(self.ThW+'setPixmap'):
+                self.w =imageviewwidget.ThumbnailWidget(self.mock_thumbnail,
+                                                        self.size)
 
 
 class TestThumbnailWidgetMethodInit(TestThumbnailWidget):
@@ -311,33 +153,26 @@ class TestThumbnailWidgetMethodInit(TestThumbnailWidget):
         self.assertEqual(self.w.thumbnail, self.mock_thumbnail)
         self.assertEqual(self.w.size, self.size)
 
-        self.assertIsNone(self.w.pixmap)
-
     def test_alignment(self):
         self.assertEqual(self.w.alignment(), QtCore.Qt.AlignHCenter)
 
-
-class TestThumbnailWidgetMethodRender(TestThumbnailWidget):
-
-    def setUp(self):
-        super().setUp()
-
-        self.CONVERT = VIEW+'ThumbnailWidget._QByteArrayToQPixmap'
-
-    def test_args_QByteArrayToQPixmap_called_with(self):
-        with mock.patch(self.CONVERT) as mock_qba_to_qp:
-            with mock.patch(VIEW+'ThumbnailWidget.setPixmap'):
-                self.w.render()
-
-        mock_qba_to_qp.assert_called_once_with()
-
     def test_setPixmap_called_with_QByteArrayToQPixmap_result(self):
-        img = 'QPixmap_img'
-        with mock.patch(self.CONVERT, return_value=img):
-            with mock.patch(VIEW+'ThumbnailWidget.setPixmap') as mock_set_call:
-                self.w.render()
+        QBAImage = 'QBAImage'
+        with mock.patch(self.ThW+'_QByteArrayToQPixmap',
+                        return_value=QBAImage):
+            with mock.patch(self.ThW+'setPixmap') as mock_pix_call:
+                imageviewwidget.ThumbnailWidget(self.mock_thumbnail, self.size)
 
-        mock_set_call.assert_called_once_with(img)
+        mock_pix_call.assert_called_once_with(QBAImage)
+
+    def test_updateGeometry_called(self):
+        with mock.patch(self.ThW+'_QByteArrayToQPixmap'):
+            with mock.patch(self.ThW+'setPixmap'):
+                with mock.patch(self.ThW+'updateGeometry') as mock_upd_call:
+                    imageviewwidget.ThumbnailWidget(self.mock_thumbnail,
+                                                    self.size)
+
+        mock_upd_call.assert_called_once_with()
 
 
 class TestThumbnailWidgetMethodQByteArrayToQPixmap(TestThumbnailWidget):
@@ -426,11 +261,18 @@ class TestThumbnailWidgetMethodUnmark(TestThumbnailWidget):
 
 class TestDuplicateWidget(TestCase):
 
+    DW = VIEW + 'DuplicateWidget.'
+
     def setUp(self):
         self.conf = {'size': 200,
-                     'size_format': 1,}
+                     'size_format': 1,
+                     'show_similarity': False,
+                     'show_size': False,
+                     'show_path': False}
         self.mock_image = mock.Mock()
-        self.w = imageviewwidget.DuplicateWidget(self.mock_image, self.conf)
+
+        with mock.patch(self.DW+'_setThumbnailWidget'):
+            self.w = imageviewwidget.DuplicateWidget(self.mock_image, self.conf)
 
 
 class TestDuplicateWidgetMethodInit(TestDuplicateWidget):
@@ -440,9 +282,6 @@ class TestDuplicateWidgetMethodInit(TestDuplicateWidget):
         self.assertEqual(self.w.conf, self.conf)
         self.assertFalse(self.w.selected)
         self.assertIsInstance(self.w.signals, signals.Signals)
-
-        self.assertIsNone(self.w.imageLabel)
-        self.assertIsNone(self.w.infoLabel)
 
         self.assertEqual(self.w.minimumWidth(), self.conf['size'])
         self.assertEqual(self.w.maximumWidth(), self.conf['size'])
@@ -457,66 +296,264 @@ class TestDuplicateWidgetMethodInit(TestDuplicateWidget):
         self.assertIsInstance(self.w.layout, QtWidgets.QVBoxLayout)
         self.assertEqual(self.w.layout.alignment(), QtCore.Qt.AlignTop)
 
+    def test_setThumbnailWidget_called(self):
+        with mock.patch(self.DW+'_setThumbnailWidget') as mock_widget_call:
+            self.w = imageviewwidget.DuplicateWidget(self.mock_image, self.conf)
 
-class TestDuplicateWidgetMethodRender(TestDuplicateWidget):
+        mock_widget_call.assert_called_once_with()
+
+    def test_setSimilarityLabel_called_if_show_similarity_True(self):
+        self.conf['show_similarity'] = True
+        with mock.patch(self.DW+'_setThumbnailWidget'):
+            with mock.patch(self.DW+'_setSimilarityLabel') as mock_label_call:
+                self.w = imageviewwidget.DuplicateWidget(self.mock_image,
+                                                         self.conf)
+
+        mock_label_call.assert_called_once_with()
+
+    def test_setImageSizeLabel_called_if_show_size_True(self):
+        self.conf['show_size'] = True
+        with mock.patch(self.DW+'_setThumbnailWidget'):
+            with mock.patch(self.DW+'_setImageSizeLabel') as mock_label_call:
+                self.w = imageviewwidget.DuplicateWidget(self.mock_image,
+                                                         self.conf)
+
+        mock_label_call.assert_called_once_with()
+
+    def test_setImagePathLabel_called_if_show_path_True(self):
+        self.conf['show_path'] = True
+        with mock.patch(self.DW+'_setThumbnailWidget'):
+            with mock.patch(self.DW+'_setImagePathLabel') as mock_label_call:
+                self.w = imageviewwidget.DuplicateWidget(self.mock_image,
+                                                         self.conf)
+
+        mock_label_call.assert_called_once_with()
+
+
+class TestMethodSetThumbnailWidget(TestDuplicateWidget):
+
+    ADD = 'PyQt5.QtWidgets.QVBoxLayout.addWidget'
+    ThW = VIEW + 'ThumbnailWidget'
+
+    def test_args_ThumbnailWidget_called_with(self):
+        with mock.patch(self.ThW) as mock_widget_call:
+            with mock.patch(self.ADD):
+                self.w._setThumbnailWidget()
+
+        mock_widget_call.assert_called_once_with(self.mock_image.thumb,
+                                                 self.conf['size'])
+
+    def test_addWidget_called_with_ThumbnailWidget_result(self):
+        ThW_obj = 'widget'
+        with mock.patch(self.ThW, return_value=ThW_obj):
+            with mock.patch(self.ADD) as mock_add_call:
+                self.w._setThumbnailWidget()
+
+        mock_add_call.assert_called_once_with(ThW_obj)
+
+    def test_return_ThumbnailWidget_result(self):
+        ThW_obj = 'widget'
+        with mock.patch(self.ThW, return_value=ThW_obj):
+            with mock.patch(self.ADD):
+                res = self.w._setThumbnailWidget()
+
+        self.assertEqual(res, ThW_obj)
+
+    def test_updateGeometry_called(self):
+        updateGem = 'PyQt5.QtWidgets.QWidget.updateGeometry'
+        with mock.patch(self.ThW):
+            with mock.patch(self.ADD):
+                with mock.patch(updateGem) as mock_upd_call:
+                    self.w._setThumbnailWidget()
+
+        mock_upd_call.assert_called_once_with()
+
+
+class TestMethodSetSimilarityLabel(TestDuplicateWidget):
+
+    ADD = 'PyQt5.QtWidgets.QVBoxLayout.addWidget'
+    SL = VIEW + 'SimilarityLabel'
+
+    def test_args_SimilarityLabel_called_with(self):
+        self.mock_image.similarity.return_value = 13
+        with mock.patch(self.SL) as mock_widget_call:
+            with mock.patch(self.ADD):
+                self.w._setSimilarityLabel()
+
+        mock_widget_call.assert_called_once_with('13%', self.conf['size'])
+
+    def test_addWidget_called_with_SimilarityLabel_result(self):
+        SL_obj = 'label'
+        with mock.patch(self.SL, return_value=SL_obj):
+            with mock.patch(self.ADD) as mock_add_call:
+                self.w._setSimilarityLabel()
+
+        mock_add_call.assert_called_once_with(SL_obj)
+
+    def test_return_SimilarityLabel_result(self):
+        SL_obj = 'label'
+        with mock.patch(self.SL, return_value=SL_obj):
+            with mock.patch(self.ADD):
+                res = self.w._setSimilarityLabel()
+
+        self.assertEqual(res, SL_obj)
+
+    def test_updateGeometry_called(self):
+        updateGem = 'PyQt5.QtWidgets.QWidget.updateGeometry'
+        with mock.patch(self.SL):
+            with mock.patch(self.ADD):
+                with mock.patch(updateGem) as mock_upd_call:
+                    self.w._setSimilarityLabel()
+
+        mock_upd_call.assert_called_once_with()
+
+
+class TestMethodSetImageSizeLabel(TestDuplicateWidget):
+
+    ADD = 'PyQt5.QtWidgets.QVBoxLayout.addWidget'
+    ISL = VIEW + 'ImageSizeLabel'
 
     def setUp(self):
         super().setUp()
 
-        self.mock_th_w = mock.Mock()
-        self.mock_inf_w = mock.Mock()
+        self.conf['size_format'] = 0 # Bytes
 
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_args_ThumbnailWidget_called_with(self, mock_add):
-        with mock.patch(VIEW+'ThumbnailWidget',
-                        return_value=self.mock_th_w) as mock_thumb:
-            with mock.patch(VIEW+'ImageInfoWidget',
-                            return_value=self.mock_inf_w):
-                self.w.render()
+        type(self.mock_image).width = mock.PropertyMock(return_value=33)
+        type(self.mock_image).height = mock.PropertyMock(return_value=55)
 
-        mock_thumb.assert_called_once_with(self.mock_image.thumb,
-                                           self.conf['size'], self.w)
+    def test_args_ImageSizeLabel_called_with(self):
+        self.mock_image.filesize.return_value = 5000
+        with mock.patch(self.ISL) as mock_widget_call:
+            with mock.patch(self.ADD):
+                self.w._setImageSizeLabel()
 
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_args_ImageInfoWidget_called_with(self, mock_add):
-        with mock.patch(VIEW+'ThumbnailWidget',
-                        return_value=self.mock_th_w):
-            with mock.patch(VIEW+'ImageInfoWidget',
-                            return_value=self.mock_inf_w) as mock_info:
-                self.w.render()
+        mock_widget_call.assert_called_once_with(33, 55, 5000,
+                                                 SizeFormat.B, 200)
 
-        mock_info.assert_called_once_with(self.mock_image, self.conf, self.w)
+    def test_filesize_called_with_SizeFormat_B(self):
+        self.mock_image.filesize.return_value = 5000
+        with mock.patch(self.ISL) as mock_widget_call:
+            with mock.patch(self.ADD):
+                self.w._setImageSizeLabel()
 
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_widgets_added_to_layout(self, mock_add):
-        with mock.patch(VIEW+'ThumbnailWidget',
-                        return_value=self.mock_th_w):
-            with mock.patch(VIEW+'ImageInfoWidget',
-                            return_value=self.mock_inf_w):
-                self.w.render()
+        self.mock_image.filesize.assert_called_once_with(SizeFormat.B)
 
-        calls = [mock.call(self.mock_th_w), mock.call(self.mock_inf_w)]
-        mock_add.assert_has_calls(calls)
+    def test_args_ImageSizeLabel_called_with_if_width_raise_OSError(self):
+        type(self.mock_image).width = mock.PropertyMock(side_effect=OSError)
+        self.mock_image.filesize.return_value = 5000
+        with mock.patch(self.ISL) as mock_widget_call:
+            with mock.patch(self.ADD):
+                self.w._setImageSizeLabel()
 
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_ThumbnailWidget_render_called(self, mock_add):
-        with mock.patch(VIEW+'ThumbnailWidget',
-                        return_value=self.mock_th_w):
-            with mock.patch(VIEW+'ImageInfoWidget',
-                            return_value=self.mock_inf_w):
-                self.w.render()
+        mock_widget_call.assert_called_once_with(0, 0, 5000,
+                                                 SizeFormat.B, 200)
 
-        self.mock_th_w.render.assert_called_once_with()
+    def test_logging_if_width_raise_OSError(self):
+        type(self.mock_image).width = mock.PropertyMock(side_effect=OSError)
+        self.mock_image.filesize.return_value = 5000
+        with mock.patch(self.ISL):
+            with mock.patch(self.ADD):
+                with self.assertLogs('main', 'ERROR'):
+                    self.w._setImageSizeLabel()
 
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_ImageInfoWidget_render_called(self, mock_add):
-        with mock.patch(VIEW+'ThumbnailWidget',
-                        return_value=self.mock_th_w):
-            with mock.patch(VIEW+'ImageInfoWidget',
-                            return_value=self.mock_inf_w):
-                self.w.render()
+    def test_args_ImageSizeLabel_called_with_if_height_raise_OSError(self):
+        type(self.mock_image).height = mock.PropertyMock(side_effect=OSError)
+        self.mock_image.filesize.return_value = 5000
+        with mock.patch(self.ISL) as mock_widget_call:
+            with mock.patch(self.ADD):
+                self.w._setImageSizeLabel()
 
-        self.mock_inf_w.render.assert_called_once_with()
+        mock_widget_call.assert_called_once_with(0, 0, 5000,
+                                                 SizeFormat.B, 200)
+
+    def test_logging_if_height_raise_OSError(self):
+        type(self.mock_image).height = mock.PropertyMock(side_effect=OSError)
+        self.mock_image.filesize.return_value = 5000
+        with mock.patch(self.ISL):
+            with mock.patch(self.ADD):
+                with self.assertLogs('main', 'ERROR'):
+                    self.w._setImageSizeLabel()
+
+    def test_args_ImageSizeLabel_called_with_if_filesize_raise_OSError(self):
+        self.mock_image.filesize.side_effect = OSError
+        with mock.patch(self.ISL) as mock_widget_call:
+            with mock.patch(self.ADD):
+                self.w._setImageSizeLabel()
+
+        mock_widget_call.assert_called_once_with(33, 55, 0,
+                                                 SizeFormat.B, 200)
+
+    def test_logging_if_filesize_raise_OSError(self):
+        self.mock_image.filesize.side_effect = OSError
+        with mock.patch(self.ISL):
+            with mock.patch(self.ADD):
+                with self.assertLogs('main', 'ERROR'):
+                    self.w._setImageSizeLabel()
+
+    def test_addWidget_called_with_ImageSizeLabel_result(self):
+        ISL_obj = 'label'
+        with mock.patch(self.ISL, return_value=ISL_obj):
+            with mock.patch(self.ADD) as mock_add_call:
+                self.w._setImageSizeLabel()
+
+        mock_add_call.assert_called_once_with(ISL_obj)
+
+    def test_return_ImageSizeLabel_result(self):
+        ISL_obj = 'label'
+        with mock.patch(self.ISL, return_value=ISL_obj):
+            with mock.patch(self.ADD):
+                res = self.w._setImageSizeLabel()
+
+        self.assertEqual(res, ISL_obj)
+
+    def test_updateGeometry_called(self):
+        updateGem = 'PyQt5.QtWidgets.QWidget.updateGeometry'
+        with mock.patch(self.ISL):
+            with mock.patch(self.ADD):
+                with mock.patch(updateGem) as mock_upd_call:
+                    self.w._setImageSizeLabel()
+
+        mock_upd_call.assert_called_once_with()
+
+
+class TestMethodSetImagePathLabel(TestDuplicateWidget):
+
+    ADD = 'PyQt5.QtWidgets.QVBoxLayout.addWidget'
+    IPL = VIEW + 'ImagePathLabel'
+
+    def test_args_ImagePathLabel_called_with(self):
+        self.mock_image.similarity.return_value = 13
+        with mock.patch(self.IPL) as mock_widget_call:
+            with mock.patch(self.ADD):
+                self.w._setImagePathLabel()
+
+        mock_widget_call.assert_called_once_with(self.mock_image.path,
+                                                 self.conf['size'])
+
+    def test_addWidget_called_with_ImagePathLabel_result(self):
+        IPL_obj = 'label'
+        with mock.patch(self.IPL, return_value=IPL_obj):
+            with mock.patch(self.ADD) as mock_add_call:
+                self.w._setImagePathLabel()
+
+        mock_add_call.assert_called_once_with(IPL_obj)
+
+    def test_return_ImagePathLabel_result(self):
+        IPL_obj = 'label'
+        with mock.patch(self.IPL, return_value=IPL_obj):
+            with mock.patch(self.ADD):
+                res = self.w._setImagePathLabel()
+
+        self.assertEqual(res, IPL_obj)
+
+    def test_updateGeometry_called(self):
+        updateGem = 'PyQt5.QtWidgets.QWidget.updateGeometry'
+        with mock.patch(self.IPL):
+            with mock.patch(self.ADD):
+                with mock.patch(updateGem) as mock_upd_call:
+                    self.w._setImagePathLabel()
+
+        mock_upd_call.assert_called_once_with()
 
 
 class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
@@ -740,18 +777,23 @@ class TestDuplicateWidgetMethodMove(TestDuplicateWidget):
 
 class TestImageGroupWidget(TestCase):
 
+    IGW = VIEW + 'ImageGroupWidget'
+
     def setUp(self):
         self.conf = {}
-        self.w = imageviewwidget.ImageGroupWidget(self.conf)
+        self.mock_image = mock.Mock()
+        self.image_group = [self.mock_image]
+        with mock.patch(self.IGW+'._setDuplicateWidgets'):
+            self.w = imageviewwidget.ImageGroupWidget(self.image_group,
+                                                      self.conf)
 
 
 class TestImageGroupWidgetMethodInit(TestImageGroupWidget):
 
-    def test_conf_attr_initial_value(self):
+    def test_initial_value(self):
         self.assertDictEqual(self.w.conf, self.conf)
-
-    def test_widgets_attr_initial_value(self):
         self.assertListEqual(self.w.widgets, [])
+        self.assertListEqual(self.w.image_group, self.image_group)
 
     def test_widget_layout(self):
         self.assertEqual(self.w.layout.spacing(), 10)
@@ -759,45 +801,51 @@ class TestImageGroupWidgetMethodInit(TestImageGroupWidget):
         self.assertEqual(self.w.layout.alignment(),
                          QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
+    def test_setDuplicateWidgets_called(self):
+        with mock.patch(self.IGW+'._setDuplicateWidgets') as mock_dupl_call:
+            imageviewwidget.ImageGroupWidget(self.image_group, self.conf)
 
-class TestImageGroupWidgetMethodRender(TestImageGroupWidget):
+        mock_dupl_call.assert_called_once_with()
+
+
+class TestImageGroupWidgetMethodSetDuplicateWidgets(TestImageGroupWidget):
 
     def setUp(self):
         super().setUp()
-
-        self.image_group = ['image']
 
         self.mock_dupl_w = mock.Mock()
 
     @mock.patch('PyQt5.QtWidgets.QHBoxLayout.addWidget')
     def test_args_DuplicateWidget_called_with(self, mock_add):
         with mock.patch(VIEW+'DuplicateWidget',
-                        return_value=self.mock_dupl_w) as mock_widg:
-            self.w.render(self.image_group)
+                        return_value=self.mock_dupl_w) as mock_widg_call:
+            self.w._setDuplicateWidgets()
 
-        mock_widg.assert_called_once_with(self.image_group[0],
-                                          self.conf, self.w)
+        mock_widg_call.assert_called_once_with(self.image_group[0],
+                                               self.conf)
 
     @mock.patch('PyQt5.QtWidgets.QHBoxLayout.addWidget')
     def test_DuplicateWidget_added_to_widgets_attr(self, mock_add):
         with mock.patch(VIEW+'DuplicateWidget', return_value=self.mock_dupl_w):
-            self.w.render(self.image_group)
+            self.w._setDuplicateWidgets()
 
         self.assertListEqual(self.w.widgets, [self.mock_dupl_w])
 
     @mock.patch('PyQt5.QtWidgets.QHBoxLayout.addWidget')
     def test_DuplicateWidget_added_to_layout(self, mock_add):
         with mock.patch(VIEW+'DuplicateWidget', return_value=self.mock_dupl_w):
-            self.w.render(self.image_group)
+            self.w._setDuplicateWidgets()
 
         mock_add.assert_called_once_with(self.mock_dupl_w)
 
     @mock.patch('PyQt5.QtWidgets.QHBoxLayout.addWidget')
-    def test_DuplicateWidget_render_called(self, mock_add):
+    def test_updateGeometry_called(self, mock_add):
+        updateGem = 'PyQt5.QtWidgets.QWidget.updateGeometry'
         with mock.patch(VIEW+'DuplicateWidget', return_value=self.mock_dupl_w):
-            self.w.render(self.image_group)
+            with mock.patch(updateGem) as mock_upd_call:
+                self.w._setDuplicateWidgets()
 
-        self.mock_dupl_w.render.assert_called_once_with()
+        mock_upd_call.assert_called_once_with()
 
 
 class TestImageGroupWidgetMethodSelectedWidgets(TestImageGroupWidget):
@@ -918,7 +966,7 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
                         return_value=self.mock_group_w) as mock_widg:
             self.w.render(self.image_group)
 
-        mock_widg.assert_called_once_with(self.conf, self.w)
+        mock_widg.assert_called_once_with(self.image_group, self.conf)
 
     @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
     def test_ImageGroupWidget_added_to_widgets_attr(self, mock_add):
@@ -937,12 +985,14 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
         mock_add.assert_called_once_with(self.mock_group_w)
 
     @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_ImageGroupWidget_render_called(self, mock_add):
+    def test_updateGeometry_called(self, mock_add):
+        updateGem = 'PyQt5.QtWidgets.QWidget.updateGeometry'
         with mock.patch(VIEW+'ImageGroupWidget',
                         return_value=self.mock_group_w):
-            self.w.render(self.image_group)
+            with mock.patch(updateGem) as mock_upd_call:
+                self.w.render(self.image_group)
 
-        self.mock_group_w.render.assert_called_once_with(self.image_group)
+        mock_upd_call.assert_called_once_with()
 
 
 class TestImageViewWidgetMethodHasSelectedWidgets(TestImageViewWidget):

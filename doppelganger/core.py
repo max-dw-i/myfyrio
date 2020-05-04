@@ -204,9 +204,20 @@ class Sort:
 class SizeFormat(Enum):
     '''Class representing size formats'''
 
-    B = 1           # Bytes
-    KB = 1024       # KiloBytes
-    MB = 1024**2    # MegaBytes
+    B = 0     # Bytes
+    KB = 1    # KiloBytes
+    MB = 2    # MegaBytes
+
+    def __init__(self, int_index: int) -> None:
+        self.int_index = int_index
+
+    @property
+    def coefficient(self) -> int:
+        '''Return size format coefficient. Bytes - 1, KiloBytes - 1024,
+        MegaBytes = 1024**2
+        '''
+
+        return 1024**self.int_index
 
 
 class Image:
@@ -406,7 +417,7 @@ class Image:
         if self.size is None:
             self._set_filesize()
 
-        formatted_size = round(self.size / size_format.value, 1)
+        formatted_size = round(self.size / size_format.coefficient, 1)
         return formatted_size
 
     @property
