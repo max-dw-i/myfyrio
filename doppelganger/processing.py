@@ -16,6 +16,7 @@ You should have received a copy of the GNU General Public License
 along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 '''
 
+import os
 import pathlib
 import sys
 from multiprocessing import Pool
@@ -197,7 +198,7 @@ class ImageProcessing:
 
         progress_step = 35 / len(images)
 
-        with Pool() as p:
+        with Pool(processes=self._available_cores()) as p:
             img_gen = p.imap(core.Image.dhash_parallel, images)
             for i, img in enumerate(img_gen):
                 if self.interrupt:
@@ -238,7 +239,7 @@ class ImageProcessing:
         progress_step = 35 / len(flat)
         group_index, img_index = 0, 0
 
-        with Pool() as p:
+        with Pool(processes=self._available_cores()) as p:
             thumbnails_gen = p.imap(self._thumbnail_args_unpacker, flat)
             for i, th in enumerate(thumbnails_gen):
                 if self.interrupt:
@@ -269,6 +270,14 @@ class ImageProcessing:
             th = None
 
         return th
+
+    def _available_cores(self) -> int:
+        cores = self.conf['cores']
+        available_cores = len(os.sched_getaffinity(0))
+        if cores > available_cores:
+            cores = available_cores
+
+        return cores
 
     def _is_interrupted(self) -> None:
         self.interrupt = True

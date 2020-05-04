@@ -56,7 +56,8 @@ class TestClassImageProcessing(TestCase):
                      'min_width': 5,
                      'max_width': 10,
                      'min_height': 5,
-                     'max_height': 10}
+                     'max_height': 10,
+                     'cores': 16}
         self.proc = processing.ImageProcessing(self.mw_signals, self.folders,
                                                self.sensitivity, self.CONF)
 
@@ -281,6 +282,14 @@ class TestMethodCalculateHashes(TestClassImageProcessing):
         self.imap_return = (h for h in self.images)
         self.mock_context_obj.imap.return_value = self.imap_return
 
+    def test_Pool_called_with_available_cores_result(self):
+        with mock.patch(PROCESSING+'Pool') as mock_Pool_call:
+            with mock.patch(PROCESSING+'ImageProcessing._available_cores',
+                            return_value=7):
+                self.proc._calculate_hashes(self.images)
+
+        mock_Pool_call.assert_called_once_with(processes=7)
+
     def test_emit_update_info(self):
         spy = QtTest.QSignalSpy(self.proc.signals.update_info)
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
@@ -373,6 +382,14 @@ class TestMethodMakeThumbnails(TestClassImageProcessing):
         self.imap_return = (th for th in self.thumbnails)
         self.mock_context_obj.imap.return_value = self.imap_return
 
+    def test_Pool_called_with_available_cores_result(self):
+        with mock.patch(PROCESSING+'Pool') as mock_Pool_call:
+            with mock.patch(PROCESSING+'ImageProcessing._available_cores',
+                            return_value=7):
+                self.proc._make_thumbnails(self.img_groups)
+
+        mock_Pool_call.assert_called_once_with(processes=7)
+
     def test_args_imap_called_with(self):
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
             self.proc._make_thumbnails(self.img_groups)
@@ -454,6 +471,38 @@ class TestMethodThumbnailArgsUnpacker(TestClassImageProcessing):
         res = self.proc._thumbnail_args_unpacker((self.mock_image, self.size))
 
         self.assertIsNone(res)
+
+
+class TestMethodAvailableCores(TestClassImageProcessing):
+
+    def setUp(self):
+        super().setUp()
+
+        self.mock_sched = mock.MagicMock()
+        self.mock_sched.__len__.return_value = 1
+
+    def test_sched_getaffinity_called_with_0(self):
+        with mock.patch('os.sched_getaffinity',
+                        return_value=self.mock_sched) as mock_sched_call:
+            res = self.proc._available_cores()
+
+        mock_sched_call.assert_called_once_with(0)
+
+    def test_return_available_cores(self):
+        available_cores = 8
+        self.mock_sched.__len__.return_value = available_cores
+        with mock.patch('os.sched_getaffinity', return_value=self.mock_sched):
+            res = self.proc._available_cores()
+
+        self.assertEqual(res, available_cores)
+
+    def test_return_config_cores(self):
+        available_cores = 32
+        self.mock_sched.__len__.return_value = available_cores
+        with mock.patch('os.sched_getaffinity', return_value=self.mock_sched):
+            res = self.proc._available_cores()
+
+        self.assertEqual(res, self.proc.conf['cores'])
 
 
 class TestMethodUpdateProgressBar(TestClassImageProcessing):

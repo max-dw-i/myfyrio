@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 '''
 
-
+import os
 import pickle
 from unittest import TestCase, mock
 
@@ -58,6 +58,7 @@ class TestConfig(TestCase):
             'max_width': 1000000,
             'min_height': 0,
             'max_height': 1000000,
+            'cores': os.cpu_count() or 1
         }
 
         self.assertEqual(self.c.data, DEFAULT_CONFIG)

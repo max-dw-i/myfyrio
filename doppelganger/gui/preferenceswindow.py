@@ -22,6 +22,7 @@ Module implementing window "Preferences"
 
 from __future__ import annotations
 
+import os
 from typing import List, Union
 
 from PyQt5 import QtCore, QtWidgets, uic
@@ -118,6 +119,7 @@ class PreferencesWindow(QtWidgets.QMainWindow):
         uic.loadUi(resource(UI.PREFERENCES), self)
 
         self.widgets = self._gather_widgets()
+        self._init_widgets()
 
         self.conf = load_config()
         self.update_prefs(self.conf)
@@ -141,6 +143,11 @@ class PreferencesWindow(QtWidgets.QMainWindow):
                 if w.property('conf_param') is not None:
                     widgets.append(w)
         return widgets
+
+    def _init_widgets(self) -> None:
+        for w in self.widgets:
+            if w.property('conf_param') == 'cores':
+                w.setMaximum(os.cpu_count() or 1)
 
     def update_prefs(self, conf: config.Conf) -> None:
         '''Update the form with new preferences

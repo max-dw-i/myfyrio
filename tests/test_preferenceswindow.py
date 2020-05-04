@@ -17,6 +17,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 import logging
+import os
 from unittest import TestCase, mock
 
 from PyQt5 import QtWidgets
@@ -210,6 +211,7 @@ class TestPreferencesForm(TestCase):
             if isinstance(w, QtWidgets.QCheckBox):
                 w.setChecked(False)
             if isinstance(w, QtWidgets.QSpinBox):
+                w.setMaximum(200)
                 w.setValue(100)
             if isinstance(w, QtWidgets.QComboBox):
                 w.setCurrentIndex(0)
@@ -229,6 +231,16 @@ class TestMethodGatherWidgets(TestPreferencesForm):
             self.assertIsNotNone(w.property('conf_param'))
 
 
+class TestMethodInitWidgets(TestPreferencesForm):
+
+    def test_core_spinbox_max_val_equal_number_of_cores(self):
+        self.w._init_widgets()
+
+        for w in self.w.widgets:
+            if w.property('conf_param') == 'cores':
+                self.assertEqual(w.maximum(), os.cpu_count() or 1)
+
+
 class TestMethodUpdatePrefs(TestPreferencesForm):
 
     def test_update_prefs(self):
@@ -238,7 +250,7 @@ class TestMethodUpdatePrefs(TestPreferencesForm):
             'show_similarity': True,
             'show_size': True,
             'size_format': 2,
-            'size': 666,
+            'size': 150,
             'sort': 3,
             'subfolders': True,
             'close_confirmation': True,
@@ -246,7 +258,8 @@ class TestMethodUpdatePrefs(TestPreferencesForm):
             'min_width': 13,
             'max_width': 66,
             'min_height': 66,
-            'max_height': 567,
+            'max_height': 56,
+            'cores': 32
         }
         self.w.update_prefs(conf)
 
@@ -271,7 +284,8 @@ class TestMethodGatherPrefs(TestPreferencesForm):
                 'min_width': 100,
                 'max_width': 100,
                 'min_height': 100,
-                'max_height': 100,}
+                'max_height': 100,
+                'cores': 100}
 
         self.w.gather_prefs()
 
