@@ -119,7 +119,7 @@ class ThumbnailWidget(QtWidgets.QLabel):
 
     def _QByteArrayToQPixmap(self) -> QtGui.QPixmap:
         # Pixmap can read BMP, GIF, JPG, JPEG, PNG, PBM, PGM, PPM, XBM, XPM
-        if self.thumbnail is None:
+        if not self.thumbnail.size():
             return QtGui.QPixmap(resource(Image.ERR_IMG)).scaled(self.size,
                                                                  self.size)
 

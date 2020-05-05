@@ -19,7 +19,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 import logging
 from unittest import TestCase, mock
 
-from PyQt5 import QtTest, QtWidgets
+from PyQt5 import QtCore, QtTest, QtWidgets
 
 from doppelganger import exception, processing, signals
 
@@ -466,11 +466,12 @@ class TestMethodThumbnailArgsUnpacker(TestClassImageProcessing):
         with self.assertLogs('main.processing', 'ERROR'):
             self.proc._thumbnail_args_unpacker((self.mock_image, self.size))
 
-    def test_return_None_if_Image_thumbnail_raise_OSError(self):
+    def test_return_empty_QByteArray_if_Image_thumbnail_raise_OSError(self):
         self.mock_image.thumbnail.side_effect = OSError
         res = self.proc._thumbnail_args_unpacker((self.mock_image, self.size))
 
-        self.assertIsNone(res)
+        self.assertIsInstance(res, QtCore.QByteArray)
+        self.assertEqual(res.size(), 0)
 
 
 class TestMethodAvailableCores(TestClassImageProcessing):

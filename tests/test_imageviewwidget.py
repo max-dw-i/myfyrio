@@ -143,8 +143,8 @@ class TestThumbnailWidget(TestCase):
 
         with mock.patch(self.ThW+'_QByteArrayToQPixmap'):
             with mock.patch(self.ThW+'setPixmap'):
-                self.w =imageviewwidget.ThumbnailWidget(self.mock_thumbnail,
-                                                        self.size)
+                self.w = imageviewwidget.ThumbnailWidget(self.mock_thumbnail,
+                                                         self.size)
 
 
 class TestThumbnailWidgetMethodInit(TestThumbnailWidget):
@@ -183,7 +183,7 @@ class TestThumbnailWidgetMethodQByteArrayToQPixmap(TestThumbnailWidget):
         self.mock_qpixmap = mock.Mock()
 
     def test_return_scaled_error_img_if_thumbnail_is_None(self):
-        self.w.thumbnail = None
+        self.w.thumbnail = QtCore.QByteArray()
         self.mock_qpixmap.scaled.return_value = 'error_img'
         err_img_path = 'absolute_path'
         with mock.patch('PyQt5.QtGui.QPixmap',
@@ -272,7 +272,8 @@ class TestDuplicateWidget(TestCase):
         self.mock_image = mock.Mock()
 
         with mock.patch(self.DW+'_setThumbnailWidget'):
-            self.w = imageviewwidget.DuplicateWidget(self.mock_image, self.conf)
+            self.w = imageviewwidget.DuplicateWidget(self.mock_image,
+                                                     self.conf)
 
 
 class TestDuplicateWidgetMethodInit(TestDuplicateWidget):
@@ -298,7 +299,8 @@ class TestDuplicateWidgetMethodInit(TestDuplicateWidget):
 
     def test_setThumbnailWidget_called(self):
         with mock.patch(self.DW+'_setThumbnailWidget') as mock_widget_call:
-            self.w = imageviewwidget.DuplicateWidget(self.mock_image, self.conf)
+            self.w = imageviewwidget.DuplicateWidget(self.mock_image,
+                                                     self.conf)
 
         mock_widget_call.assert_called_once_with()
 
@@ -432,7 +434,7 @@ class TestMethodSetImageSizeLabel(TestDuplicateWidget):
 
     def test_filesize_called_with_SizeFormat_B(self):
         self.mock_image.filesize.return_value = 5000
-        with mock.patch(self.ISL) as mock_widget_call:
+        with mock.patch(self.ISL):
             with mock.patch(self.ADD):
                 self.w._setImageSizeLabel()
 

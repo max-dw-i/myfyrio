@@ -267,7 +267,7 @@ class ImageProcessing:
             th = image.thumbnail(size)
         except OSError as e:
             logger.error(e)
-            th = None
+            th = QtCore.QByteArray()
 
         return th
 
