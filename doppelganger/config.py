@@ -67,7 +67,8 @@ class Config:
             'max_width': 1000000,
             'min_height': 0,
             'max_height': 1000000,
-            'cores': os.cpu_count() or 1
+            'cores': os.cpu_count() or 1,
+            'lazy': False
         }
 
         self.data = DEFAULT_CONFIG.copy()

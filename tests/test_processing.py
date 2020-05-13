@@ -386,13 +386,13 @@ class TestMethodMakeThumbnails(TestClassImageProcessing):
         with mock.patch(PROCESSING+'Pool') as mock_Pool_call:
             with mock.patch(PROCESSING+'ImageProcessing._available_cores',
                             return_value=7):
-                self.proc._make_thumbnails(self.img_groups)
+                list(self.proc._make_thumbnails(self.img_groups))
 
         mock_Pool_call.assert_called_once_with(processes=7)
 
     def test_args_imap_called_with(self):
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            self.proc._make_thumbnails(self.img_groups)
+            list(self.proc._make_thumbnails(self.img_groups))
 
         self.mock_context_obj.imap.assert_called_once_with(
             self.proc._thumbnail_args_unpacker,
@@ -403,11 +403,11 @@ class TestMethodMakeThumbnails(TestClassImageProcessing):
         self.proc.interrupt = True
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
             with self.assertRaises(exception.InterruptProcessing):
-                self.proc._make_thumbnails(self.img_groups)
+                list(self.proc._make_thumbnails(self.img_groups))
 
     def test_assign_thumbnails_to_image_attrs(self):
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            self.proc._make_thumbnails(self.img_groups)
+            list(self.proc._make_thumbnails(self.img_groups))
 
         self.assertEqual(self.img_groups[0][0].thumb, self.thumbnails[0])
 
@@ -415,18 +415,16 @@ class TestMethodMakeThumbnails(TestClassImageProcessing):
         # Add another group
         self.img_groups.append([mock.Mock()])
         self.thumbnails.append('thumb2')
-        spy = QtTest.QSignalSpy(self.proc.signals.result)
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            self.proc._make_thumbnails(self.img_groups)
+            res = list(self.proc._make_thumbnails(self.img_groups))
 
-        self.assertEqual(len(spy), 2)
-        self.assertListEqual(spy[0][0], self.img_groups[0])
-        self.assertListEqual(spy[1][0], self.img_groups[1])
+        self.assertListEqual(res[0], self.img_groups[0])
+        self.assertListEqual(res[1], self.img_groups[1])
 
     def test_emit_update_info(self):
         spy = QtTest.QSignalSpy(self.proc.signals.update_info)
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            self.proc._make_thumbnails(self.img_groups)
+            list(self.proc._make_thumbnails(self.img_groups))
 
         self.assertEqual(spy[0][0], 'thumbnails')
         self.assertEqual(spy[0][1], '1')
@@ -435,7 +433,7 @@ class TestMethodMakeThumbnails(TestClassImageProcessing):
     def test_update_prog_bar_called_with_current_val_plus_step(self, mock_bar):
         self.proc.progress_bar_value = 21
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            self.proc._make_thumbnails(self.img_groups)
+            list(self.proc._make_thumbnails(self.img_groups))
 
         # step == 35 / len(collection) == 35 in this case
         mock_bar.assert_called_once_with(56)
@@ -485,7 +483,7 @@ class TestMethodAvailableCores(TestClassImageProcessing):
     def test_sched_getaffinity_called_with_0(self):
         with mock.patch('os.sched_getaffinity',
                         return_value=self.mock_sched) as mock_sched_call:
-            res = self.proc._available_cores()
+            self.proc._available_cores()
 
         mock_sched_call.assert_called_once_with(0)
 

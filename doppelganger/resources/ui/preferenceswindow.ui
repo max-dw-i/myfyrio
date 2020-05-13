@@ -413,41 +413,60 @@
         <string>Perfomance</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_7">
-        <item>
-         <widget class="QWidget" name="cpuWidget" native="true">
-          <layout class="QHBoxLayout" name="horizontalLayout_5">
+        <item alignment="Qt::AlignTop">
+         <widget class="QWidget" name="perfomanceWidget" native="true">
+          <layout class="QVBoxLayout" name="verticalLayout_10">
            <item>
-            <widget class="QLabel" name="cpuLbl">
-             <property name="text">
-              <string>Number of used CPU cores</string>
-             </property>
+            <widget class="QWidget" name="cpuWidget" native="true">
+             <layout class="QHBoxLayout" name="horizontalLayout_5">
+              <item>
+               <widget class="QLabel" name="cpuLbl">
+                <property name="text">
+                 <string>Number of used CPU cores</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSpinBox" name="cpuSpn">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>16777215</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="alignment">
+                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+                </property>
+                <property name="minimum">
+                 <number>1</number>
+                </property>
+                <property name="maximum">
+                 <number>1</number>
+                </property>
+                <property name="conf_param" stdset="0">
+                 <string>cores</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </widget>
            </item>
            <item>
-            <widget class="QSpinBox" name="cpuSpn">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>0</height>
-              </size>
+            <widget class="QCheckBox" name="lazyChk">
+             <property name="toolTip">
+              <string>Thumbnails will be loaded lazily while scrolling (save RAM, it should be used if many duplicate images are expected to be found)</string>
              </property>
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-             </property>
-             <property name="minimum">
-              <number>1</number>
-             </property>
-             <property name="maximum">
-              <number>1</number>
+             <property name="text">
+              <string>Lazy load of thumbnails</string>
              </property>
              <property name="conf_param" stdset="0">
-              <string>cores</string>
+              <string>lazy</string>
              </property>
             </widget>
            </item>

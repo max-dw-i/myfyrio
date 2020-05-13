@@ -259,7 +259,8 @@ class TestMethodUpdatePrefs(TestPreferencesForm):
             'max_width': 66,
             'min_height': 66,
             'max_height': 56,
-            'cores': 32
+            'cores': 32,
+            'lazy': True
         }
         self.w.update_prefs(conf)
 
@@ -285,7 +286,8 @@ class TestMethodGatherPrefs(TestPreferencesForm):
                 'max_width': 100,
                 'min_height': 100,
                 'max_height': 100,
-                'cores': 100}
+                'cores': 100,
+                'lazy': False}
 
         self.w.gather_prefs()
 

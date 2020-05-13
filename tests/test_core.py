@@ -378,7 +378,7 @@ class TestFuncThumbnailFunc(TestClassImage):
         self.size = 222
 
         self.w, self.h = 111, 111
-        self.DIM = CORE + 'Image._scaling_dimensions'
+        self.DIM = CORE + 'Image.scaling_dimensions'
         self.IMG = CORE + 'Image.scaled'
         self.BA = CORE + 'Image._QImage_to_QByteArray'
 
@@ -431,7 +431,7 @@ class TestMethodScalingDimensions(TestClassImage):
     def test_return_if_pass_square_image(self):
         self.image._width = 5
         self.image._height = 5
-        new_size = self.image._scaling_dimensions(10)
+        new_size = self.image.scaling_dimensions(10)
 
         self.assertEqual(new_size[0], 10)
         self.assertEqual(new_size[1], 10)
@@ -439,7 +439,7 @@ class TestMethodScalingDimensions(TestClassImage):
     def test_return_if_pass_portrait_image(self):
         self.image._width = 1
         self.image._height = 5
-        new_size = self.image._scaling_dimensions(10)
+        new_size = self.image.scaling_dimensions(10)
 
         self.assertEqual(new_size[0], 2)
         self.assertEqual(new_size[1], 10)
@@ -447,7 +447,7 @@ class TestMethodScalingDimensions(TestClassImage):
     def test_return_if_pass_landscape_image(self):
         self.image._width = 5
         self.image._height = 1
-        new_size = self.image._scaling_dimensions(10)
+        new_size = self.image.scaling_dimensions(10)
 
         self.assertEqual(new_size[0], 10)
         self.assertEqual(new_size[1], 2)

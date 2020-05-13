@@ -29,7 +29,7 @@ class Signals(QtCore.QObject):
     :signal update_info:        label to update: str, text to set: str,
     :signal update_progressbar: new value of progress bar: float,
     :signal error:              error: str,
-    :signal result:             groups of duplicate images: List[core.Group],
+    :signal image_groups:       list of image groups: List[Group],
     :signal finished:           processing is done,
     :signal interrupted:        image processing must be stopped,
     :signal clicked:            DuplicateWidget is clicked
@@ -38,7 +38,7 @@ class Signals(QtCore.QObject):
     update_info = QtCore.pyqtSignal(str, str)
     update_progressbar = QtCore.pyqtSignal(float)
     error = QtCore.pyqtSignal(str)
-    result = QtCore.pyqtSignal(list)
+    image_groups = QtCore.pyqtSignal(list)
     finished = QtCore.pyqtSignal()
     interrupted = QtCore.pyqtSignal()
     clicked = QtCore.pyqtSignal()

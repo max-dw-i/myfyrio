@@ -229,7 +229,7 @@ class Image:
         # Difference between the hash of the image
         # and the hash of the 1st image in the group
         self.difference = 0
-        self.thumb = None
+        self.thumb: Optional[QtCore.QByteArray] = None
         self.size: FileSize = None
         self._width: Width = None
         self._height: Height = None
@@ -318,13 +318,21 @@ class Image:
         :raise OSError: something went wrong while making thumbnail
         '''
 
-        width, height = self._scaling_dimensions(size)
+        width, height = self.scaling_dimensions(size)
         qimg = self.scaled(width, height)
         self.thumb = self._QImage_to_QByteArray(qimg, self.suffix.upper())
 
         return self.thumb
 
-    def _scaling_dimensions(self, size: int) -> Tuple[Width, Height]:
+    def scaling_dimensions(self, size: int) -> Tuple[Width, Height]:
+        '''Return width and height of the scaled image with the aspect ratio
+        kept where the biggest size is :size:. E.g. for 200x400 image and
+        :size: == 200, (100, 200) will be returned
+
+        :param size: the biggest size of the scaled image, px,
+        :return: width and height of the scaled image
+        '''
+
         width, height = self.width, self.height
         biggest_dim = width if width >= height else height
         new_width, new_height = (width * size // biggest_dim,

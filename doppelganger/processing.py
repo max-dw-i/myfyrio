@@ -20,7 +20,8 @@ import os
 import pathlib
 import sys
 from multiprocessing import Pool
-from typing import Any, Callable, Collection, Iterable, List, Set, Tuple
+from typing import (Any, Callable, Collection, Generator, Iterable, List, Set,
+                    Tuple)
 
 from PyQt5 import QtCore
 
@@ -61,6 +62,8 @@ class ImageProcessing:
     CACHE_FILE = (pathlib.Path(sys.executable).parent
                   if getattr(sys, 'frozen', False)
                   else pathlib.Path(__file__).parents[1]) / 'cache.p'
+
+    THUMBNAILED_NUM = 10
 
     def __init__(self, mw_signals: signals.Signals,
                  folders: Iterable[core.FolderPath],
@@ -107,7 +110,12 @@ class ImageProcessing:
                 s = core.Sort(group)
                 s.sort(sort_type)
 
-            self._make_thumbnails(image_groups)
+            if self.conf['lazy']:
+                self.signals.image_groups.emit(image_groups)
+            else:
+                for group in self._make_thumbnails(image_groups):
+                    self.signals.image_groups.emit([group])
+
         except InterruptProcessing:
             logger.info('Image processing has been interrupted '
                         'by the user')
@@ -231,7 +239,8 @@ class ImageProcessing:
 
         return image_groups
 
-    def _make_thumbnails(self, image_groups: List[core.Group]) -> None:
+    def _make_thumbnails(self, image_groups: List[core.Group]) \
+        -> Generator[core.Group, None, None]:
         # 'Flat' list is processed better in parallel
         size = self.conf['size']
         flat = [(image, size) for group in image_groups for image in group]
@@ -246,17 +255,18 @@ class ImageProcessing:
                     raise InterruptProcessing
 
                 image_groups[group_index][img_index].thumb = th
+
+                self.signals.update_info.emit('thumbnails', str(i + 1))
+                self._update_progress_bar(self.progress_bar_value
+                                          + progress_step)
+
                 if len(image_groups[group_index]) == img_index + 1:
-                    self.signals.result.emit(image_groups[group_index])
+                    yield image_groups[group_index]
 
                     group_index += 1
                     img_index = 0
                 else:
                     img_index += 1
-
-                self.signals.update_info.emit('thumbnails', str(i + 1))
-                self._update_progress_bar(self.progress_bar_value
-                                          + progress_step)
 
     @staticmethod
     def _thumbnail_args_unpacker(thumbnail_args: Tuple[core.Image, int]) \

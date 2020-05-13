@@ -21,6 +21,7 @@ Module implementing window "Main"
 '''
 
 import webbrowser
+from typing import Iterable
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
@@ -198,7 +199,7 @@ class MainWindow(QtWidgets.QMainWindow):
         p.signals.update_progressbar.connect(
             self.processingGrp.processProg.setValue
         )
-        p.signals.result.connect(self.render)
+        p.signals.image_groups.connect(self.render)
         p.signals.error.connect(errorMessage)
         p.signals.finished.connect(self.processingFinished)
 
@@ -288,9 +289,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.imageViewWidget.move(new_dst)
             self.switchImgActionsAndBtns()
 
-    def render(self, image_group: core.Group) -> None:
-        if image_group:
-            self.imageViewWidget.render(image_group)
+    def render(self, image_groups: Iterable[core.Group]) -> None:
+        if image_groups:
+            self.imageViewWidget.render(image_groups)
 
             for dup_w in self.imageViewWidget.widgets[-1].widgets:
                 dup_w.signals.clicked.connect(self.switchImgActionsAndBtns)
