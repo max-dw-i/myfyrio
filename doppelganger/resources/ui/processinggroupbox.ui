@@ -29,6 +29,9 @@
    <item>
     <widget class="QWidget" name="processLblsWidget" native="true">
      <layout class="QVBoxLayout" name="verticalLayout_8">
+      <property name="spacing">
+       <number>12</number>
+      </property>
       <property name="leftMargin">
        <number>0</number>
       </property>
@@ -112,16 +115,6 @@
         </property>
         <property name="alias" stdset="0">
          <string>image_groups</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QLabel" name="thumbnailsLbl">
-        <property name="text">
-         <string>Thumbnails made ... 0</string>
-        </property>
-        <property name="alias" stdset="0">
-         <string>thumbnails</string>
         </property>
        </widget>
       </item>

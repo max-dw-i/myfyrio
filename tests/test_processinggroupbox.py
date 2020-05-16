@@ -53,8 +53,7 @@ class TestProcessingGroupBox(TestCase):
         self.assertIn(self.w.remainingPicLbl, self.w.labels)
         self.assertIn(self.w.dupGroupLbl, self.w.labels)
         self.assertIn(self.w.duplicatesLbl, self.w.labels)
-        self.assertIn(self.w.thumbnailsLbl, self.w.labels)
-        self.assertEqual(len(self.w.labels), 6)
+        self.assertEqual(len(self.w.labels), 5)
 
     def test_clearWidget_clear_progress_bar(self):
         self.w._clearWidget()

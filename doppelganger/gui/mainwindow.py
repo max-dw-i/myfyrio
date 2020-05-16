@@ -252,8 +252,14 @@ class MainWindow(QtWidgets.QMainWindow):
                 event.ignore()
                 return
 
-        if self.processingGrp.stopBtn.isEnabled():
+        if self.processing_run:
             self.stopProcessing()
+
+        self.imageViewWidget.interrupted = True
+
+        threadpool = QtCore.QThreadPool.globalInstance()
+        threadpool.clear()
+        threadpool.waitForDone()
 
     def openWindow(self) -> None:
         window = self.sender().data()

@@ -28,7 +28,7 @@ from typing import Callable, Iterable, List
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from doppelganger import config, core, signals
+from doppelganger import config, core, processing, signals
 from doppelganger.logger import Logger
 from doppelganger.resources.manager import Image, resource
 
@@ -103,45 +103,64 @@ class ImagePathLabel(InfoLabel):
 class ThumbnailWidget(QtWidgets.QLabel):
     '''Widget renderering the thumbnail of an image'''
 
-    def __init__(self, image: core.Image, size: int,
+    def __init__(self, image: core.Image, size: int, lazy: bool,
                  parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
 
         self.image = image
         self.size = size
+        self.lazy = lazy
+
+        self.empty = True
 
         self.setAlignment(QtCore.Qt.AlignHCenter)
 
-        if image.thumb is None:
-            self._setEmptyPixmap()
-            self.empty = True
-        else:
-            self._setThumbnail()
-            self.empty = False
+        self._setEmptyPixmap()
+        if not lazy:
+            self.render()
 
     def _setEmptyPixmap(self) -> None:
-        w, h = self.image.scaling_dimensions(self.size)
-        self.pixmap = QtGui.QPixmap(w, h)
+        width, height = self.image.scaling_dimensions(self.size)
+        self.pixmap = QtGui.QPixmap(width, height)
         self.setPixmap(self.pixmap)
         self.updateGeometry()
 
-    def _setThumbnail(self) -> None:
-        self.pixmap = self._QByteArrayToQPixmap()
-        self.setPixmap(self.pixmap)
+        self.empty = True
+
+    def _setThumbnail(self, qimage: QtGui.QImage) -> None:
+        pixmap = QtGui.QPixmap()
+        if not pixmap.convertFromImage(qimage):
+            err_msg = ('Something happened while converting '
+                       'QImage into QPixmap')
+            logger.error(err_msg)
+            pixmap = QtGui.QPixmap(resource(Image.ERR_IMG)).scaled(self.size,
+                                                                   self.size)
+        self.setPixmap(pixmap)
         self.updateGeometry()
+
+        self.empty = False
+
+    def _makeThumbnail(self) -> None:
+        p = processing.ThumbnailProcessing(self.image, self.size)
+        p.signals.thumbnail.connect(self._setThumbnail)
+
+        worker = processing.Worker(p.run)
+        threadpool = QtCore.QThreadPool.globalInstance()
+        threadpool.start(worker)
 
     def render(self) -> None:
         '''Make image thumbnail (if it's not made yet) and set it
-        to the widget
+        to the widget. Do nothing if the widget is already not empty
+        or it is not visible and "lazy"
         '''
 
-        if self.empty:
-            if self.image.thumb is None:
-                self.image.thumbnail(self.size)
+        if not self.empty or (self.lazy and not self.isVisible()):
+            return
 
-            self._setThumbnail()
-
-            self.empty = False
+        if self.image.thumb is None:
+            self._makeThumbnail()
+        else:
+            self._setThumbnail(self.image.thumb)
 
     def clear(self) -> None:
         '''Set empty pixmap to the widget and assign None to attribute "thumb"
@@ -154,23 +173,13 @@ class ThumbnailWidget(QtWidgets.QLabel):
 
             self.empty = True
 
-    def _QByteArrayToQPixmap(self) -> QtGui.QPixmap:
-        # Pixmap can read BMP, GIF, JPG, JPEG, PNG, PBM, PGM, PPM, XBM, XPM
-        if not self.image.thumb.size():
-            return QtGui.QPixmap(resource(Image.ERR_IMG)).scaled(self.size,
-                                                                 self.size)
+    def isVisible(self) -> bool:
+        '''Check if the widget is visible by the user
 
-        pixmap = QtGui.QPixmap()
-        pixmap.loadFromData(self.image.thumb)
+        :return: True - visible, False - not visible
+        '''
 
-        if pixmap.isNull():
-            err_msg = ('Something happened while converting '
-                       'QByteArray into QPixmap')
-            logger.error(err_msg)
-            return QtGui.QPixmap(resource(Image.ERR_IMG)).scaled(self.size,
-                                                                 self.size)
-
-        return pixmap
+        return not self.visibleRegion().isNull()
 
     def mark(self) -> None:
         '''Mark the widget as selected (change colour)'''
@@ -221,12 +230,8 @@ class DuplicateWidget(QtWidgets.QWidget):
         self.setLayout(self.layout)
 
     def _setThumbnailWidget(self) -> ThumbnailWidget:
-        if self.image.thumb is None and not self.conf['lazy']:
-            message = ('Attribute "thumb" of an "Image" object cannot '
-                       'be None if lazy loading is used')
-            raise ValueError(message)
-
-        imageLabel = ThumbnailWidget(self.image, self.conf['size'])
+        imageLabel = ThumbnailWidget(self.image, self.conf['size'],
+                                     self.conf['lazy'])
         self.layout.addWidget(imageLabel)
         self.updateGeometry()
 
@@ -477,6 +482,8 @@ class ImageViewWidget(QtWidgets.QWidget):
         self.widgets: List[ImageGroupWidget] = []
         self.visible: List[ImageGroupWidget] = []
 
+        self.interrupted = False
+
         self.layout = QtWidgets.QVBoxLayout()
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
@@ -490,12 +497,13 @@ class ImageViewWidget(QtWidgets.QWidget):
         '''
 
         for group in image_groups:
-            widget = ImageGroupWidget(group, self.conf)
-            self.layout.addWidget(widget)
-            self.widgets.append(widget)
-            self.updateGeometry()
+            if not self.interrupted:
+                widget = ImageGroupWidget(group, self.conf)
+                self.layout.addWidget(widget)
+                self.widgets.append(widget)
+                self.updateGeometry()
 
-            QtCore.QCoreApplication.processEvents()
+                QtCore.QCoreApplication.processEvents()
 
     def paintEvent(self, event) -> None:
         if self.conf['lazy']:

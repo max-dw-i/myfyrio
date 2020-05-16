@@ -20,7 +20,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 Module implementing custom signals
 '''
 
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui
 
 
 class Signals(QtCore.QObject):
@@ -28,17 +28,19 @@ class Signals(QtCore.QObject):
     ------------------
     :signal update_info:        label to update: str, text to set: str,
     :signal update_progressbar: new value of progress bar: float,
-    :signal error:              error: str,
     :signal image_groups:       list of image groups: List[Group],
+    :signal thumbnail:          image thumbnail: QtGui.QImage,
+    :signal error:              error: str,
     :signal finished:           processing is done,
     :signal interrupted:        image processing must be stopped,
-    :signal clicked:            DuplicateWidget is clicked
+    :signal clicked:            "DuplicateWidget" is clicked
     '''
 
     update_info = QtCore.pyqtSignal(str, str)
     update_progressbar = QtCore.pyqtSignal(float)
-    error = QtCore.pyqtSignal(str)
     image_groups = QtCore.pyqtSignal(list)
+    thumbnail = QtCore.pyqtSignal(QtGui.QImage)
+    error = QtCore.pyqtSignal(str)
     finished = QtCore.pyqtSignal()
     interrupted = QtCore.pyqtSignal()
     clicked = QtCore.pyqtSignal()

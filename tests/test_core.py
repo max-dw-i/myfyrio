@@ -369,7 +369,7 @@ class TestMethodSimilarity(TestClassImage):
         self.assertEqual(res, 50)
 
 
-class TestFuncThumbnailFunc(TestClassImage):
+class TestMethodThumbnail(TestClassImage):
 
     def setUp(self):
         super().setUp()
@@ -380,50 +380,36 @@ class TestFuncThumbnailFunc(TestClassImage):
         self.w, self.h = 111, 111
         self.DIM = CORE + 'Image.scaling_dimensions'
         self.IMG = CORE + 'Image.scaled'
-        self.BA = CORE + 'Image._QImage_to_QByteArray'
 
     def test_scaling_dimensions_called_with_size_arg(self):
         with mock.patch(self.DIM, return_value=(self.w, self.h)) as mock_dim:
             with mock.patch(self.IMG):
-                with mock.patch(self.BA):
-                    self.image.thumbnail(self.size)
+                self.image.thumbnail(self.size)
 
         mock_dim.assert_called_once_with(self.size)
 
     def test_args_scaled_image_called_with(self):
         with mock.patch(self.DIM, return_value=(self.w, self.h)):
             with mock.patch(self.IMG) as mock_scaled_img:
-                with mock.patch(self.BA):
-                    self.image.thumbnail(self.size)
+                self.image.thumbnail(self.size)
 
         mock_scaled_img.assert_called_once_with(self.w, self.h)
 
-    def test_args_QImage_to_QByteArray_called_with(self):
-        qimage = 'image'
+    def test_scaled_result_assigned_to_attr_thumb(self):
+        qimage = 'QImage'
         with mock.patch(self.DIM, return_value=(self.w, self.h)):
             with mock.patch(self.IMG, return_value=qimage):
-                with mock.patch(self.BA) as mock_ba:
-                    self.image.thumbnail(self.size)
+                self.image.thumbnail(self.size)
 
-        mock_ba.assert_called_once_with(qimage, 'PNG')
+        self.assertEqual(self.image.thumb, qimage)
 
-    def test_QImage_to_QByteArray_result_assigned_to_attr_thumb(self):
-        ba_image = 'QByteArray_image'
+    def test_return_scaled_result(self):
+        qimage = 'QImage'
         with mock.patch(self.DIM, return_value=(self.w, self.h)):
-            with mock.patch(self.IMG):
-                with mock.patch(self.BA, return_value=ba_image):
-                    self.image.thumbnail(self.size)
+            with mock.patch(self.IMG, return_value=qimage):
+                res = self.image.thumbnail(self.size)
 
-        self.assertEqual(self.image.thumb, ba_image)
-
-    def test_return_QImage_to_QByteArray_result(self):
-        ba_image = 'QByteArray_image'
-        with mock.patch(self.DIM, return_value=(self.w, self.h)):
-            with mock.patch(self.IMG):
-                with mock.patch(self.BA, return_value=ba_image):
-                    res = self.image.thumbnail(self.size)
-
-        self.assertEqual(res, ba_image)
+        self.assertEqual(res, qimage)
 
 
 class TestMethodScalingDimensions(TestClassImage):
@@ -497,68 +483,6 @@ class TestMethodScaled(TestClassImage):
         with mock.patch(self.QIR, return_value=self.reader):
             with self.assertRaises(OSError):
                 self.image.scaled(self.width, self.height)
-
-
-class TestMethodQImageToQByteArrayFunc(TestClassImage):
-
-    def setUp(self):
-        self.img = mock.Mock()
-        self.ba = mock.Mock()
-        self.buf = mock.Mock()
-        self.buf.open.return_value = True
-        self.img.save.return_value = True
-
-        self.BUF = 'PyQt5.QtCore.QBuffer'
-        self.BA = 'PyQt5.QtCore.QByteArray'
-
-    def test_QBuffer_called_with_QByteArray_arg(self):
-        with mock.patch(self.BA, return_value=self.ba):
-            with mock.patch(self.BUF, return_value=self.buf) as mock_buf:
-                core.Image._QImage_to_QByteArray(self.img, 'PNG')
-
-        mock_buf.assert_called_once_with(self.ba)
-
-    def test_QBuffer_open_called_with_WriteOnly(self):
-        with mock.patch(self.BA, return_value=self.ba):
-            with mock.patch(self.BUF, return_value=self.buf):
-                core.Image._QImage_to_QByteArray(self.img, 'PNG')
-
-        self.buf.open.assert_called_once_with(QtCore.QIODevice.WriteOnly)
-
-    def test_raise_ThumbnailError_if_QByteArray_open_return_False(self):
-        self.buf.open.return_value = False
-        with mock.patch(self.BA, return_value=self.ba):
-            with mock.patch(self.BUF, return_value=self.buf):
-                with self.assertRaises(OSError):
-                    core.Image._QImage_to_QByteArray(self.img, 'PNG')
-
-    def test_args_QImage_save_called_with(self):
-        with mock.patch(self.BA, return_value=self.ba):
-            with mock.patch(self.BUF, return_value=self.buf):
-                core.Image._QImage_to_QByteArray(self.img, 'PNG')
-
-        self.img.save.assert_called_once_with(self.buf, 'PNG', 100)
-
-    def test_raise_ThumbnailError_if_QImage_save_return_False(self):
-        self.img.save.return_value = False
-        with mock.patch(self.BA, return_value=self.ba):
-            with mock.patch(self.BUF, return_value=self.buf):
-                with self.assertRaises(OSError):
-                    core.Image._QImage_to_QByteArray(self.img, 'PNG')
-
-    def test_QBuffer_closed(self):
-        with mock.patch(self.BA, return_value=self.ba):
-            with mock.patch(self.BUF, return_value=self.buf):
-                core.Image._QImage_to_QByteArray(self.img, 'PNG')
-
-        self.buf.close.assert_called_once_with()
-
-    def test_return_iamge_in_QByteArray_format(self):
-        with mock.patch(self.BA, return_value=self.ba):
-            with mock.patch(self.BUF, return_value=self.buf):
-                res = core.Image._QImage_to_QByteArray(self.img, 'PNG')
-
-        self.assertEqual(res, self.ba)
 
 
 class TestMethodSetDimensions(TestClassImage):

@@ -34,7 +34,7 @@ IMAGE_VIEW_WIDGET = 'doppelganger.gui.imageviewwidget.'
 PROC_GRP_BOX = 'doppelganger.gui.processinggroupbox.'
 
 
-# pylint: disable=unused-argument,missing-class-docstring,protected-access
+# pylint: disable=unused-argument,missing-class-docstring
 
 
 class TestMainForm(TestCase):
@@ -209,7 +209,7 @@ class TestMainFormMethodCloseEvent(TestMainForm):
 
     def test_stopProcessing_not_called_if_no_confirmation_and_no_stopBtn(self):
         self.w.preferencesWindow.conf['close_confirmation'] = False
-        self.w.processingGrp.stopBtn.setEnabled(False)
+        self.w.processing_run = False
         with mock.patch(MAIN_WINDOW+'MainWindow.stopProcessing') as mock_stop:
             self.w.closeEvent(self.mock_event)
 
@@ -217,7 +217,7 @@ class TestMainFormMethodCloseEvent(TestMainForm):
 
     def test_stopProcessing_called_if_no_confirmation_and_stopBtn(self):
         self.w.preferencesWindow.conf['close_confirmation'] = False
-        self.w.processingGrp.stopBtn.setEnabled(True)
+        self.w.processing_run = True
         with mock.patch(MAIN_WINDOW+'MainWindow.stopProcessing') as mock_stop:
             self.w.closeEvent(self.mock_event)
 
@@ -225,7 +225,7 @@ class TestMainFormMethodCloseEvent(TestMainForm):
 
     def test_stopProcessing_not_called_if_Yes_confirmation_no_stopBtn(self):
         self.w.preferencesWindow.conf['close_confirmation'] = True
-        self.w.processingGrp.stopBtn.setEnabled(False)
+        self.w.processing_run = False
         with mock.patch(MAIN_WINDOW+'MainWindow.stopProcessing') as mock_stop:
             with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
                             return_value=QtWidgets.QMessageBox.Yes):
@@ -235,7 +235,7 @@ class TestMainFormMethodCloseEvent(TestMainForm):
 
     def test_stopProcessing_called_if_Yes_confirmation_and_stopBtn(self):
         self.w.preferencesWindow.conf['close_confirmation'] = True
-        self.w.processingGrp.stopBtn.setEnabled(True)
+        self.w.processing_run = True
         with mock.patch(MAIN_WINDOW+'MainWindow.stopProcessing') as mock_stop:
             with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
                             return_value=QtWidgets.QMessageBox.Yes):
@@ -259,6 +259,26 @@ class TestMainFormMethodCloseEvent(TestMainForm):
             self.w.closeEvent(self.mock_event)
 
         self.mock_event.ignore.assert_called_once_with()
+
+    def test_imageviewwidget_attr_interrupted_set_to_True(self):
+        self.w.preferencesWindow.conf['close_confirmation'] = False
+        self.w.imageViewWidget.interrupted = False
+
+        self.w.closeEvent(self.mock_event)
+
+        self.assertTrue(self.w.imageViewWidget.interrupted)
+
+    def test_threadpool_cleared(self):
+        self.w.preferencesWindow.conf['close_confirmation'] = False
+        self.w.imageViewWidget.interrupted = False
+        mock_pool = mock.Mock()
+
+        with mock.patch('PyQt5.QtCore.QThreadPool.globalInstance',
+                        return_value=mock_pool):
+            self.w.closeEvent(self.mock_event)
+
+        mock_pool.clear.assert_called_once_with()
+        mock_pool.waitForDone.assert_called_once_with()
 
 
 class TestMainFormMethodOpenWindow(TestMainForm):

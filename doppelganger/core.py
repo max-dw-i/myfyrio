@@ -229,7 +229,7 @@ class Image:
         # Difference between the hash of the image
         # and the hash of the 1st image in the group
         self.difference = 0
-        self.thumb: Optional[QtCore.QByteArray] = None
+        self.thumb: Optional[QtGui.QImage] = None
         self.size: FileSize = None
         self._width: Width = None
         self._height: Height = None
@@ -308,19 +308,18 @@ class Image:
         # hash is a 128-bit vector
         return int((1 - diff / 128) * 100)
 
-    def thumbnail(self, size: int) -> QtCore.QByteArray:
+    def thumbnail(self, size: int) -> QtGui.QImage:
         '''Make image thumbnail, assign it to attribute "thumb"
         and return it
 
         :param size: the biggest dimension (width or height) of
                      the image after having been scaled,
-        :return: thumbnail as "QByteArray" object,
+        :return: thumbnail as "QImage" object,
         :raise OSError: something went wrong while making thumbnail
         '''
 
         width, height = self.scaling_dimensions(size)
-        qimg = self.scaled(width, height)
-        self.thumb = self._QImage_to_QByteArray(qimg, self.suffix.upper())
+        self.thumb = self.scaled(width, height)
 
         return self.thumb
 
@@ -361,22 +360,6 @@ class Image:
             e = reader.errorString()
             raise OSError(e)
         return img
-
-    @staticmethod
-    def _QImage_to_QByteArray(image: QtGui.QImage, suffix: str) \
-        -> Optional[QtCore.QByteArray]:
-        ba = QtCore.QByteArray()
-        buf = QtCore.QBuffer(ba)
-
-        if not buf.open(QtCore.QIODevice.WriteOnly):
-            raise OSError('Something went wrong while opening buffer')
-
-        if not image.save(buf, suffix, 100):
-            raise OSError('Something went wrong while saving image '
-                          'into buffer')
-
-        buf.close()
-        return ba
 
     def _set_dimensions(self) -> None:
         image = QtGui.QImageReader(self.path)

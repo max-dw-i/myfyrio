@@ -20,10 +20,9 @@ import os
 import pathlib
 import sys
 from multiprocessing import Pool
-from typing import (Any, Callable, Collection, Generator, Iterable, List, Set,
-                    Tuple)
+from typing import Any, Callable, Collection, Iterable, List, Set, Tuple
 
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui
 
 from doppelganger import config, core, signals
 from doppelganger.cache import Cache
@@ -49,8 +48,7 @@ class Worker(QtCore.QRunnable):
 
 
 class ImageProcessing:
-    '''The whole machinery happens in a separate thread while
-    processing images
+    '''The whole machinery (image processing) happens in a separate thread
 
     :param mw_signals: signals object from the main (GUI) thread,
     :param folders: folders to process,
@@ -83,12 +81,10 @@ class ImageProcessing:
         self.progress_bar_value: float = 0.0
 
     def run(self) -> None:
-        '''Main processing function'''
-
         try:
             images = self._find_images()
             if not images:
-                self.signals.result.emit([])
+                self.signals.image_groups.emit([])
                 return
 
             cache = self._load_cache()
@@ -102,7 +98,7 @@ class ImageProcessing:
 
             image_groups = self._image_grouping(cached)
             if not image_groups:
-                self.signals.result.emit([])
+                self.signals.image_groups.emit([])
                 return
 
             sort_type = self.conf['sort']
@@ -110,11 +106,7 @@ class ImageProcessing:
                 s = core.Sort(group)
                 s.sort(sort_type)
 
-            if self.conf['lazy']:
-                self.signals.image_groups.emit(image_groups)
-            else:
-                for group in self._make_thumbnails(image_groups):
-                    self.signals.image_groups.emit([group])
+            self.signals.image_groups.emit(image_groups)
 
         except InterruptProcessing:
             logger.info('Image processing has been interrupted '
@@ -239,48 +231,6 @@ class ImageProcessing:
 
         return image_groups
 
-    def _make_thumbnails(self, image_groups: List[core.Group]) \
-        -> Generator[core.Group, None, None]:
-        # 'Flat' list is processed better in parallel
-        size = self.conf['size']
-        flat = [(image, size) for group in image_groups for image in group]
-
-        progress_step = 35 / len(flat)
-        group_index, img_index = 0, 0
-
-        with Pool(processes=self._available_cores()) as p:
-            thumbnails_gen = p.imap(self._thumbnail_args_unpacker, flat)
-            for i, th in enumerate(thumbnails_gen):
-                if self.interrupt:
-                    raise InterruptProcessing
-
-                image_groups[group_index][img_index].thumb = th
-
-                self.signals.update_info.emit('thumbnails', str(i + 1))
-                self._update_progress_bar(self.progress_bar_value
-                                          + progress_step)
-
-                if len(image_groups[group_index]) == img_index + 1:
-                    yield image_groups[group_index]
-
-                    group_index += 1
-                    img_index = 0
-                else:
-                    img_index += 1
-
-    @staticmethod
-    def _thumbnail_args_unpacker(thumbnail_args: Tuple[core.Image, int]) \
-        -> QtCore.QByteArray:
-        image, size = thumbnail_args[0], thumbnail_args[1]
-
-        try:
-            th = image.thumbnail(size)
-        except OSError as e:
-            logger.error(e)
-            th = QtCore.QByteArray()
-
-        return th
-
     def _available_cores(self) -> int:
         cores = self.conf['cores']
         available_cores = len(os.sched_getaffinity(0))
@@ -295,3 +245,26 @@ class ImageProcessing:
     def _update_progress_bar(self, value: float) -> None:
         self.progress_bar_value = value
         self.signals.update_progressbar.emit(self.progress_bar_value)
+
+
+class ThumbnailProcessing:
+    '''Class implementing thumbnails making
+
+    :param image: "Image" object,
+    :param size: the biggest size (width or height) of the scaled image
+    '''
+
+    def __init__(self, image: core.Image, size) -> None:
+        self.image = image
+        self.size = size
+
+        self.signals = signals.Signals()
+
+    def run(self) -> None:
+        try:
+            thumbnail = self.image.thumbnail(self.size)
+        except OSError as e:
+            logger.error(e)
+            thumbnail = QtGui.QImage()
+
+        self.signals.thumbnail.emit(thumbnail)

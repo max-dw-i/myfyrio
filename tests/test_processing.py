@@ -19,7 +19,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 import logging
 from unittest import TestCase, mock
 
-from PyQt5 import QtCore, QtTest, QtWidgets
+from PyQt5 import QtGui, QtTest, QtWidgets
 
 from doppelganger import exception, processing, signals
 
@@ -364,114 +364,6 @@ class TestMethodImageGrouping(TestClassImageProcessing):
         mock_bar.assert_called_once_with(65)
 
 
-class TestMethodMakeThumbnails(TestClassImageProcessing):
-
-    def setUp(self):
-        super().setUp()
-
-        self.img_groups = [[mock.Mock()]]
-        self.thumbnails = ['thumb1']
-
-        self.func = mock.Mock()
-        self.collection = ['item']
-        self.label = 'label'
-
-        self.mock_Pool = mock.MagicMock()
-        self.mock_context_obj = mock.Mock()
-        self.mock_Pool.__enter__.return_value = self.mock_context_obj
-        self.imap_return = (th for th in self.thumbnails)
-        self.mock_context_obj.imap.return_value = self.imap_return
-
-    def test_Pool_called_with_available_cores_result(self):
-        with mock.patch(PROCESSING+'Pool') as mock_Pool_call:
-            with mock.patch(PROCESSING+'ImageProcessing._available_cores',
-                            return_value=7):
-                list(self.proc._make_thumbnails(self.img_groups))
-
-        mock_Pool_call.assert_called_once_with(processes=7)
-
-    def test_args_imap_called_with(self):
-        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            list(self.proc._make_thumbnails(self.img_groups))
-
-        self.mock_context_obj.imap.assert_called_once_with(
-            self.proc._thumbnail_args_unpacker,
-            [(self.img_groups[0][0], self.proc.conf['size'])]
-        )
-
-    def test_raise_InterruptProcessing_if_interrupt_attr_is_True(self):
-        self.proc.interrupt = True
-        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            with self.assertRaises(exception.InterruptProcessing):
-                list(self.proc._make_thumbnails(self.img_groups))
-
-    def test_assign_thumbnails_to_image_attrs(self):
-        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            list(self.proc._make_thumbnails(self.img_groups))
-
-        self.assertEqual(self.img_groups[0][0].thumb, self.thumbnails[0])
-
-    def test_emit_image_groups(self):
-        # Add another group
-        self.img_groups.append([mock.Mock()])
-        self.thumbnails.append('thumb2')
-        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            res = list(self.proc._make_thumbnails(self.img_groups))
-
-        self.assertListEqual(res[0], self.img_groups[0])
-        self.assertListEqual(res[1], self.img_groups[1])
-
-    def test_emit_update_info(self):
-        spy = QtTest.QSignalSpy(self.proc.signals.update_info)
-        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            list(self.proc._make_thumbnails(self.img_groups))
-
-        self.assertEqual(spy[0][0], 'thumbnails')
-        self.assertEqual(spy[0][1], '1')
-
-    @mock.patch(PROCESSING+'ImageProcessing._update_progress_bar')
-    def test_update_prog_bar_called_with_current_val_plus_step(self, mock_bar):
-        self.proc.progress_bar_value = 21
-        with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            list(self.proc._make_thumbnails(self.img_groups))
-
-        # step == 35 / len(collection) == 35 in this case
-        mock_bar.assert_called_once_with(56)
-
-
-class TestMethodThumbnailArgsUnpacker(TestClassImageProcessing):
-
-    def setUp(self):
-        super().setUp()
-
-        self.mock_image = mock.Mock()
-        self.size = 333
-
-    def test_Image_thumbnail_called_with_size_arg(self):
-        self.proc._thumbnail_args_unpacker((self.mock_image, self.size))
-
-        self.mock_image.thumbnail.assert_called_once_with(self.size)
-
-    def test_return_Image_thumbnail_result(self):
-        thumbnail = 'thumbnail'
-        self.mock_image.thumbnail.return_value = thumbnail
-        res = self.proc._thumbnail_args_unpacker((self.mock_image, self.size))
-
-        self.assertEqual(res, thumbnail)
-
-    def test_log_if_Image_thumbnail_raise_OSError(self):
-        self.mock_image.thumbnail.side_effect = OSError
-        with self.assertLogs('main.processing', 'ERROR'):
-            self.proc._thumbnail_args_unpacker((self.mock_image, self.size))
-
-    def test_return_empty_QByteArray_if_Image_thumbnail_raise_OSError(self):
-        self.mock_image.thumbnail.side_effect = OSError
-        res = self.proc._thumbnail_args_unpacker((self.mock_image, self.size))
-
-        self.assertIsInstance(res, QtCore.QByteArray)
-        self.assertEqual(res.size(), 0)
-
-
 class TestMethodAvailableCores(TestClassImageProcessing):
 
     def setUp(self):
@@ -565,3 +457,53 @@ class TestMethodRun(TestClassImageProcessing):
             self.proc.run()
 
         self.assertEqual(len(spy), 1)
+
+
+class TestClassThumbnailProcessing(TestCase):
+
+    def setUp(self):
+        self.mock_image = mock.Mock()
+        self.size = 200
+
+        self.proc = processing.ThumbnailProcessing(self.mock_image, self.size)
+
+
+class TestClassThumbnailProcessingMethodInit(TestClassThumbnailProcessing):
+
+    def test_init_values(self):
+        self.assertIs(self.proc.image, self.mock_image)
+        self.assertEqual(self.proc.size, self.size)
+        self.assertIsInstance(self.proc.signals, signals.Signals)
+
+
+class TestClassThumbnailProcessingMethodRun(TestClassThumbnailProcessing):
+
+    def test_image_thumbnail_called_with_size_arg(self):
+        self.mock_image.thumbnail.return_value = QtGui.QImage()
+        self.proc.run()
+
+        self.mock_image.thumbnail.assert_called_once_with(self.size)
+
+    def test_thumbnail_result_emitted(self):
+        thumbnail = QtGui.QImage()
+        self.mock_image.thumbnail.return_value = thumbnail
+        spy = QtTest.QSignalSpy(self.proc.signals.thumbnail)
+
+        self.proc.run()
+
+        self.assertEqual(len(spy), 1)
+        self.assertEqual(spy[0][0], thumbnail)
+
+    def test_logging_if_image_thumbnail_raise_OSError(self):
+        self.mock_image.thumbnail.side_effect = OSError
+        with self.assertLogs('main.processing', 'ERROR'):
+            self.proc.run()
+
+    def test_empty_QImage_emitted_if_image_thumbnail_raise_OSError(self):
+        self.mock_image.thumbnail.side_effect = OSError
+        spy = QtTest.QSignalSpy(self.proc.signals.thumbnail)
+
+        self.proc.run()
+
+        self.assertEqual(len(spy), 1)
+        self.assertEqual(spy[0][0], QtGui.QImage())

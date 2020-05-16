@@ -141,10 +141,11 @@ class TestThumbnailWidget(TestCase):
         self.mock_image = mock.Mock()
         self.mock_image.thumb = None
         self.size = 333
+        self.lazy = True
 
         with mock.patch(self.ThW+'_setEmptyPixmap'):
             self.w = imageviewwidget.ThumbnailWidget(self.mock_image,
-                                                     self.size)
+                                                     self.size, self.lazy)
 
 
 class TestThumbnailWidgetMethodInit(TestThumbnailWidget):
@@ -152,35 +153,26 @@ class TestThumbnailWidgetMethodInit(TestThumbnailWidget):
     def test_init_values(self):
         self.assertEqual(self.w.image, self.mock_image)
         self.assertEqual(self.w.size, self.size)
+        self.assertEqual(self.w.lazy, self.lazy)
+        self.assertTrue(self.w.empty, True)
 
     def test_alignment(self):
         self.assertEqual(self.w.alignment(), QtCore.Qt.AlignHCenter)
 
-    def test_setEmptyPixmap_called_if_thumb_is_None(self):
+    def test_setEmptyPixmap_called(self):
         with mock.patch(self.ThW+'_setEmptyPixmap') as mock_empty_call:
-            imageviewwidget.ThumbnailWidget(self.mock_image, self.size)
+            imageviewwidget.ThumbnailWidget(self.mock_image, self.size,
+                                            self.lazy)
 
         mock_empty_call.assert_called_once_with()
 
-    def test_attr_empty_set_to_True_if_thumb_is_None(self):
+    def test_render_called_if_not_lazy(self):
         with mock.patch(self.ThW+'_setEmptyPixmap'):
-            res = imageviewwidget.ThumbnailWidget(self.mock_image, self.size)
+            with mock.patch(self.ThW+'render') as mock_render_call:
+                imageviewwidget.ThumbnailWidget(self.mock_image, self.size,
+                                                False)
 
-        self.assertTrue(res.empty)
-
-    def test_setThumbnail_called_if_thumb_is_not_None(self):
-        self.mock_image.thumb = 'thumbnail'
-        with mock.patch(self.ThW+'_setThumbnail') as mock_thumbnail_call:
-            imageviewwidget.ThumbnailWidget(self.mock_image, self.size)
-
-        mock_thumbnail_call.assert_called_once_with()
-
-    def test_attr_empty_set_to_False_if_thumb_is_not_None(self):
-        self.mock_image.thumb = 'thumbnail'
-        with mock.patch(self.ThW+'_setThumbnail'):
-            res = imageviewwidget.ThumbnailWidget(self.mock_image, self.size)
-
-        self.assertFalse(res.empty)
+        mock_render_call.assert_called_once_with()
 
 
 class TestThumbnailWidgetMethodSetEmptyPixmap(TestThumbnailWidget):
@@ -224,66 +216,193 @@ class TestThumbnailWidgetMethodSetEmptyPixmap(TestThumbnailWidget):
 
 class TestThumbnailWidgetMethodSetThumbnail(TestThumbnailWidget):
 
-    def test_setPixmap_called_with_QByteArrayToQPixmap_result(self):
-        with mock.patch(self.ThW+'_QByteArrayToQPixmap', return_value='ba'):
-            with mock.patch(self.ThW+'setPixmap') as mock_setPixmap_call:
-                self.w._setThumbnail()
+    def setUp(self):
+        super().setUp()
 
-        mock_setPixmap_call.assert_called_once_with('ba')
+        self.mock_pixmap = mock.Mock()
+        self.qimage = 'qimage'
+
+    def test_convertFromImage_called_with_qimage_arg(self):
+        self.mock_pixmap.convertFromImage.return_value = True
+        with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_pixmap):
+            with mock.patch(self.ThW+'setPixmap'):
+                self.w._setThumbnail(self.qimage)
+
+        self.mock_pixmap.convertFromImage.assert_called_once_with(self.qimage)
+
+    def test_setPixmap_called_with_image_read_from_QImage(self):
+        self.mock_pixmap.convertFromImage.return_value = True
+        with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_pixmap):
+            with mock.patch(self.ThW+'setPixmap') as mock_setPixmap_call:
+                self.w._setThumbnail(self.qimage)
+
+        mock_setPixmap_call.assert_called_once_with(self.mock_pixmap)
+
+    def test_logging_if_qimage_cannot_be_read(self):
+        self.mock_pixmap.convertFromImage.return_value = False
+        with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_pixmap):
+            with mock.patch(self.ThW+'setPixmap'):
+                with self.assertLogs('main.widgets', 'ERROR'):
+                    self.w._setThumbnail(self.qimage)
+
+    def test_error_img_set_if_qimage_cannot_be_read(self):
+        self.mock_pixmap.convertFromImage.return_value = False
+        error_pixmap = mock.Mock()
+        error_pixmap.scaled.return_value = 'error_img'
+        err_img_path = 'absolute_path'
+        pixmaps = [self.mock_pixmap, error_pixmap]
+
+        with mock.patch('PyQt5.QtGui.QPixmap',
+                        side_effect=pixmaps) as mock_pixmap_calls:
+            with mock.patch(self.ThW+'setPixmap') as mock_setPixmap_call:
+                with mock.patch('doppelganger.gui.imageviewwidget.resource',
+                                return_value=err_img_path):
+                    self.w._setThumbnail(self.qimage)
+
+        calls = [mock.call(), mock.call(err_img_path)]
+        mock_pixmap_calls.assert_has_calls(calls)
+        error_pixmap.scaled.assert_called_once_with(self.size, self.size)
+        mock_setPixmap_call.assert_called_once_with('error_img')
 
     def test_updateGeometry_called(self):
-        with mock.patch(self.ThW+'_QByteArrayToQPixmap'):
+        self.mock_pixmap.convertFromImage.return_value = True
+        with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_pixmap):
             with mock.patch(self.ThW+'setPixmap'):
                 with mock.patch(self.ThW+'updateGeometry') as mock_upd_call:
-                    self.w._setThumbnail()
+                    self.w._setThumbnail(self.qimage)
 
         mock_upd_call.assert_called_once_with()
+
+    def test_empty_attr_set_to_False(self):
+        self.mock_pixmap.convertFromImage.return_value = True
+        self.w.empty = True
+        with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_pixmap):
+            with mock.patch(self.ThW+'setPixmap'):
+                self.w._setThumbnail(self.qimage)
+
+        self.assertFalse(self.w.empty)
+
+
+class TestThumbnailWidgetMethodMakeThumbnail(TestThumbnailWidget):
+
+    PROC = 'doppelganger.processing.'
+
+    def test_args_ThumbnailProcessing_called_with(self):
+        with mock.patch(self.PROC+'ThumbnailProcessing') as mock_proc_call:
+            with mock.patch('PyQt5.QtCore.QThreadPool.globalInstance'):
+                self.w._makeThumbnail()
+
+        mock_proc_call.assert_called_once_with(self.w.image, self.w.size)
+
+    def test_worker_created(self):
+        mock_processing_obj = mock.Mock()
+        with mock.patch(self.PROC+'ThumbnailProcessing',
+                        return_value=mock_processing_obj):
+            with mock.patch('PyQt5.QtCore.QThreadPool.globalInstance'):
+                with mock.patch(self.PROC+'Worker') as mock_worker_call:
+                    self.w._makeThumbnail()
+
+        mock_worker_call.assert_called_once_with(mock_processing_obj.run)
+
+    def test_worker_pushed_to_thread(self):
+        mock_threadpool = mock.Mock()
+        mock_worker = mock.Mock()
+        with mock.patch(self.PROC+'ThumbnailProcessing'):
+            with mock.patch('PyQt5.QtCore.QThreadPool.globalInstance',
+                            return_value=mock_threadpool):
+                with mock.patch(self.PROC+'Worker', return_value=mock_worker):
+                    self.w._makeThumbnail()
+
+        mock_threadpool.start.assert_called_once_with(mock_worker)
 
 
 class TestThumbnailWidgetMethodRender(TestThumbnailWidget):
 
-    def test_setThumbnail_not_called_if_attr_empty_is_False(self):
+    def test_setThumbnail_or_makeThumbnail_not_called_if_not_empty(self):
         self.w.empty = False
         with mock.patch(self.ThW+'_setThumbnail') as mock_set_call:
-            self.w.render()
+            with mock.patch(self.ThW+'_makeThumbnail') as mock_make_call:
+                self.w.render()
 
         mock_set_call.assert_not_called()
+        mock_make_call.assert_not_called()
 
-    def test_attr_empty_stay_False_if_it_is_False(self):
-        self.w.empty = False
-        with mock.patch(self.ThW+'_setThumbnail'):
-            self.w.render()
-
-        self.assertFalse(self.w.empty)
-
-    def test_setThumbnail_called_if_attr_empty_is_True(self):
+    def test_setThumbnail_or_makeThumbnail_not_called_if_emp_laz_not_vis(self):
         self.w.empty = True
+        self.w.lazy = True
         with mock.patch(self.ThW+'_setThumbnail') as mock_set_call:
-            self.w.render()
+            with mock.patch(self.ThW+'_makeThumbnail') as mock_make_call:
+                with mock.patch(self.ThW+'isVisible', return_value=False):
+                    self.w.render()
 
-        mock_set_call.assert_called_once_with()
+        mock_set_call.assert_not_called()
+        mock_make_call.assert_not_called()
 
-    def test_attr_empty_set_to_False_if_attr_empty_is_True(self):
+    def test_setThumbnail_called_if_th_not_None_w_emp_laz_vis(self):
+        self.w.image.thumb = 'thumbnail'
         self.w.empty = True
-        with mock.patch(self.ThW+'_setThumbnail'):
-            self.w.render()
+        self.w.lazy = True
+        with mock.patch(self.ThW+'_setThumbnail') as mock_set_call:
+            with mock.patch(self.ThW+'_makeThumbnail'):
+                with mock.patch(self.ThW+'isVisible', return_value=True):
+                    self.w.render()
 
-        self.assertFalse(self.w.empty)
+        mock_set_call.assert_called_once_with(self.w.image.thumb)
 
-    def test_Image_thumbnail_not_called_if_attr_thumb_is_not_None(self):
+    def test_setThumbnail_called_if_th_not_None_w_emp_not_laz_vis(self):
+        self.w.image.thumb = 'thumbnail'
         self.w.empty = True
-        self.mock_image.thumb = 'not_None'
-        with mock.patch(self.ThW+'_setThumbnail'):
-            self.w.render()
+        self.w.lazy = False
+        with mock.patch(self.ThW+'_setThumbnail') as mock_set_call:
+            with mock.patch(self.ThW+'_makeThumbnail'):
+                with mock.patch(self.ThW+'isVisible', return_value=True):
+                    self.w.render()
 
-        self.mock_image.thumbnail.assert_not_called()
+        mock_set_call.assert_called_once_with(self.w.image.thumb)
 
-    def test_Image_thumbnail_called_if_attr_thumb_is_None(self):
+    def test_setThumbnail_called_if_th_not_None_w_emp_not_laz_not_vis(self):
+        self.w.image.thumb = 'thumbnail'
         self.w.empty = True
-        with mock.patch(self.ThW+'_setThumbnail'):
-            self.w.render()
+        self.w.lazy = False
+        with mock.patch(self.ThW+'_setThumbnail') as mock_set_call:
+            with mock.patch(self.ThW+'_makeThumbnail'):
+                with mock.patch(self.ThW+'isVisible', return_value=False):
+                    self.w.render()
 
-        self.mock_image.thumbnail.assert_called_once_with(self.w.size)
+        mock_set_call.assert_called_once_with(self.w.image.thumb)
+
+    def test_makeThumbnail_called_if_th_None_w_emp_laz_vis(self):
+        self.w.image.thumb = None
+        self.w.empty = True
+        self.w.lazy = True
+        with mock.patch(self.ThW+'_setThumbnail'):
+            with mock.patch(self.ThW+'_makeThumbnail') as mock_make_call:
+                with mock.patch(self.ThW+'isVisible', return_value=True):
+                    self.w.render()
+
+        mock_make_call.assert_called_once_with()
+
+    def test_makeThumbnail_called_if_th_None_w_emp_not_laz_vis(self):
+        self.w.image.thumb = None
+        self.w.empty = True
+        self.w.lazy = False
+        with mock.patch(self.ThW+'_setThumbnail'):
+            with mock.patch(self.ThW+'_makeThumbnail') as mock_make_call:
+                with mock.patch(self.ThW+'isVisible', return_value=True):
+                    self.w.render()
+
+        mock_make_call.assert_called_once_with()
+
+    def test_makeThumbnail_called_if_th_None_w_emp_not_laz_not_vis(self):
+        self.w.image.thumb = None
+        self.w.empty = True
+        self.w.lazy = False
+        with mock.patch(self.ThW+'_setThumbnail'):
+            with mock.patch(self.ThW+'_makeThumbnail') as mock_make_call:
+                with mock.patch(self.ThW+'isVisible', return_value=False):
+                    self.w.render()
+
+        mock_make_call.assert_called_once_with()
 
 
 class TestThumbnailWidgetMethodClear(TestThumbnailWidget):
@@ -331,59 +450,6 @@ class TestThumbnailWidgetMethodClear(TestThumbnailWidget):
             self.w.clear()
 
         self.assertTrue(self.w.empty)
-
-
-class TestThumbnailWidgetMethodQByteArrayToQPixmap(TestThumbnailWidget):
-
-    def setUp(self):
-        super().setUp()
-
-        self.mock_image.thumb = mock.Mock()
-        self.mock_qpixmap = mock.Mock()
-
-    def test_return_scaled_error_img_if_thumbnail_is_None(self):
-        self.w.image.thumb = QtCore.QByteArray()
-        self.mock_qpixmap.scaled.return_value = 'error_img'
-        err_img_path = 'absolute_path'
-        with mock.patch('PyQt5.QtGui.QPixmap',
-                        return_value=self.mock_qpixmap) as mock_qpixmap_call:
-            with mock.patch('doppelganger.gui.imageviewwidget.resource',
-                            return_value=err_img_path):
-                res = self.w._QByteArrayToQPixmap()
-
-        mock_qpixmap_call.assert_called_once_with(err_img_path)
-        self.mock_qpixmap.scaled.assert_called_once_with(self.size, self.size)
-        self.assertEqual(res, 'error_img')
-
-    def test_return_qpixmap_thumbnail_if_isNull_is_False(self):
-        self.mock_qpixmap.isNull.return_value = False
-        with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_qpixmap):
-            res = self.w._QByteArrayToQPixmap()
-
-        self.mock_qpixmap.loadFromData.assert_called_once_with(
-            self.mock_image.thumb
-        )
-        self.assertEqual(res, self.mock_qpixmap)
-
-    def test_return_scaled_error_img_if_isNull_is_True(self):
-        self.mock_qpixmap.isNull.return_value = True
-        self.mock_qpixmap.scaled.return_value = 'error_img'
-        err_img_path = 'absolute_path'
-        with mock.patch('PyQt5.QtGui.QPixmap',
-                        return_value=self.mock_qpixmap) as mock_qpixmap_call:
-            with mock.patch('doppelganger.gui.imageviewwidget.resource',
-                            return_value=err_img_path):
-                res = self.w._QByteArrayToQPixmap()
-
-        mock_qpixmap_call.assert_called_with(err_img_path)
-        self.mock_qpixmap.scaled.assert_called_once_with(self.size, self.size)
-        self.assertEqual(res, 'error_img')
-
-    def test_log_error_if_isNull_is_True(self):
-        self.mock_qpixmap.isNull.return_value = True
-        with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_qpixmap):
-            with self.assertLogs('main.widgets', 'ERROR'):
-                self.w._QByteArrayToQPixmap()
 
 
 class TestThumbnailWidgetMethodMark(TestThumbnailWidget):
@@ -496,13 +562,10 @@ class TestMethodSetThumbnailWidget(TestDuplicateWidget):
     ADD = 'PyQt5.QtWidgets.QVBoxLayout.addWidget'
     ThW = VIEW + 'ThumbnailWidget'
 
-    def test_raise_ValueError_if_thumbnail_is_None_and_not_lazy_loading(self):
-        self.w.image.thumb = None
+    def setUp(self):
+        super().setUp()
+
         self.conf['lazy'] = False
-        with mock.patch(self.ThW):
-            with mock.patch(self.ADD):
-                with self.assertRaises(ValueError):
-                    self.w._setThumbnailWidget()
 
     def test_args_ThumbnailWidget_called_with(self):
         with mock.patch(self.ThW) as mock_widget_call:
@@ -510,7 +573,8 @@ class TestMethodSetThumbnailWidget(TestDuplicateWidget):
                 self.w._setThumbnailWidget()
 
         mock_widget_call.assert_called_once_with(self.mock_image,
-                                                 self.conf['size'])
+                                                 self.conf['size'],
+                                                 self.conf['lazy'])
 
     def test_addWidget_called_with_ThumbnailWidget_result(self):
         ThW_obj = 'widget'
@@ -1149,6 +1213,9 @@ class TestImageViewWidgetMethodInit(TestImageViewWidget):
     def test_visible_attr_initial_value(self):
         self.assertListEqual(self.w.visible, [])
 
+    def test_interrupted_attr_initial_value(self):
+        self.assertFalse(self.w.interrupted)
+
     def test_widget_layout(self):
         margins = self.w.contentsMargins()
 
@@ -1213,6 +1280,19 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
                 self.w.render(self.image_group)
 
         mock_proc_call.assert_called_once_with()
+
+    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
+    def test_nothing_called_if_attr_interrupted_True(self, mock_add):
+        self.w.interrupted = True
+        proc_events = 'PyQt5.QtCore.QCoreApplication.processEvents'
+        with mock.patch(VIEW+'ImageGroupWidget') as mock_igw_call:
+            with mock.patch(proc_events) as mock_proc_call:
+                self.w.render(self.image_group)
+
+        mock_igw_call.assert_not_called()
+        mock_add.assert_not_called()
+        self.assertListEqual(self.w.widgets, [])
+        mock_proc_call.assert_not_called()
 
 
 class TestImageViewWidgetMethodPaintEvent(TestImageViewWidget):
