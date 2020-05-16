@@ -113,7 +113,8 @@ class ThumbnailWidget(QtWidgets.QLabel):
 
         self.empty = True
 
-        self.setAlignment(QtCore.Qt.AlignHCenter)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Fixed,
+                           QtWidgets.QSizePolicy.Preferred)
 
         self._setEmptyPixmap()
         if not lazy:
@@ -122,8 +123,10 @@ class ThumbnailWidget(QtWidgets.QLabel):
     def _setEmptyPixmap(self) -> None:
         width, height = self.image.scaling_dimensions(self.size)
         self.pixmap = QtGui.QPixmap(width, height)
+        self.pixmap.fill(QtCore.Qt.transparent)
         self.setPixmap(self.pixmap)
         self.updateGeometry()
+        self.setFrameStyle(QtWidgets.QFrame.Box)
 
         self.empty = True
 
@@ -233,6 +236,7 @@ class DuplicateWidget(QtWidgets.QWidget):
         imageLabel = ThumbnailWidget(self.image, self.conf['size'],
                                      self.conf['lazy'])
         self.layout.addWidget(imageLabel)
+        self.layout.setAlignment(imageLabel, QtCore.Qt.AlignHCenter)
         self.updateGeometry()
 
         return imageLabel

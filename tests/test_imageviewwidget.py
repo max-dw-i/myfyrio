@@ -156,8 +156,12 @@ class TestThumbnailWidgetMethodInit(TestThumbnailWidget):
         self.assertEqual(self.w.lazy, self.lazy)
         self.assertTrue(self.w.empty, True)
 
-    def test_alignment(self):
-        self.assertEqual(self.w.alignment(), QtCore.Qt.AlignHCenter)
+    def test_size_policy(self):
+        size_policy = self.w.sizePolicy()
+        self.assertEqual(size_policy.horizontalPolicy(),
+                         QtWidgets.QSizePolicy.Fixed)
+        self.assertEqual(size_policy.verticalPolicy(),
+                         QtWidgets.QSizePolicy.Preferred)
 
     def test_setEmptyPixmap_called(self):
         with mock.patch(self.ThW+'_setEmptyPixmap') as mock_empty_call:
@@ -199,11 +203,12 @@ class TestThumbnailWidgetMethodSetEmptyPixmap(TestThumbnailWidget):
         mock_QPixmap_call.assert_called_once_with(self.width, self.height)
 
     def test_setPixmap_called_with_QPixmap_result(self):
-        with mock.patch('PyQt5.QtGui.QPixmap', return_value='pixmap'):
+        mock_pixmap = mock.Mock()
+        with mock.patch('PyQt5.QtGui.QPixmap', return_value=mock_pixmap):
             with mock.patch(self.ThW+'setPixmap') as mock_setPixmap_call:
                 self.w._setEmptyPixmap()
 
-        mock_setPixmap_call.assert_called_once_with('pixmap')
+        mock_setPixmap_call.assert_called_once_with(mock_pixmap)
 
     def test_updateGeometry_called(self):
         with mock.patch('PyQt5.QtGui.QPixmap'):
@@ -212,6 +217,21 @@ class TestThumbnailWidgetMethodSetEmptyPixmap(TestThumbnailWidget):
                     self.w._setEmptyPixmap()
 
         mock_upd_call.assert_called_once_with()
+
+    def test_frame(self):
+        with mock.patch('PyQt5.QtGui.QPixmap'):
+            with mock.patch(self.ThW+'setPixmap'):
+                self.w._setEmptyPixmap()
+
+        self.assertEqual(self.w.frameStyle(), QtWidgets.QFrame.Box)
+
+    def test_background_colour(self):
+        mock_pixmap = mock.Mock()
+        with mock.patch('PyQt5.QtGui.QPixmap', return_value=mock_pixmap):
+            with mock.patch(self.ThW+'setPixmap'):
+                self.w._setEmptyPixmap()
+
+        mock_pixmap.fill.assert_called_once_with(QtCore.Qt.transparent)
 
 
 class TestThumbnailWidgetMethodSetThumbnail(TestThumbnailWidget):
@@ -559,45 +579,51 @@ class TestDuplicateWidgetMethodInit(TestDuplicateWidget):
 
 class TestMethodSetThumbnailWidget(TestDuplicateWidget):
 
-    ADD = 'PyQt5.QtWidgets.QVBoxLayout.addWidget'
+    VBL = 'PyQt5.QtWidgets.QVBoxLayout.'
     ThW = VIEW + 'ThumbnailWidget'
 
     def setUp(self):
         super().setUp()
 
         self.conf['lazy'] = False
+        self.w.layout = mock.Mock()
+
+        self.imageLabel = 'ThumbnailWidget'
 
     def test_args_ThumbnailWidget_called_with(self):
         with mock.patch(self.ThW) as mock_widget_call:
-            with mock.patch(self.ADD):
-                self.w._setThumbnailWidget()
+            self.w._setThumbnailWidget()
 
         mock_widget_call.assert_called_once_with(self.mock_image,
                                                  self.conf['size'],
                                                  self.conf['lazy'])
 
     def test_addWidget_called_with_ThumbnailWidget_result(self):
-        ThW_obj = 'widget'
-        with mock.patch(self.ThW, return_value=ThW_obj):
-            with mock.patch(self.ADD) as mock_add_call:
-                self.w._setThumbnailWidget()
+        with mock.patch(self.ThW, return_value=self.imageLabel):
+            self.w._setThumbnailWidget()
 
-        mock_add_call.assert_called_once_with(ThW_obj)
+        self.w.layout.addWidget.assert_called_once_with(self.imageLabel)
+
+    def test_horizontal_alignment(self):
+        with mock.patch(self.ThW, return_value=self.imageLabel):
+            self.w._setThumbnailWidget()
+
+        self.w.layout.setAlignment.assert_called_once_with(
+            self.imageLabel,
+            QtCore.Qt.AlignHCenter
+        )
 
     def test_return_ThumbnailWidget_result(self):
-        ThW_obj = 'widget'
-        with mock.patch(self.ThW, return_value=ThW_obj):
-            with mock.patch(self.ADD):
-                res = self.w._setThumbnailWidget()
+        with mock.patch(self.ThW, return_value=self.imageLabel):
+            res = self.w._setThumbnailWidget()
 
-        self.assertEqual(res, ThW_obj)
+        self.assertEqual(res, self.imageLabel)
 
     def test_updateGeometry_called(self):
         updateGem = 'PyQt5.QtWidgets.QWidget.updateGeometry'
         with mock.patch(self.ThW):
-            with mock.patch(self.ADD):
-                with mock.patch(updateGem) as mock_upd_call:
-                    self.w._setThumbnailWidget()
+            with mock.patch(updateGem) as mock_upd_call:
+                self.w._setThumbnailWidget()
 
         mock_upd_call.assert_called_once_with()
 
