@@ -46,7 +46,6 @@ PROCESSING = 'doppelganger.processing.'
 class TestClassImageProcessing(TestCase):
 
     def setUp(self):
-        self.mw_signals = signals.Signals()
         self.folders = []
         self.sensitivity = 0
         self.CONF = {'sort': 0,
@@ -58,8 +57,8 @@ class TestClassImageProcessing(TestCase):
                      'min_height': 5,
                      'max_height': 10,
                      'cores': 16}
-        self.proc = processing.ImageProcessing(self.mw_signals, self.folders,
-                                               self.sensitivity, self.CONF)
+        self.proc = processing.ImageProcessing(self.folders, self.sensitivity,
+                                               self.CONF)
 
 
 class TestMethodInit(TestClassImageProcessing):
@@ -67,10 +66,12 @@ class TestMethodInit(TestClassImageProcessing):
     def test_attrs_initial_values(self):
         self.assertListEqual(self.proc.folders, [])
         self.assertEqual(self.proc.sensitivity, 0)
-        self.assertFalse(self.proc.interrupt)
+        self.assertFalse(self.proc.interrupted)
         self.assertFalse(self.proc.errors)
         self.assertEqual(self.proc.progress_bar_value, 0.0)
         self.assertEqual(self.CONF, self.proc.conf)
+        self.assertIsInstance(self.proc.signals,
+                              signals.ImageProcessingSignals)
 
 
 class TestMethodFindImages(TestClassImageProcessing):
@@ -138,7 +139,7 @@ class TestMethodFindImages(TestClassImageProcessing):
         self.assertSetEqual(res, set())
 
     def test_raise_InterruptProcessing_if_attr_interrupt_True(self):
-        self.proc.interrupt = True
+        self.proc.interrupted = True
         with mock.patch(CORE+'find_image', return_value=self.found_images):
             with self.assertRaises(exception.InterruptProcessing):
                 self.proc._find_images()
@@ -314,7 +315,7 @@ class TestMethodCalculateHashes(TestClassImageProcessing):
         self.assertListEqual(res, self.images)
 
     def test_raise_InterruptProcessing_if_interrupt_attr_is_True(self):
-        self.proc.interrupt = True
+        self.proc.interrupted = True
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
             with self.assertRaises(exception.InterruptProcessing):
                 self.proc._calculate_hashes(self.images)
@@ -341,7 +342,7 @@ class TestMethodImageGrouping(TestClassImageProcessing):
 
     @mock.patch(CORE+'image_grouping', return_value=(gs for gs in [[['img']]]))
     def test_raise_InterruptProcessing(self, mock_group):
-        self.proc.interrupt = True
+        self.proc.interrupted = True
         with self.assertRaises(exception.InterruptProcessing):
             self.proc._image_grouping(self.imgs)
 
@@ -432,6 +433,14 @@ class TestMethodRun(TestClassImageProcessing):
             with self.assertLogs('main.processing', 'INFO'):
                 self.proc.run()
 
+    def test_interrupted_signal_emitted_if_raise_InterruptProcessing(self):
+        exc = exception.InterruptProcessing
+        spy = QtTest.QSignalSpy(self.proc.signals.interrupted)
+        with mock.patch(self.FIND_IMAGES, side_effect=exc):
+            self.proc.run()
+
+        self.assertEqual(len(spy), 1)
+
     def test_log_error_if_some_func_raise_general_exception(self):
         with mock.patch(self.FIND_IMAGES, side_effect=Exception):
             with self.assertLogs('main.processing', 'ERROR'):
@@ -442,13 +451,6 @@ class TestMethodRun(TestClassImageProcessing):
             self.proc.run()
 
         self.assertTrue(self.proc.errors)
-
-    def test_emit_signal_finished(self):
-        spy = QtTest.QSignalSpy(self.proc.signals.finished)
-        with mock.patch(self.FIND_IMAGES, side_effect=Exception):
-            self.proc.run()
-
-        self.assertEqual(len(spy), 1)
 
     def test_emit_signal_error_if_attr_error_is_True(self):
         self.proc.errors = True
@@ -473,7 +475,8 @@ class TestClassThumbnailProcessingMethodInit(TestClassThumbnailProcessing):
     def test_init_values(self):
         self.assertIs(self.proc.image, self.mock_image)
         self.assertEqual(self.proc.size, self.size)
-        self.assertIsInstance(self.proc.signals, signals.Signals)
+        self.assertIsInstance(self.proc.signals,
+                              signals.ThumbnailsProcessingSignals)
 
 
 class TestClassThumbnailProcessingMethodRun(TestClassThumbnailProcessing):

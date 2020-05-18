@@ -63,20 +63,18 @@ class ImageProcessing:
 
     THUMBNAILED_NUM = 10
 
-    def __init__(self, mw_signals: signals.Signals,
-                 folders: Iterable[core.FolderPath],
+    def __init__(self, folders: Iterable[core.FolderPath],
                  sensitivity: core.Sensitivity,
                  conf: config.Conf) -> None:
         self.folders = folders
         self.sensitivity = sensitivity
         self.conf = conf
 
-        mw_signals.interrupted.connect(self._is_interrupted)
-        self.signals = signals.Signals()
+        self.signals = signals.ImageProcessingSignals()
 
         # If a user's clicked button 'Stop' in the main (GUI) thread,
-        # 'interrupt' flag is changed to True
-        self.interrupt = False
+        # 'interrupted' flag is changed to True
+        self.interrupted = False
         self.errors = False
         self.progress_bar_value: float = 0.0
 
@@ -111,11 +109,13 @@ class ImageProcessing:
         except InterruptProcessing:
             logger.info('Image processing has been interrupted '
                         'by the user')
+            self.signals.interrupted.emit()
+
         except Exception:
             logger.error('Unknown error: ', exc_info=True)
             self.errors = True
+
         finally:
-            self.signals.finished.emit()
             if self.errors:
                 self.signals.error.emit('Something went wrong while '
                                         'processing images')
@@ -128,7 +128,7 @@ class ImageProcessing:
         images = set()
         img_gen = core.find_image(self.folders, self.conf['subfolders'])
         for img in img_gen:
-            if self.interrupt:
+            if self.interrupted:
                 raise InterruptProcessing
 
             if not filter_imgs or (min_w <= img.width <= max_w
@@ -201,7 +201,7 @@ class ImageProcessing:
         with Pool(processes=self._available_cores()) as p:
             img_gen = p.imap(core.Image.dhash_parallel, images)
             for i, img in enumerate(img_gen):
-                if self.interrupt:
+                if self.interrupted:
                     raise InterruptProcessing
 
                 hashed_images.append(img)
@@ -218,7 +218,7 @@ class ImageProcessing:
 
         image_groups = []
         for image_groups in grouping_gen:
-            if self.interrupt:
+            if self.interrupted:
                 raise InterruptProcessing
 
             # Slower than showing only the result number of the found
@@ -239,8 +239,8 @@ class ImageProcessing:
 
         return cores
 
-    def _is_interrupted(self) -> None:
-        self.interrupt = True
+    def setInterrupted(self) -> None:
+        self.interrupted = True
 
     def _update_progress_bar(self, value: float) -> None:
         self.progress_bar_value = value
@@ -258,7 +258,7 @@ class ThumbnailProcessing:
         self.image = image
         self.size = size
 
-        self.signals = signals.Signals()
+        self.signals = signals.ThumbnailsProcessingSignals()
 
     def run(self) -> None:
         try:

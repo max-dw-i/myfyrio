@@ -214,7 +214,7 @@ class DuplicateWidget(QtWidgets.QWidget):
         self.image = image
         self.conf = conf
         self.selected = False
-        self.signals = signals.Signals()
+        self.signals = signals.DuplicateWidgetSignals()
 
         self.setFixedWidth(self.conf['size'])
 
@@ -486,6 +486,7 @@ class ImageViewWidget(QtWidgets.QWidget):
         self.widgets: List[ImageGroupWidget] = []
         self.visible: List[ImageGroupWidget] = []
 
+        self.signals = signals.WidgetsRenderingSignals()
         self.interrupted = False
 
         self.layout = QtWidgets.QVBoxLayout()
@@ -501,16 +502,21 @@ class ImageViewWidget(QtWidgets.QWidget):
         '''
 
         for group in image_groups:
-            if not self.interrupted:
-                widget = ImageGroupWidget(group, self.conf)
-                self.layout.addWidget(widget)
-                self.widgets.append(widget)
-                self.updateGeometry()
+            if self.interrupted:
+                self.signals.interrupted.emit()
+                return
 
-                QtCore.QCoreApplication.processEvents()
+            widget = ImageGroupWidget(group, self.conf)
+            self.layout.addWidget(widget)
+            self.widgets.append(widget)
+            self.updateGeometry()
+
+            QtCore.QCoreApplication.processEvents()
+
+        self.signals.finished.emit()
 
     def paintEvent(self, event) -> None:
-        if self.conf['lazy']:
+        if self.conf['lazy'] and not self.interrupted:
             r = event.rect()
             y0 = r.y()
             height = r.height()
@@ -621,3 +627,6 @@ class ImageViewWidget(QtWidgets.QWidget):
         for group_w in self.widgets:
             for dupl_w in group_w.selectedWidgets():
                 dupl_w.click()
+
+    def setInterrupted(self) -> None:
+        self.interrupted = True

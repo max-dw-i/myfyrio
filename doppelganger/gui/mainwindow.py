@@ -25,7 +25,7 @@ from typing import Iterable
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-from doppelganger import core, processing, signals
+from doppelganger import core, processing
 from doppelganger.gui import (actionsgroupbox, imageviewwidget, pathsgroupbox,
                               processinggroupbox, sensitivitygroupbox)
 from doppelganger.gui.aboutwindow import AboutWindow
@@ -59,12 +59,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.aboutWindow = AboutWindow(self)
         self.preferencesWindow = PreferencesWindow(self)
 
-        self.signals = signals.Signals()
-        self.threadpool = QtCore.QThreadPool()
+        self.threadpool = QtCore.QThreadPool.globalInstance()
 
-        self.interrupted = False
-        self.processing_run = False
-        self._setInterruptionMsgBox()
+        self.image_processing = False
+        self.widgets_processing = False
 
         self._setImageViewWidget()
         self._setPathsGroupBox()
@@ -81,22 +79,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self._setActionsGroupWidget()
         self._setMenubar()
 
-    def _setInterruptionMsgBox(self) -> None:
-        self.interruptionMsg = QtWidgets.QMessageBox(
-            QtWidgets.QMessageBox.Information,
-            'Interruption request',
-            'The image processing is being stopped. It may take some time. '
-            'Please, do not close this message until you are notified about '
-            'the result of your request...'
-        )
-        self.interruptionMsg.setStandardButtons(QtWidgets.QMessageBox.NoButton)
-
     def _setImageViewWidget(self) -> None:
         self.imageViewWidget = imageviewwidget.ImageViewWidget(
             self.preferencesWindow.conf,
             self.scrollArea
         )
         self.scrollArea.setWidget(self.imageViewWidget)
+
+        self.imageViewWidget.signals.finished.connect(
+            self.widgetsProcessingFinished
+        )
+        self.imageViewWidget.signals.interrupted.connect(
+            self.widgetsProcessingInterrupted
+        )
 
     def _setPathsGroupBox(self) -> None:
         self.pathsGrp = pathsgroupbox.PathsGroupBox(self.bottomWidget)
@@ -115,7 +110,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.horizontalLayout.addWidget(self.processingGrp)
 
         self.processingGrp.startBtn.clicked.connect(self.startProcessing)
-        self.processingGrp.stopBtn.clicked.connect(self.stopProcessing)
+        self.processingGrp.stopBtn.clicked.connect(self.disableStopBtn)
+        self.processingGrp.stopBtn.clicked.connect(
+            self.imageViewWidget.setInterrupted
+        )
 
     def _setSensitivityGroupBox(self) -> None:
         self.sensitivityGrp = sensitivitygroupbox.SensitivityGroupBox(
@@ -170,7 +168,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.delFolderAction.setEnabled(False)
 
     def switchStartBtn(self) -> None:
-        if self.pathsGrp.pathsList.count() and not self.processing_run:
+        processing_run = self.image_processing or self.widgets_processing
+        if self.pathsGrp.pathsList.count() and not processing_run:
             self.processingGrp.startBtn.setEnabled(True)
         else:
             self.processingGrp.startBtn.setEnabled(False)
@@ -189,7 +188,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _setImageProcessingObj(self) -> processing.ImageProcessing:
         p = processing.ImageProcessing(
-            self.signals,
             self.pathsGrp.paths(),
             self.sensitivityGrp.sensitivity,
             self.preferencesWindow.conf
@@ -201,28 +199,29 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         p.signals.image_groups.connect(self.render)
         p.signals.error.connect(errorMessage)
-        p.signals.finished.connect(self.processingFinished)
+        p.signals.interrupted.connect(self.imageProcessingInterrupted)
+
+        self.processingGrp.stopBtn.clicked.connect(p.setInterrupted)
 
         return p
 
     def startProcessing(self) -> None:
-        self.processing_run = True
         self.imageViewWidget.clear()
         self.actionsGrp.autoSelectBtn.setEnabled(False)
         self.autoSelectAction.setEnabled(False)
         self.processingGrp.startProcessing()
 
+        self.imageViewWidget.interrupted = False
+        self.image_processing = True
+
         processing_obj = self._setImageProcessingObj()
         worker = processing.Worker(processing_obj.run)
         self.threadpool.start(worker)
 
-    def stopProcessing(self) -> None:
-        self.signals.interrupted.emit()
-        self.interrupted = True
-        self.interruptionMsg.exec()
+    def disableStopBtn(self) -> None:
+        self.processingGrp.stopBtn.setEnabled(False)
 
     def processingFinished(self) -> None:
-        self.processing_run = False
         self.switchStartBtn()
         self.processingGrp.stopBtn.setEnabled(False)
         self.processingGrp.processProg.setValue(100)
@@ -231,13 +230,27 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionsGrp.autoSelectBtn.setEnabled(True)
             self.autoSelectAction.setEnabled(True)
 
-        if self.interrupted:
-            self.interrupted = False
-            self.interruptionMsg.setText(
-                'The image processing has been stopped. '
-                'You can close this message...'
-            )
-            self.interruptionMsg.setStandardButtons(QtWidgets.QMessageBox.Ok)
+    def imageProcessingInterrupted(self) -> None:
+        self._clearThreadpool()
+        self.imageProcessingFinished()
+
+    def imageProcessingFinished(self) -> None:
+        self.image_processing = False
+        if not self.widgets_processing:
+            self.processingFinished()
+
+    def widgetsProcessingInterrupted(self) -> None:
+        self._clearThreadpool()
+        self.widgetsProcessingFinished()
+
+    def widgetsProcessingFinished(self) -> None:
+        self.widgets_processing = False
+        if not self.image_processing:
+            self.processingFinished()
+
+    def _clearThreadpool(self) -> None:
+        self.threadpool.clear()
+        self.threadpool.waitForDone()
 
     def closeEvent(self, event) -> None:
         if self.preferencesWindow.conf['close_confirmation']:
@@ -252,14 +265,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 event.ignore()
                 return
 
-        if self.processing_run:
-            self.stopProcessing()
+        if self.processingGrp.stopBtn.isEnabled():
+            self.processingGrp.stopBtn.clicked.emit()
 
-        self.imageViewWidget.interrupted = True
-
-        threadpool = QtCore.QThreadPool.globalInstance()
-        threadpool.clear()
-        threadpool.waitForDone()
+            while self.image_processing:
+                QtCore.QCoreApplication.processEvents()
 
     def openWindow(self) -> None:
         window = self.sender().data()
@@ -297,6 +307,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def render(self, image_groups: Iterable[core.Group]) -> None:
         if image_groups:
+            self.widgets_processing = True
+            self.imageProcessingFinished()
             self.imageViewWidget.render(image_groups)
 
             for dup_w in self.imageViewWidget.widgets[-1].widgets:

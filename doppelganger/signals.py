@@ -23,24 +23,47 @@ Module implementing custom signals
 from PyQt5 import QtCore, QtGui
 
 
-class Signals(QtCore.QObject):
+class ImageProcessingSignals(QtCore.QObject):
     '''Supported signals:
     ------------------
     :signal update_info:        label to update: str, text to set: str,
     :signal update_progressbar: new value of progress bar: float,
     :signal image_groups:       list of image groups: List[Group],
-    :signal thumbnail:          image thumbnail: QtGui.QImage,
     :signal error:              error: str,
-    :signal finished:           processing is done,
-    :signal interrupted:        image processing must be stopped,
-    :signal clicked:            "DuplicateWidget" is clicked
+    :signal interrupted:        image processing has been interrupted by user
     '''
 
     update_info = QtCore.pyqtSignal(str, str)
     update_progressbar = QtCore.pyqtSignal(float)
     image_groups = QtCore.pyqtSignal(list)
-    thumbnail = QtCore.pyqtSignal(QtGui.QImage)
     error = QtCore.pyqtSignal(str)
+    interrupted = QtCore.pyqtSignal()
+
+
+class ThumbnailsProcessingSignals(QtCore.QObject):
+    '''Supported signals:
+    ------------------
+    :signal thumbnail:          image thumbnail: QtGui.QImage
+    '''
+
+    thumbnail = QtCore.pyqtSignal(QtGui.QImage)
+
+
+class WidgetsRenderingSignals(QtCore.QObject):
+    '''Supported signals:
+    ------------------
+    :signal finished:           widgets rendering has been finished,
+    :signal interrupted:        widgets rendering has been interrupted by user
+    '''
+
     finished = QtCore.pyqtSignal()
     interrupted = QtCore.pyqtSignal()
+
+
+class DuplicateWidgetSignals(QtCore.QObject):
+    '''Supported signals:
+    ------------------
+    :signal clicked:            "DuplicateWidget" has been clicked
+    '''
+
     clicked = QtCore.pyqtSignal()

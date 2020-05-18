@@ -39,6 +39,8 @@ PROC_GRP_BOX = 'doppelganger.gui.processinggroupbox.'
 
 class TestMainForm(TestCase):
 
+    MW = MAIN_WINDOW + 'MainWindow.'
+
     @classmethod
     def setUpClass(cls):
         cls.w = mainwindow.MainWindow()
@@ -50,15 +52,10 @@ class TestMainFormMethodInit(TestMainForm):
         self.assertIsInstance(self.w.aboutWindow, aboutwindow.AboutWindow)
         self.assertIsInstance(self.w.preferencesWindow,
                               preferenceswindow.PreferencesWindow)
-        self.assertIsInstance(self.w.signals, signals.Signals)
         self.assertIsInstance(self.w.threadpool, QtCore.QThreadPool)
 
-        self.assertIsInstance(self.w.interruptionMsg, QtWidgets.QMessageBox)
-        self.assertEqual(self.w.interruptionMsg.standardButtons(),
-                         QtWidgets.QMessageBox.NoButton)
-
-        self.assertFalse(self.w.interrupted)
-        self.assertFalse(self.w.processing_run)
+        self.assertFalse(self.w.image_processing)
+        self.assertFalse(self.w.widgets_processing)
 
 
 class TestMainFormMethodSwitchDelFolderAction(TestMainForm):
@@ -86,15 +83,24 @@ class TestMainFormMethodSwitchStartBtn(TestMainForm):
 
     def test_startBtn_enabled_if_there_are_paths_and_not_processing_run(self):
         self.w.processingGrp.startBtn.setEnabled(False)
-        self.w.processing_run = False
+        self.w.image_processing = False
+        self.w.widgets_processing = False
         with mock.patch(self.PATCH_COUNT, return_value=1):
             self.w.switchStartBtn()
 
         self.assertTrue(self.w.processingGrp.startBtn.isEnabled())
 
-    def test_startBtn_disabled_if_there_are_paths_and_processing_run(self):
+    def test_startBtn_disabled_if_there_are_paths_and_not_image_process(self):
         self.w.processingGrp.startBtn.setEnabled(False)
-        self.w.processing_run = True
+        self.w.image_processing = True
+        with mock.patch(self.PATCH_COUNT, return_value=1):
+            self.w.switchStartBtn()
+
+        self.assertFalse(self.w.processingGrp.startBtn.isEnabled())
+
+    def test_startBtn_disabled_if_there_are_paths_and_not_widget_process(self):
+        self.w.processingGrp.startBtn.setEnabled(False)
+        self.w.widgets_processing = True
         with mock.patch(self.PATCH_COUNT, return_value=1):
             self.w.switchStartBtn()
 
@@ -123,7 +129,6 @@ class TestMainFormMethodSetImageProcessingObj(TestMainForm):
             self.w._setImageProcessingObj()
 
         mock_proc_call.assert_called_once_with(
-            self.w.signals,
             self.w.pathsGrp.paths(),
             self.w.sensitivityGrp.sensitivity,
             self.w.preferencesWindow.conf
@@ -139,11 +144,18 @@ class TestMainFormMethodSetImageProcessingObj(TestMainForm):
 class TestMainFormMethodStartProcessing(TestMainForm):
 
     @mock.patch('PyQt5.QtCore.QThreadPool.start')
-    def test_attr_processing_run_set_to_True(self, mock_pool):
-        self.w.processing_run = False
+    def test_attr_image_processing_set_to_True(self, mock_pool):
+        self.w.image_processing = False
         self.w.startProcessing()
 
-        self.assertTrue(self.w.processing_run)
+        self.assertTrue(self.w.image_processing)
+
+    @mock.patch('PyQt5.QtCore.QThreadPool.start')
+    def test_imageviewwidget_attr_interrupted_set_to_False(self, mock_pool):
+        self.w.imageViewWidget.interrupted = True
+        self.w.startProcessing()
+
+        self.assertFalse(self.w.imageViewWidget.interrupted)
 
     @mock.patch('PyQt5.QtCore.QThreadPool.start')
     def test_ImageViewWidget_clear_called(self, mock_pool):
@@ -176,28 +188,12 @@ class TestMainFormMethodStartProcessing(TestMainForm):
         mock_start_call.assert_called_once_with()
 
 
-class TestMainFormMethodStopProcessing(TestMainForm):
+class TestMainFormMethodDisableStopBtn(TestMainForm):
 
-    def setUp(self):
-        super().setUp()
+    def test_stopBtn_disabled(self):
+        self.w.disableStopBtn()
 
-        self.w.interruptionMsg = mock.Mock()
-
-    def test_interrupted_signal_emitted(self):
-        spy = QtTest.QSignalSpy(self.w.signals.interrupted)
-        self.w.stopProcessing()
-
-        self.assertEqual(len(spy), 1)
-
-    def test_change_iterrupted_attr_to_True(self):
-        self.w.stopProcessing()
-
-        self.assertTrue(self.w.interrupted)
-
-    def test_show_msg_bos(self):
-        self.w.stopProcessing()
-
-        self.w.interruptionMsg.exec.assert_called_once_with()
+        self.assertFalse(self.w.processingGrp.stopBtn.isEnabled())
 
 
 class TestMainFormMethodCloseEvent(TestMainForm):
@@ -206,51 +202,51 @@ class TestMainFormMethodCloseEvent(TestMainForm):
         super().setUp()
 
         self.mock_event = mock.Mock()
+        self.spy = QtTest.QSignalSpy(self.w.processingGrp.stopBtn.clicked)
 
-    def test_stopProcessing_not_called_if_no_confirmation_and_no_stopBtn(self):
+    def test_stopBtn_not_emitted_if_no_confirmation_and_no_stopBtn(self):
         self.w.preferencesWindow.conf['close_confirmation'] = False
-        self.w.processing_run = False
-        with mock.patch(MAIN_WINDOW+'MainWindow.stopProcessing') as mock_stop:
+        self.w.processingGrp.stopBtn.setEnabled(False)
+
+        self.w.closeEvent(self.mock_event)
+
+        self.assertEqual(len(self.spy), 0)
+
+    def test_stopBtn_emitted_if_no_confirmation_and_stopBtn(self):
+        self.w.preferencesWindow.conf['close_confirmation'] = False
+        self.w.processingGrp.stopBtn.setEnabled(True)
+
+        self.w.closeEvent(self.mock_event)
+
+        self.assertEqual(len(self.spy), 1)
+
+    def test_stopBtn_not_emitted_if_Yes_confirmation_no_stopBtn(self):
+        self.w.preferencesWindow.conf['close_confirmation'] = True
+        self.w.processingGrp.stopBtn.setEnabled(False)
+
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Yes):
             self.w.closeEvent(self.mock_event)
 
-        mock_stop.assert_not_called()
+        self.assertEqual(len(self.spy), 0)
 
-    def test_stopProcessing_called_if_no_confirmation_and_stopBtn(self):
-        self.w.preferencesWindow.conf['close_confirmation'] = False
-        self.w.processing_run = True
-        with mock.patch(MAIN_WINDOW+'MainWindow.stopProcessing') as mock_stop:
+    def test_stopBtn_emitted_if_Yes_confirmation_and_stopBtn(self):
+        self.w.preferencesWindow.conf['close_confirmation'] = True
+        self.w.processingGrp.stopBtn.setEnabled(True)
+
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Yes):
             self.w.closeEvent(self.mock_event)
 
-        mock_stop.assert_called_once_with()
+        self.assertEqual(len(self.spy), 1)
 
-    def test_stopProcessing_not_called_if_Yes_confirmation_no_stopBtn(self):
+    def test_stopBtn_not_emitted_if_confirmation_Cancel(self):
         self.w.preferencesWindow.conf['close_confirmation'] = True
-        self.w.processing_run = False
-        with mock.patch(MAIN_WINDOW+'MainWindow.stopProcessing') as mock_stop:
-            with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
-                            return_value=QtWidgets.QMessageBox.Yes):
-                self.w.closeEvent(self.mock_event)
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Cancel):
+            self.w.closeEvent(self.mock_event)
 
-        mock_stop.assert_not_called()
-
-    def test_stopProcessing_called_if_Yes_confirmation_and_stopBtn(self):
-        self.w.preferencesWindow.conf['close_confirmation'] = True
-        self.w.processing_run = True
-        with mock.patch(MAIN_WINDOW+'MainWindow.stopProcessing') as mock_stop:
-            with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
-                            return_value=QtWidgets.QMessageBox.Yes):
-                self.w.closeEvent(self.mock_event)
-
-        mock_stop.assert_called_once_with()
-
-    def test_stopProcessing_not_called_if_confirmation_Cancel(self):
-        self.w.preferencesWindow.conf['close_confirmation'] = True
-        with mock.patch(MAIN_WINDOW+'MainWindow.stopProcessing') as mock_stop:
-            with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
-                            return_value=QtWidgets.QMessageBox.Cancel):
-                self.w.closeEvent(self.mock_event)
-
-        mock_stop.assert_not_called()
+        self.assertEqual(len(self.spy), 0)
 
     def test_event_ignored_if_confirmation_Cancel(self):
         self.w.preferencesWindow.conf['close_confirmation'] = True
@@ -259,26 +255,6 @@ class TestMainFormMethodCloseEvent(TestMainForm):
             self.w.closeEvent(self.mock_event)
 
         self.mock_event.ignore.assert_called_once_with()
-
-    def test_imageviewwidget_attr_interrupted_set_to_True(self):
-        self.w.preferencesWindow.conf['close_confirmation'] = False
-        self.w.imageViewWidget.interrupted = False
-
-        self.w.closeEvent(self.mock_event)
-
-        self.assertTrue(self.w.imageViewWidget.interrupted)
-
-    def test_threadpool_cleared(self):
-        self.w.preferencesWindow.conf['close_confirmation'] = False
-        self.w.imageViewWidget.interrupted = False
-        mock_pool = mock.Mock()
-
-        with mock.patch('PyQt5.QtCore.QThreadPool.globalInstance',
-                        return_value=mock_pool):
-            self.w.closeEvent(self.mock_event)
-
-        mock_pool.clear.assert_called_once_with()
-        mock_pool.waitForDone.assert_called_once_with()
 
 
 class TestMainFormMethodOpenWindow(TestMainForm):
@@ -451,6 +427,29 @@ class TestMainFormMethodMoveImages(TestMainForm):
 
 class TestMainFormMethodRender(TestMainForm):
 
+    def test_attr_widgets_processing_set_to_True(self):
+        PATCH_RENDER = IMAGE_VIEW_WIDGET + 'ImageViewWidget.render'
+        img_group = ['image']
+        mock_widget = mock.Mock()
+        mock_widget.widgets = []
+        self.w.imageViewWidget.widgets.append(mock_widget)
+        with mock.patch(PATCH_RENDER):
+            self.w.render(img_group)
+
+        self.assertTrue(self.w.widgets_processing)
+
+    def test_imageProcessingFinished_called(self):
+        PATCH_RENDER = IMAGE_VIEW_WIDGET + 'ImageViewWidget.render'
+        img_group = ['image']
+        mock_widget = mock.Mock()
+        mock_widget.widgets = []
+        self.w.imageViewWidget.widgets.append(mock_widget)
+        with mock.patch(PATCH_RENDER):
+            with mock.patch(self.MW+'imageProcessingFinished') as mock_fi_call:
+                self.w.render(img_group)
+
+        mock_fi_call.assert_called_once_with()
+
     def test_ImageViewWidget_called_if_duplicates_found(self):
         PATCH_RENDER = IMAGE_VIEW_WIDGET + 'ImageViewWidget.render'
         img_group = ['image']
@@ -472,12 +471,6 @@ class TestMainFormMethodRender(TestMainForm):
 
 
 class TestMainFormMethodProcessingFinished(TestMainForm):
-
-    def test_attr_processing_run_set_to_False(self):
-        self.w.processing_run = True
-        self.w.processingFinished()
-
-        self.assertFalse(self.w.processing_run)
 
     def test_switchStartBtn_called(self):
         with mock.patch(MAIN_WINDOW+'MainWindow.switchStartBtn') as mock_btn:
@@ -525,45 +518,108 @@ class TestMainFormMethodProcessingFinished(TestMainForm):
 
         self.assertFalse(self.w.autoSelectAction.isEnabled())
 
-    def test_change_interrupted_attr_to_False_if_it_is_True(self):
-        self.w.interrupted = True
-        self.w.interruptionMsg = mock.Mock()
-        self.w.processingFinished()
 
-        self.assertFalse(self.w.interrupted)
+class TestMainFormMethodImageProcessingInterrupted(TestMainForm):
 
-    def test_interruptionMsg_box_text_changed_if_interrupted_attr_True(self):
-        self.w.interrupted = True
-        self.w.interruptionMsg = mock.Mock()
-        self.w.processingFinished()
+    def test_clearThreadpool_called(self):
+        with mock.patch(self.MW+'_clearThreadpool') as mock_clear_call:
+            with mock.patch(self.MW+'imageProcessingFinished'):
+                self.w.imageProcessingInterrupted()
 
-        self.w.interruptionMsg.setText.assert_called_once()
+        mock_clear_call.assert_called_once_with()
 
-    def test_Ok_btn_set_on_interruptionMsg_box_if_interrupted_attr_True(self):
-        self.w.interrupted = True
-        self.w.interruptionMsg = mock.Mock()
-        self.w.processingFinished()
+    def test_imageProcessingFinished_called(self):
+        with mock.patch(self.MW+'_clearThreadpool'):
+            with mock.patch(self.MW
+                            +'imageProcessingFinished') as mock_fin_call:
+                self.w.imageProcessingInterrupted()
 
-        self.w.interruptionMsg.setStandardButtons.assert_called_once_with(
-            QtWidgets.QMessageBox.Ok
-        )
+        mock_fin_call.assert_called_once_with()
 
-    def test_interrupted_attr_stay_False_if_it_is_False(self):
-        self.w.interrupted = False
-        self.w.processingFinished()
 
-        self.assertFalse(self.w.interrupted)
+class TestMainFormMethodImageProcessingFinished(TestMainForm):
 
-    def test_interruptionMsg_box_setText_not_called_if_interrupted_False(self):
-        self.w.interrupted = False
-        self.w.interruptionMsg = mock.Mock()
-        self.w.processingFinished()
+    def test_attr_image_processing_set_to_False(self):
+        self.w.image_processing = True
 
-        self.w.interruptionMsg.setText.assert_not_called()
+        self.w.imageProcessingFinished()
 
-    def test_Ok_btn_not_set_on_interruptionMsg_box_if_interrupted_False(self):
-        self.w.interrupted = False
-        self.w.interruptionMsg = mock.Mock()
-        self.w.processingFinished()
+        self.assertFalse(self.w.image_processing)
 
-        self.w.interruptionMsg.setStandardButtons.assert_not_called()
+    def test_processingFinished_not_called_if_widgets_processing_True(self):
+        self.w.widgets_processing = True
+
+        with mock.patch(self.MW+'processingFinished') as mock_fin_call:
+            self.w.imageProcessingFinished()
+
+        mock_fin_call.assert_not_called()
+
+    def test_processingFinished_called_if_widgets_processing_False(self):
+        self.w.widgets_processing = False
+
+        with mock.patch(self.MW+'processingFinished') as mock_fin_call:
+            self.w.imageProcessingFinished()
+
+        mock_fin_call.assert_called_once_with()
+
+
+class TestMainFormMethodWidgetsProcessingInterrupted(TestMainForm):
+
+    def test_clearThreadpool_called(self):
+        with mock.patch(self.MW+'_clearThreadpool') as mock_clear_call:
+            with mock.patch(self.MW+'widgetsProcessingFinished'):
+                self.w.widgetsProcessingInterrupted()
+
+        mock_clear_call.assert_called_once_with()
+
+    def test_widgetsProcessingFinished_called(self):
+        with mock.patch(self.MW+'_clearThreadpool'):
+            with mock.patch(self.MW
+                            +'widgetsProcessingFinished') as mock_fin_call:
+                self.w.widgetsProcessingInterrupted()
+
+        mock_fin_call.assert_called_once_with()
+
+
+class TestMainFormMethodWidgetsProcessingFinished(TestMainForm):
+
+    def test_attr_widgets_processing_set_to_False(self):
+        self.w.widgets_processing = True
+
+        self.w.widgetsProcessingFinished()
+
+        self.assertFalse(self.w.widgets_processing)
+
+    def test_processingFinished_not_called_if_image_processing_True(self):
+        self.w.image_processing = True
+
+        with mock.patch(self.MW+'processingFinished') as mock_fin_call:
+            self.w.widgetsProcessingFinished()
+
+        mock_fin_call.assert_not_called()
+
+    def test_processingFinished_called_if_image_processing_False(self):
+        self.w.image_processing = False
+
+        with mock.patch(self.MW+'processingFinished') as mock_fin_call:
+            self.w.widgetsProcessingFinished()
+
+        mock_fin_call.assert_called_once_with()
+
+
+class TestMainFormMethodClearThreadpool(TestMainForm):
+
+    def setUp(self):
+        super().setUp()
+
+        self.w.threadpool = mock.Mock()
+
+    def test_clear_called(self):
+        self.w._clearThreadpool()
+
+        self.w.threadpool.clear.assert_called_once_with()
+
+    def test_waitForDone_called(self):
+        self.w._clearThreadpool()
+
+        self.w.threadpool.waitForDone.assert_called_once_with()

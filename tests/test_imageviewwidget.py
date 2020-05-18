@@ -527,7 +527,7 @@ class TestDuplicateWidgetMethodInit(TestDuplicateWidget):
         self.assertEqual(self.w.image, self.mock_image)
         self.assertEqual(self.w.conf, self.conf)
         self.assertFalse(self.w.selected)
-        self.assertIsInstance(self.w.signals, signals.Signals)
+        self.assertIsInstance(self.w.signals, signals.DuplicateWidgetSignals)
 
         self.assertEqual(self.w.minimumWidth(), self.conf['size'])
         self.assertEqual(self.w.maximumWidth(), self.conf['size'])
@@ -1239,6 +1239,9 @@ class TestImageViewWidgetMethodInit(TestImageViewWidget):
     def test_visible_attr_initial_value(self):
         self.assertListEqual(self.w.visible, [])
 
+    def test_signals_attr_set(self):
+        self.assertIsInstance(self.w.signals, signals.WidgetsRenderingSignals)
+
     def test_interrupted_attr_initial_value(self):
         self.assertFalse(self.w.interrupted)
 
@@ -1308,6 +1311,17 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
         mock_proc_call.assert_called_once_with()
 
     @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
+    def test_finished_signal_emitted_if_ok(self, mock_add):
+        proc_events = 'PyQt5.QtCore.QCoreApplication.processEvents'
+        spy = QtTest.QSignalSpy(self.w.signals.finished)
+        with mock.patch(VIEW+'ImageGroupWidget',
+                        return_value=self.mock_group_w):
+            with mock.patch(proc_events):
+                self.w.render(self.image_group)
+
+        self.assertEqual(len(spy), 1)
+
+    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
     def test_nothing_called_if_attr_interrupted_True(self, mock_add):
         self.w.interrupted = True
         proc_events = 'PyQt5.QtCore.QCoreApplication.processEvents'
@@ -1320,6 +1334,14 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
         self.assertListEqual(self.w.widgets, [])
         mock_proc_call.assert_not_called()
 
+    def test_interrupted_signal_emitted_if_attr_interrupted_True(self):
+        self.w.interrupted = True
+        spy = QtTest.QSignalSpy(self.w.signals.interrupted)
+
+        self.w.render(self.image_group)
+
+        self.assertEqual(len(spy), 1)
+
 
 class TestImageViewWidgetMethodPaintEvent(TestImageViewWidget):
 
@@ -1330,6 +1352,7 @@ class TestImageViewWidgetMethodPaintEvent(TestImageViewWidget):
 
         self.mock_event = mock.Mock()
         self.w.conf['lazy'] = True
+        self.w.interrupted = False
 
     def test_parent_paintEvent_called(self):
         self.w.conf['lazy'] = False
