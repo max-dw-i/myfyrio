@@ -103,6 +103,8 @@ class ImagePathLabel(InfoLabel):
 class ThumbnailWidget(QtWidgets.QLabel):
     '''Widget renderering the thumbnail of an image'''
 
+    RENDERED = 0
+
     def __init__(self, image: core.Image, size: int, lazy: bool,
                  parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
@@ -142,6 +144,7 @@ class ThumbnailWidget(QtWidgets.QLabel):
         self.updateGeometry()
 
         self.empty = False
+        ThumbnailWidget.RENDERED += 1
 
     def _makeThumbnail(self) -> None:
         p = processing.ThumbnailProcessing(self.image, self.size)
@@ -175,6 +178,7 @@ class ThumbnailWidget(QtWidgets.QLabel):
             self.image.thumb = None
 
             self.empty = True
+            ThumbnailWidget.RENDERED -= 1
 
     def isVisible(self) -> bool:
         '''Check if the widget is visible by the user
@@ -501,19 +505,29 @@ class ImageViewWidget(QtWidgets.QWidget):
         :param image_groups: groups of similar images
         '''
 
+        images_num = 0
+        ThumbnailWidget.RENDERED = 0
+
         for group in image_groups:
             if self.interrupted:
                 self.signals.interrupted.emit()
                 return
 
             widget = ImageGroupWidget(group, self.conf)
+            images_num += len(group)
             self.layout.addWidget(widget)
             self.widgets.append(widget)
             self.updateGeometry()
 
             QtCore.QCoreApplication.processEvents()
 
-        self.signals.finished.emit()
+        if self.conf['lazy']:
+            self.signals.finished.emit()
+        else:
+            while images_num != ThumbnailWidget.RENDERED:
+                QtCore.QCoreApplication.processEvents()
+
+            self.signals.finished.emit()
 
     def paintEvent(self, event) -> None:
         if self.conf['lazy'] and not self.interrupted:

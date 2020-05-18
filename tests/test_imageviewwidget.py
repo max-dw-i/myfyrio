@@ -302,6 +302,15 @@ class TestThumbnailWidgetMethodSetThumbnail(TestThumbnailWidget):
 
         self.assertFalse(self.w.empty)
 
+    def test_increase_class_attr_RENDERED(self):
+        imageviewwidget.ThumbnailWidget.RENDERED = 0
+        self.mock_pixmap.convertFromImage.return_value = True
+        with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_pixmap):
+            with mock.patch(self.ThW+'setPixmap'):
+                self.w._setThumbnail(self.qimage)
+
+        self.assertEqual(imageviewwidget.ThumbnailWidget.RENDERED, 1)
+
 
 class TestThumbnailWidgetMethodMakeThumbnail(TestThumbnailWidget):
 
@@ -470,6 +479,14 @@ class TestThumbnailWidgetMethodClear(TestThumbnailWidget):
             self.w.clear()
 
         self.assertTrue(self.w.empty)
+
+    def test_decrease_class_attr_RENDERED(self):
+        imageviewwidget.ThumbnailWidget.RENDERED = 1
+        self.w.empty = False
+        with mock.patch(self.ThW+'_setEmptyPixmap'):
+            self.w.clear()
+
+        self.assertEqual(imageviewwidget.ThumbnailWidget.RENDERED, 0)
 
 
 class TestThumbnailWidgetMethodMark(TestThumbnailWidget):
@@ -1263,74 +1280,80 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
     def setUp(self):
         super().setUp()
 
-        self.image_group = ['image']
+        self.conf['lazy'] = True
+
+        self.w.layout = mock.Mock()
+
+        self.image_groups = [['image']]
         self.mock_group_w = mock.Mock()
 
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_args_ImageGroupWidget_called_with(self, mock_add):
+    def test_ThumbnailWidget_class_attr_RENDRED_set_to_0(self):
+        imageviewwidget.ThumbnailWidget.RENDERED = 32
         with mock.patch(VIEW+'ImageGroupWidget',
                         return_value=self.mock_group_w) as mock_widg:
-            self.w.render(self.image_group)
+            self.w.render(self.image_groups)
 
-        mock_widg.assert_called_once_with(self.image_group[0], self.conf)
+        self.assertEqual(imageviewwidget.ThumbnailWidget.RENDERED, 0)
 
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_ImageGroupWidget_added_to_widgets_attr(self, mock_add):
+    def test_args_ImageGroupWidget_called_with(self):
+        with mock.patch(VIEW+'ImageGroupWidget',
+                        return_value=self.mock_group_w) as mock_widg:
+            self.w.render(self.image_groups)
+
+        mock_widg.assert_called_once_with(self.image_groups[0], self.conf)
+
+    def test_ImageGroupWidget_added_to_widgets_attr(self):
         with mock.patch(VIEW+'ImageGroupWidget',
                         return_value=self.mock_group_w):
-            self.w.render(self.image_group)
+            self.w.render(self.image_groups)
 
         self.assertListEqual(self.w.widgets, [self.mock_group_w])
 
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_ImageGroupWidget_added_to_layout(self, mock_add):
+    def test_ImageGroupWidget_added_to_layout(self):
         with mock.patch(VIEW+'ImageGroupWidget',
                         return_value=self.mock_group_w):
-            self.w.render(self.image_group)
+            self.w.render(self.image_groups)
 
-        mock_add.assert_called_once_with(self.mock_group_w)
+        self.w.layout.addWidget.assert_called_once_with(self.mock_group_w)
 
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_updateGeometry_called(self, mock_add):
+    def test_updateGeometry_called(self):
         updateGem = 'PyQt5.QtWidgets.QWidget.updateGeometry'
         with mock.patch(VIEW+'ImageGroupWidget',
                         return_value=self.mock_group_w):
             with mock.patch(updateGem) as mock_upd_call:
-                self.w.render(self.image_group)
+                self.w.render(self.image_groups)
 
         mock_upd_call.assert_called_once_with()
 
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_processEvents_called(self, mock_add):
+    def test_processEvents_called(self):
         proc_events = 'PyQt5.QtCore.QCoreApplication.processEvents'
         with mock.patch(VIEW+'ImageGroupWidget',
                         return_value=self.mock_group_w):
             with mock.patch(proc_events) as mock_proc_call:
-                self.w.render(self.image_group)
+                self.w.render(self.image_groups)
 
         mock_proc_call.assert_called_once_with()
 
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_finished_signal_emitted_if_ok(self, mock_add):
+    def test_finished_signal_emitted_if_lazy(self):
         proc_events = 'PyQt5.QtCore.QCoreApplication.processEvents'
         spy = QtTest.QSignalSpy(self.w.signals.finished)
+
         with mock.patch(VIEW+'ImageGroupWidget',
                         return_value=self.mock_group_w):
             with mock.patch(proc_events):
-                self.w.render(self.image_group)
+                self.w.render(self.image_groups)
 
         self.assertEqual(len(spy), 1)
 
-    @mock.patch('PyQt5.QtWidgets.QVBoxLayout.addWidget')
-    def test_nothing_called_if_attr_interrupted_True(self, mock_add):
+    def test_nothing_called_if_attr_interrupted_True(self):
         self.w.interrupted = True
         proc_events = 'PyQt5.QtCore.QCoreApplication.processEvents'
         with mock.patch(VIEW+'ImageGroupWidget') as mock_igw_call:
             with mock.patch(proc_events) as mock_proc_call:
-                self.w.render(self.image_group)
+                self.w.render(self.image_groups)
 
         mock_igw_call.assert_not_called()
-        mock_add.assert_not_called()
+        self.w.layout.addWidget.assert_not_called()
         self.assertListEqual(self.w.widgets, [])
         mock_proc_call.assert_not_called()
 
@@ -1338,7 +1361,7 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
         self.w.interrupted = True
         spy = QtTest.QSignalSpy(self.w.signals.interrupted)
 
-        self.w.render(self.image_group)
+        self.w.render(self.image_groups)
 
         self.assertEqual(len(spy), 1)
 
