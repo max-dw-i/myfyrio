@@ -119,8 +119,12 @@ class ThumbnailWidget(QtWidgets.QLabel):
                            QtWidgets.QSizePolicy.Preferred)
 
         self._setEmptyPixmap()
-        if not lazy:
-            self.render()
+
+        if lazy:
+            self.qtimer = QtCore.QTimer(self)
+            self.qtimer.timeout.connect(self._clear)
+        else:
+            self._render()
 
     def _setEmptyPixmap(self) -> None:
         width, height = self.image.scaling_dimensions(self.size)
@@ -154,26 +158,25 @@ class ThumbnailWidget(QtWidgets.QLabel):
         threadpool = QtCore.QThreadPool.globalInstance()
         threadpool.start(worker)
 
-    def render(self) -> None:
-        '''Make image thumbnail (if it's not made yet) and set it
-        to the widget. Do nothing if the widget is already not empty
-        or it is not visible and "lazy"
-        '''
+    def _render(self) -> None:
+        if self.empty:
+            if self.image.thumb is None:
+                self._makeThumbnail()
+            else:
+                self._setThumbnail(self.image.thumb)
 
-        if not self.empty or (self.lazy and not self.isVisible()):
-            return
+    def paintEvent(self, event) -> None:
+        if self.lazy:
+            self._render()
 
-        if self.image.thumb is None:
-            self._makeThumbnail()
-        else:
-            self._setThumbnail(self.image.thumb)
+            self.qtimer.start(10000)
 
-    def clear(self) -> None:
-        '''Set empty pixmap to the widget and assign None to attribute "thumb"
-        of the "Image" object
-        '''
+        super().paintEvent(event)
 
-        if not self.empty:
+    def _clear(self) -> None:
+        if not self.empty and not self.isVisible():
+            self.qtimer.stop()
+
             self._setEmptyPixmap()
             self.image.thumb = None
 
@@ -281,16 +284,6 @@ class DuplicateWidget(QtWidgets.QWidget):
         self.updateGeometry()
 
         return imagePathLabel
-
-    def renderThumbnail(self) -> None:
-        '''Render duplicate image thumbnail'''
-
-        self.imageLabel.render()
-
-    def clearThumbnail(self) -> None:
-        '''Clear duplicate image thumbnail'''
-
-        self.imageLabel.clear()
 
     def openImage(self) -> None:
         '''Open the image in the OS default image viewer'''
@@ -421,18 +414,6 @@ class ImageGroupWidget(QtWidgets.QWidget):
             self.layout.addWidget(dupl_w)
             self.updateGeometry()
 
-    def renderThumbnails(self) -> None:
-        '''Render thumbnails of the duplicate images in the group'''
-
-        for w in self.widgets:
-            w.renderThumbnail()
-
-    def clearThumbnails(self) -> None:
-        '''Clear thumbnails of the duplicate images in the group'''
-
-        for w in self.widgets:
-            w.clearThumbnail()
-
     def isVisible(self) -> bool:
         '''Check if the widget is visible by the user
 
@@ -488,7 +469,6 @@ class ImageViewWidget(QtWidgets.QWidget):
 
         self.conf = conf
         self.widgets: List[ImageGroupWidget] = []
-        self.visible: List[ImageGroupWidget] = []
 
         self.signals = signals.WidgetsRenderingSignals()
         self.interrupted = False
@@ -529,36 +509,6 @@ class ImageViewWidget(QtWidgets.QWidget):
 
             self.signals.finished.emit()
 
-    def paintEvent(self, event) -> None:
-        if self.conf['lazy'] and not self.interrupted:
-            r = event.rect()
-            y0 = r.y()
-            height = r.height()
-
-            new_visible = self._visibleWidgets(y0, height)
-            for group_w in new_visible:
-                group_w.renderThumbnails()
-
-            prev_visible = self.visible.copy()
-            for group_w in prev_visible:
-                if not group_w.isVisible():
-                    group_w.clearThumbnails()
-                    self.visible.remove(group_w)
-
-            self.visible.extend(new_visible)
-
-        super().paintEvent(event)
-
-    def _visibleWidgets(self, y0: int, height: int) -> List[ImageGroupWidget]:
-        prev_w = None
-        visible = []
-        for y in range(y0, y0+height):
-            w = self.childAt(0, y)
-            if prev_w is not w and isinstance(w, ImageGroupWidget):
-                visible.append(w)
-                prev_w = w
-        return visible
-
     def hasSelectedWidgets(self) -> bool:
         '''Check if there are selected "DuplicateWidget"s
 
@@ -572,8 +522,6 @@ class ImageViewWidget(QtWidgets.QWidget):
 
     def clear(self) -> None:
         '''Clear the widget from duplicate images found'''
-
-        self.visible = []
 
         for group_w in self.widgets:
             group_w.deleteLater()

@@ -170,9 +170,16 @@ class TestThumbnailWidgetMethodInit(TestThumbnailWidget):
 
         mock_empty_call.assert_called_once_with()
 
+    def test_QTimer_made_if_lazy(self):
+        with mock.patch(self.ThW+'_setEmptyPixmap'):
+            w = imageviewwidget.ThumbnailWidget(self.mock_image, self.size,
+                                                True)
+
+        self.assertIsInstance(w.qtimer, QtCore.QTimer)
+
     def test_render_called_if_not_lazy(self):
         with mock.patch(self.ThW+'_setEmptyPixmap'):
-            with mock.patch(self.ThW+'render') as mock_render_call:
+            with mock.patch(self.ThW+'_render') as mock_render_call:
                 imageviewwidget.ThumbnailWidget(self.mock_image, self.size,
                                                 False)
 
@@ -351,140 +358,219 @@ class TestThumbnailWidgetMethodRender(TestThumbnailWidget):
         self.w.empty = False
         with mock.patch(self.ThW+'_setThumbnail') as mock_set_call:
             with mock.patch(self.ThW+'_makeThumbnail') as mock_make_call:
-                self.w.render()
+                self.w._render()
 
         mock_set_call.assert_not_called()
         mock_make_call.assert_not_called()
 
-    def test_setThumbnail_or_makeThumbnail_not_called_if_emp_laz_not_vis(self):
+    def test_setThumbnail_called_if_thumbnail_not_None_and_widget_empty(self):
+        self.w.image.thumb = 'thumbnail'
         self.w.empty = True
-        self.w.lazy = True
         with mock.patch(self.ThW+'_setThumbnail') as mock_set_call:
-            with mock.patch(self.ThW+'_makeThumbnail') as mock_make_call:
-                with mock.patch(self.ThW+'isVisible', return_value=False):
-                    self.w.render()
+            with mock.patch(self.ThW+'_makeThumbnail'):
+                self.w._render()
 
-        mock_set_call.assert_not_called()
+        mock_set_call.assert_called_once_with(self.w.image.thumb)
+
+    def test_makeThumbnail_not_called_if_thumbnail_not_None_and_w_empty(self):
+        self.w.image.thumb = 'thumbnail'
+        self.w.empty = True
+        with mock.patch(self.ThW+'_setThumbnail'):
+            with mock.patch(self.ThW+'_makeThumbnail') as mock_make_call:
+                self.w._render()
+
         mock_make_call.assert_not_called()
 
-    def test_setThumbnail_called_if_th_not_None_w_emp_laz_vis(self):
-        self.w.image.thumb = 'thumbnail'
-        self.w.empty = True
-        self.w.lazy = True
-        with mock.patch(self.ThW+'_setThumbnail') as mock_set_call:
-            with mock.patch(self.ThW+'_makeThumbnail'):
-                with mock.patch(self.ThW+'isVisible', return_value=True):
-                    self.w.render()
-
-        mock_set_call.assert_called_once_with(self.w.image.thumb)
-
-    def test_setThumbnail_called_if_th_not_None_w_emp_not_laz_vis(self):
-        self.w.image.thumb = 'thumbnail'
-        self.w.empty = True
-        self.w.lazy = False
-        with mock.patch(self.ThW+'_setThumbnail') as mock_set_call:
-            with mock.patch(self.ThW+'_makeThumbnail'):
-                with mock.patch(self.ThW+'isVisible', return_value=True):
-                    self.w.render()
-
-        mock_set_call.assert_called_once_with(self.w.image.thumb)
-
-    def test_setThumbnail_called_if_th_not_None_w_emp_not_laz_not_vis(self):
-        self.w.image.thumb = 'thumbnail'
-        self.w.empty = True
-        self.w.lazy = False
-        with mock.patch(self.ThW+'_setThumbnail') as mock_set_call:
-            with mock.patch(self.ThW+'_makeThumbnail'):
-                with mock.patch(self.ThW+'isVisible', return_value=False):
-                    self.w.render()
-
-        mock_set_call.assert_called_once_with(self.w.image.thumb)
-
-    def test_makeThumbnail_called_if_th_None_w_emp_laz_vis(self):
+    def test_setThumbnail_not_called_if_thumbnail_None_and_widget_empty(self):
         self.w.image.thumb = None
         self.w.empty = True
-        self.w.lazy = True
+        with mock.patch(self.ThW+'_setThumbnail') as mock_set_call:
+            with mock.patch(self.ThW+'_makeThumbnail'):
+                self.w._render()
+
+        mock_set_call.assert_not_called()
+
+    def test_makeThumbnail_called_if_thumbnail_None_and_widget_empty(self):
+        self.w.image.thumb = None
+        self.w.empty = True
         with mock.patch(self.ThW+'_setThumbnail'):
             with mock.patch(self.ThW+'_makeThumbnail') as mock_make_call:
-                with mock.patch(self.ThW+'isVisible', return_value=True):
-                    self.w.render()
+                self.w._render()
 
         mock_make_call.assert_called_once_with()
 
-    def test_makeThumbnail_called_if_th_None_w_emp_not_laz_vis(self):
-        self.w.image.thumb = None
-        self.w.empty = True
+
+class TestThumbnailWidgetMethodPaintEvent(TestThumbnailWidget):
+
+    def setUp(self):
+        super().setUp()
+
+        self.mock_event = mock.Mock()
+        self.w.qtimer = mock.Mock()
+
+    def test_render_called_if_lazy(self):
+        with mock.patch('PyQt5.QtWidgets.QLabel.paintEvent'):
+            with mock.patch(self.ThW+'_render') as mock_render_call:
+                self.w.paintEvent(self.mock_event)
+
+        mock_render_call.assert_called_once_with()
+
+    def test_qtimer_start_called_if_lazy(self):
+        with mock.patch('PyQt5.QtWidgets.QLabel.paintEvent'):
+            with mock.patch(self.ThW+'_render'):
+                self.w.paintEvent(self.mock_event)
+
+        self.w.qtimer.start.assert_called_once_with(10000)
+
+    def test_QLabel_paintEvent_called_if_lazy(self):
+        with mock.patch('PyQt5.QtWidgets.QLabel.paintEvent') as mock_ev_call:
+            with mock.patch(self.ThW+'_render'):
+                self.w.paintEvent(self.mock_event)
+
+        mock_ev_call.assert_called_once_with(self.mock_event)
+
+    def test_render_not_called_if_not_lazy(self):
         self.w.lazy = False
-        with mock.patch(self.ThW+'_setThumbnail'):
-            with mock.patch(self.ThW+'_makeThumbnail') as mock_make_call:
-                with mock.patch(self.ThW+'isVisible', return_value=True):
-                    self.w.render()
+        with mock.patch('PyQt5.QtWidgets.QLabel.paintEvent'):
+            with mock.patch(self.ThW+'_render') as mock_render_call:
+                self.w.paintEvent(self.mock_event)
 
-        mock_make_call.assert_called_once_with()
+        mock_render_call.assert_not_called()
 
-    def test_makeThumbnail_called_if_th_None_w_emp_not_laz_not_vis(self):
-        self.w.image.thumb = None
-        self.w.empty = True
+    def test_qtimer_start_not_called_if_not_lazy(self):
         self.w.lazy = False
-        with mock.patch(self.ThW+'_setThumbnail'):
-            with mock.patch(self.ThW+'_makeThumbnail') as mock_make_call:
-                with mock.patch(self.ThW+'isVisible', return_value=False):
-                    self.w.render()
+        with mock.patch('PyQt5.QtWidgets.QLabel.paintEvent'):
+            with mock.patch(self.ThW+'_render'):
+                self.w.paintEvent(self.mock_event)
 
-        mock_make_call.assert_called_once_with()
+        self.w.qtimer.start.assert_not_called()
+
+    def test_QLabel_paintEvent_called_if_not_lazy(self):
+        self.w.lazy = False
+        with mock.patch('PyQt5.QtWidgets.QLabel.paintEvent') as mock_ev_call:
+            with mock.patch(self.ThW+'_render'):
+                self.w.paintEvent(self.mock_event)
+
+        mock_ev_call.assert_called_once_with(self.mock_event)
 
 
 class TestThumbnailWidgetMethodClear(TestThumbnailWidget):
 
-    def test_setEmptyPixmap_not_called_if_attr_empty_is_True(self):
+    def setUp(self):
+        super().setUp()
+
+        self.w.qtimer = mock.Mock()
+
+    def test_qtimer_stop_not_called_if_empty(self):
+        self.w.empty = True
+        with mock.patch(self.ThW+'_setEmptyPixmap'):
+            self.w._clear()
+
+        self.w.qtimer.stop.assert_not_called()
+
+    def test_setEmptyPixmap_not_called_if_empty(self):
         self.w.empty = True
         with mock.patch(self.ThW+'_setEmptyPixmap') as mock_set_call:
-            self.w.clear()
+            self.w._clear()
 
         mock_set_call.assert_not_called()
 
-    def test_attr_image_thumb_is_not_None_if_attr_empty_is_True(self):
+    def test_attr_image_thumb_is_not_None_if_empty(self):
         self.w.empty = True
         self.w.image.thumb = 'thumb'
         with mock.patch(self.ThW+'_setEmptyPixmap'):
-            self.w.clear()
+            self.w._clear()
 
         self.assertIsNotNone(self.w.image.thumb)
 
-    def test_attr_empty_stay_True_if_attr_empty_is_True(self):
+    def test_attr_empty_stay_True_if_empty(self):
         self.w.empty = True
         with mock.patch(self.ThW+'_setEmptyPixmap'):
-            self.w.clear()
+            self.w._clear()
 
         self.assertTrue(self.w.empty)
 
-    def test_setEmptyPixmap_called_if_attr_empty_is_False(self):
+    def test_not_decrease_class_attr_RENDERED_if_empty(self):
+        imageviewwidget.ThumbnailWidget.RENDERED = 1
+        self.w.empty = True
+        with mock.patch(self.ThW+'_setEmptyPixmap'):
+            self.w._clear()
+
+        self.assertEqual(imageviewwidget.ThumbnailWidget.RENDERED, 1)
+
+    def test_qtimer_stop_not_called_if_not_empty_and_visible(self):
         self.w.empty = False
-        with mock.patch(self.ThW+'_setEmptyPixmap') as mock_set_call:
-            self.w.clear()
+        with mock.patch(self.ThW+'isVisible', return_value=True):
+            with mock.patch(self.ThW+'_setEmptyPixmap'):
+                self.w._clear()
+
+        self.w.qtimer.stop.assert_not_called()
+
+    def test_setEmptyPixmap_not_called_if_not_empty_and_visible(self):
+        self.w.empty = False
+        with mock.patch(self.ThW+'isVisible', return_value=True):
+            with mock.patch(self.ThW+'_setEmptyPixmap') as mock_set_call:
+                self.w._clear()
+
+        mock_set_call.assert_not_called()
+
+    def test_attr_image_thumb_is_not_None_if_not_empty_and_visible(self):
+        self.w.empty = False
+        self.w.image.thumb = 'thumb'
+        with mock.patch(self.ThW+'isVisible', return_value=True):
+            with mock.patch(self.ThW+'_setEmptyPixmap'):
+                self.w._clear()
+
+        self.assertIsNotNone(self.w.image.thumb)
+
+    def test_attr_empty_stay_False_if_not_empty_and_visible(self):
+        self.w.empty = False
+        with mock.patch(self.ThW+'isVisible', return_value=True):
+            with mock.patch(self.ThW+'_setEmptyPixmap'):
+                self.w._clear()
+
+        self.assertFalse(self.w.empty)
+
+    def test_not_decrease_class_attr_RENDERED_if_not_empty_and_visible(self):
+        imageviewwidget.ThumbnailWidget.RENDERED = 1
+        self.w.empty = False
+        with mock.patch(self.ThW+'isVisible', return_value=True):
+            with mock.patch(self.ThW+'_setEmptyPixmap'):
+                self.w._clear()
+
+        self.assertEqual(imageviewwidget.ThumbnailWidget.RENDERED, 1)
+
+    def test_setEmptyPixmap_called_if_not_empty_and_not_visible(self):
+        self.w.empty = False
+        with mock.patch(self.ThW+'isVisible', return_value=False):
+            with mock.patch(self.ThW+'_setEmptyPixmap') as mock_set_call:
+                self.w._clear()
 
         mock_set_call.assert_called_once_with()
 
-    def test_attr_image_thumb_set_to_None_if_attr_empty_is_False(self):
+    def test_attr_image_thumb_set_to_None_if_not_empty_and_not_visible(self):
         self.w.empty = False
         self.w.image.thumb = 'thumb'
-        with mock.patch(self.ThW+'_setEmptyPixmap'):
-            self.w.clear()
+        with mock.patch(self.ThW+'isVisible', return_value=False):
+            with mock.patch(self.ThW+'_setEmptyPixmap'):
+                self.w._clear()
 
         self.assertIsNone(self.w.image.thumb)
 
-    def test_attr_empty_set_to_True_if_attr_empty_is_False(self):
+    def test_attr_empty_set_to_True_if_not_empty_and_not_visible(self):
         self.w.empty = False
-        with mock.patch(self.ThW+'_setEmptyPixmap'):
-            self.w.clear()
+        with mock.patch(self.ThW+'isVisible', return_value=False):
+            with mock.patch(self.ThW+'_setEmptyPixmap'):
+                self.w._clear()
 
         self.assertTrue(self.w.empty)
 
-    def test_decrease_class_attr_RENDERED(self):
+    def test_decrease_class_attr_RENDERED_if_not_empty_and_not_visible(self):
         imageviewwidget.ThumbnailWidget.RENDERED = 1
         self.w.empty = False
-        with mock.patch(self.ThW+'_setEmptyPixmap'):
-            self.w.clear()
+        with mock.patch(self.ThW+'isVisible', return_value=False):
+            with mock.patch(self.ThW+'_setEmptyPixmap'):
+                self.w._clear()
 
         self.assertEqual(imageviewwidget.ThumbnailWidget.RENDERED, 0)
 
@@ -832,22 +918,6 @@ class TestMethodSetImagePathLabel(TestDuplicateWidget):
         mock_upd_call.assert_called_once_with()
 
 
-class TestDuplicateWidgetMethodRenderThumbnail(TestDuplicateWidget):
-
-    def test_imageLabel_render_called(self):
-        self.w.renderThumbnail()
-
-        self.w.imageLabel.render.assert_called_once_with()
-
-
-class TestDuplicateWidgetMethodClearThumbnail(TestDuplicateWidget):
-
-    def test_imageLabel_clear_called(self):
-        self.w.clearThumbnail()
-
-        self.w.imageLabel.clear.assert_called_once_with()
-
-
 class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
 
     def setUp(self):
@@ -1140,26 +1210,6 @@ class TestImageGroupWidgetMethodSetDuplicateWidgets(TestImageGroupWidget):
         mock_upd_call.assert_called_once_with()
 
 
-class TestImageGroupWidgetMethodRenderThumbnails(TestImageGroupWidget):
-
-    def test_renderThumbnails_called(self):
-        self.w.widgets = [mock.Mock() for i in range(2)]
-        self.w.renderThumbnails()
-
-        self.w.widgets[0].renderThumbnail.assert_called_once_with()
-        self.w.widgets[1].renderThumbnail.assert_called_once_with()
-
-
-class TestImageGroupWidgetMethodClearThumbnails(TestImageGroupWidget):
-
-    def test_clearThumbnails_called(self):
-        self.w.widgets = [mock.Mock() for i in range(2)]
-        self.w.clearThumbnails()
-
-        self.w.widgets[0].clearThumbnail.assert_called_once_with()
-        self.w.widgets[1].clearThumbnail.assert_called_once_with()
-
-
 class TestImageGroupWidgetMethodSelectedWidgets(TestImageGroupWidget):
 
     def setUp(self):
@@ -1253,9 +1303,6 @@ class TestImageViewWidgetMethodInit(TestImageViewWidget):
     def test_widgets_attr_initial_value(self):
         self.assertListEqual(self.w.widgets, [])
 
-    def test_visible_attr_initial_value(self):
-        self.assertListEqual(self.w.visible, [])
-
     def test_signals_attr_set(self):
         self.assertIsInstance(self.w.signals, signals.WidgetsRenderingSignals)
 
@@ -1290,7 +1337,7 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
     def test_ThumbnailWidget_class_attr_RENDRED_set_to_0(self):
         imageviewwidget.ThumbnailWidget.RENDERED = 32
         with mock.patch(VIEW+'ImageGroupWidget',
-                        return_value=self.mock_group_w) as mock_widg:
+                        return_value=self.mock_group_w):
             self.w.render(self.image_groups)
 
         self.assertEqual(imageviewwidget.ThumbnailWidget.RENDERED, 0)
@@ -1366,133 +1413,6 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
         self.assertEqual(len(spy), 1)
 
 
-class TestImageViewWidgetMethodPaintEvent(TestImageViewWidget):
-
-    P_EV = 'PyQt5.QtWidgets.QWidget.paintEvent'
-
-    def setUp(self):
-        super().setUp()
-
-        self.mock_event = mock.Mock()
-        self.w.conf['lazy'] = True
-        self.w.interrupted = False
-
-    def test_parent_paintEvent_called(self):
-        self.w.conf['lazy'] = False
-        with mock.patch(self.P_EV) as mock_paint_call:
-            self.w.paintEvent(self.mock_event)
-
-        mock_paint_call.assert_called_once_with(self.mock_event)
-
-    def test_args_visibleWidgets_called_with(self):
-        rect = mock.Mock()
-        self.mock_event.rect.return_value = rect
-        y0, h = 3, 5
-        rect.y.return_value = y0
-        rect.height.return_value = h
-
-        with mock.patch(self.P_EV):
-            with mock.patch(self.IVW+'_visibleWidgets',
-                            return_value=[]) as mock_vis_call:
-                self.w.paintEvent(self.mock_event)
-
-        mock_vis_call.assert_called_once_with(y0, h)
-
-    def test_renderThumbnails_called_on_visible_widgets(self):
-        vis_w = mock.Mock()
-        with mock.patch(self.P_EV):
-            with mock.patch(self.IVW+'_visibleWidgets', return_value=[vis_w]):
-                self.w.paintEvent(self.mock_event)
-
-        vis_w.renderThumbnails.assert_called_once_with()
-
-    def test_previous_visibles_not_removed_from_visibles_if_visible(self):
-        prev_w = mock.Mock()
-        prev_w.isVisible.return_value = True
-        prev_visible = [prev_w]
-        self.w.visible = prev_visible.copy()
-
-        with mock.patch(self.P_EV):
-            with mock.patch(self.IVW+'_visibleWidgets', return_value=[]):
-                self.w.paintEvent(self.mock_event)
-
-        self.assertListEqual(self.w.visible, prev_visible)
-
-    def test_clearThumbnails_not_called_if_widget_visible(self):
-        prev_w = mock.Mock()
-        prev_w.isVisible.return_value = True
-        self.w.visible = [prev_w]
-
-        with mock.patch(self.P_EV):
-            with mock.patch(self.IVW+'_visibleWidgets', return_value=[]):
-                self.w.paintEvent(self.mock_event)
-
-        prev_w.clearThumbnails.assert_not_called()
-
-    def test_previous_visibles_removed_from_visibles_if_not_visible(self):
-        prev_w = mock.Mock()
-        prev_w.isVisible.return_value = False
-        prev_visible = [prev_w]
-        self.w.visible = prev_visible.copy()
-        prev_visible.remove(prev_w)
-
-        with mock.patch(self.P_EV):
-            with mock.patch(self.IVW+'_visibleWidgets', return_value=[]):
-                self.w.paintEvent(self.mock_event)
-
-        self.assertListEqual(self.w.visible, prev_visible)
-
-    def test_clearThumbnails_called_if_widget_not_visible(self):
-        prev_w = mock.Mock()
-        prev_w.isVisible.return_value = False
-        self.w.visible = [prev_w]
-
-        with mock.patch(self.P_EV):
-            with mock.patch(self.IVW+'_visibleWidgets', return_value=[]):
-                self.w.paintEvent(self.mock_event)
-
-        prev_w.clearThumbnails.assert_called_once_with()
-
-    def test_visible_widgets_list_extended_with_new_visibles(self):
-        self.w.visible = []
-        new_visible = [mock.Mock()]
-        with mock.patch(self.P_EV):
-            with mock.patch(self.IVW+'_visibleWidgets',
-                            return_value=new_visible):
-                self.w.paintEvent(self.mock_event)
-
-        self.assertListEqual(self.w.visible, new_visible)
-
-
-class TestImageViewWidgetMethodVisibleWidgets(TestImageViewWidget):
-
-    def test_args_childAt_called_with(self):
-        with mock.patch(self.IVW+'childAt') as mock_child_call:
-            self.w._visibleWidgets(0, 2)
-
-        calls = [mock.call(0, 0), mock.call(0, 1)]
-        mock_child_call.assert_has_calls(calls)
-
-    def test_not_adding_widget_found_if_it_is_widget_same_as_previous(self):
-        with mock.patch(self.IVW+'childAt', return_value=None):
-            res = self.w._visibleWidgets(0, 1)
-
-        self.assertListEqual(res, [])
-
-    def test_not_adding_widget_found_if_it_is_not_ImageGroupWidget_obj(self):
-        with mock.patch(self.IVW+'childAt', return_value='widget'):
-            res = self.w._visibleWidgets(0, 1)
-
-        self.assertListEqual(res, [])
-
-    def test_adding_widget_found_if_it_is_ImageGroupWidget_obj(self):
-        widget = imageviewwidget.ImageGroupWidget([], {})
-        with mock.patch(self.IVW+'childAt', return_value=widget):
-            res = self.w._visibleWidgets(0, 1)
-
-        self.assertListEqual(res, [widget])
-
-
 class TestImageViewWidgetMethodHasSelectedWidgets(TestImageViewWidget):
 
     def setUp(self):
@@ -1532,11 +1452,6 @@ class TestImageViewWidgetMethodClear(TestImageViewWidget):
         self.w.clear()
 
         self.assertListEqual(self.w.widgets, [])
-
-    def test_clear_visible_attr(self):
-        self.w.clear()
-
-        self.assertListEqual(self.w.visible, [])
 
 
 class TestImageViewWidgetMethodDelete(TestImageViewWidget):
