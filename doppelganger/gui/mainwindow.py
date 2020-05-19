@@ -87,10 +87,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.scrollArea.setWidget(self.imageViewWidget)
 
         self.imageViewWidget.signals.finished.connect(
-            self.widgetsProcessingFinished
+            self.processingFinished
         )
         self.imageViewWidget.signals.interrupted.connect(
-            self.widgetsProcessingInterrupted
+            self.processingInterrupted
         )
 
     def _setPathsGroupBox(self) -> None:
@@ -199,7 +199,7 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         p.signals.image_groups.connect(self.render)
         p.signals.error.connect(errorMessage)
-        p.signals.interrupted.connect(self.imageProcessingInterrupted)
+        p.signals.interrupted.connect(self.processingInterrupted)
 
         self.processingGrp.stopBtn.clicked.connect(p.setInterrupted)
 
@@ -222,6 +222,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.processingGrp.stopBtn.setEnabled(False)
 
     def processingFinished(self) -> None:
+        self.widgets_processing = False
         self.switchStartBtn()
         self.processingGrp.stopBtn.setEnabled(False)
         self.processingGrp.processProg.setValue(100)
@@ -230,23 +231,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.actionsGrp.autoSelectBtn.setEnabled(True)
             self.autoSelectAction.setEnabled(True)
 
-    def imageProcessingInterrupted(self) -> None:
+    def processingInterrupted(self) -> None:
         self._clearThreadpool()
-        self.imageProcessingFinished()
 
-    def imageProcessingFinished(self) -> None:
         self.image_processing = False
-        if not self.widgets_processing:
-            self.processingFinished()
 
-    def widgetsProcessingInterrupted(self) -> None:
-        self._clearThreadpool()
-        self.widgetsProcessingFinished()
-
-    def widgetsProcessingFinished(self) -> None:
-        self.widgets_processing = False
-        if not self.image_processing:
-            self.processingFinished()
+        self.processingFinished()
 
     def _clearThreadpool(self) -> None:
         self.threadpool.clear()
@@ -266,10 +256,19 @@ class MainWindow(QtWidgets.QMainWindow):
                 return
 
         if self.processingGrp.stopBtn.isEnabled():
+            # If the programme is working (button 'Stop' enabled),
+            # run 'normal' interruption process
             self.processingGrp.stopBtn.clicked.emit()
 
             while self.image_processing:
                 QtCore.QCoreApplication.processEvents()
+
+        else:
+            # If the programme has finished everything and the 'lazy'
+            # mode is on, the user, before closing it, might have scrolled
+            # and put some thumbnails in the queue to make. So we're making
+            # sure that all the 'thumbnails' threads are cleared
+            self._clearThreadpool()
 
     def openWindow(self) -> None:
         window = self.sender().data()
@@ -308,7 +307,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def render(self, image_groups: Iterable[core.Group]) -> None:
         if image_groups:
             self.widgets_processing = True
-            self.imageProcessingFinished()
+            self.image_processing = False
             self.imageViewWidget.render(image_groups)
 
             for dup_w in self.imageViewWidget.widgets[-1].widgets:

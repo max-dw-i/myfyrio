@@ -1439,9 +1439,29 @@ class TestImageViewWidgetMethodClear(TestImageViewWidget):
     def setUp(self):
         super().setUp()
 
+        self.conf['lazy'] = False
+
         self.mock_group_w = mock.Mock()
         self.w.widgets = [self.mock_group_w]
         self.w.widgets = [self.mock_group_w]
+
+    def test_threadpool_clear_called(self):
+        self.conf['lazy'] = True
+        threadpool = mock.Mock()
+        with mock.patch('PyQt5.QtCore.QThreadPool.globalInstance',
+                        return_value=threadpool):
+            self.w.clear()
+
+        threadpool.clear.assert_called_once_with()
+
+    def test_threadpool_waitForDone_called(self):
+        self.conf['lazy'] = True
+        threadpool = mock.Mock()
+        with mock.patch('PyQt5.QtCore.QThreadPool.globalInstance',
+                        return_value=threadpool):
+            self.w.clear()
+
+        threadpool.waitForDone.assert_called_once_with()
 
     def test_deleteLater_called(self):
         self.w.clear()

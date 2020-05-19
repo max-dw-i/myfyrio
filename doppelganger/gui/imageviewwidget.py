@@ -523,6 +523,11 @@ class ImageViewWidget(QtWidgets.QWidget):
     def clear(self) -> None:
         '''Clear the widget from duplicate images found'''
 
+        if self.conf['lazy']:
+            threadpool = QtCore.QThreadPool.globalInstance()
+            threadpool.clear()
+            threadpool.waitForDone()
+
         for group_w in self.widgets:
             group_w.deleteLater()
 

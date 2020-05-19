@@ -212,6 +212,15 @@ class TestMainFormMethodCloseEvent(TestMainForm):
 
         self.assertEqual(len(self.spy), 0)
 
+    def test_clearThreadpool_called_if_no_confirmation_and_no_stopBtn(self):
+        self.w.preferencesWindow.conf['close_confirmation'] = False
+        self.w.processingGrp.stopBtn.setEnabled(False)
+
+        with mock.patch(self.MW+'_clearThreadpool') as mock_th_call:
+            self.w.closeEvent(self.mock_event)
+
+        mock_th_call.assert_called_once_with()
+
     def test_stopBtn_emitted_if_no_confirmation_and_stopBtn(self):
         self.w.preferencesWindow.conf['close_confirmation'] = False
         self.w.processingGrp.stopBtn.setEnabled(True)
@@ -239,6 +248,17 @@ class TestMainFormMethodCloseEvent(TestMainForm):
             self.w.closeEvent(self.mock_event)
 
         self.assertEqual(len(self.spy), 1)
+
+    def test_clearThreadpool_called_if_Yes_confirmation_and_no_stopBtn(self):
+        self.w.preferencesWindow.conf['close_confirmation'] = True
+        self.w.processingGrp.stopBtn.setEnabled(False)
+
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Yes):
+            with mock.patch(self.MW+'_clearThreadpool') as mock_th_call:
+                self.w.closeEvent(self.mock_event)
+
+        mock_th_call.assert_called_once_with()
 
     def test_stopBtn_not_emitted_if_confirmation_Cancel(self):
         self.w.preferencesWindow.conf['close_confirmation'] = True
@@ -433,22 +453,25 @@ class TestMainFormMethodRender(TestMainForm):
         mock_widget = mock.Mock()
         mock_widget.widgets = []
         self.w.imageViewWidget.widgets.append(mock_widget)
+        self.w.widgets_processing = False
+
         with mock.patch(PATCH_RENDER):
             self.w.render(img_group)
 
         self.assertTrue(self.w.widgets_processing)
 
-    def test_imageProcessingFinished_called(self):
+    def test_attr_image_processing_set_to_False(self):
         PATCH_RENDER = IMAGE_VIEW_WIDGET + 'ImageViewWidget.render'
         img_group = ['image']
         mock_widget = mock.Mock()
         mock_widget.widgets = []
         self.w.imageViewWidget.widgets.append(mock_widget)
-        with mock.patch(PATCH_RENDER):
-            with mock.patch(self.MW+'imageProcessingFinished') as mock_fi_call:
-                self.w.render(img_group)
+        self.w.image_processing = True
 
-        mock_fi_call.assert_called_once_with()
+        with mock.patch(PATCH_RENDER):
+            self.w.render(img_group)
+
+        self.assertFalse(self.w.image_processing)
 
     def test_ImageViewWidget_called_if_duplicates_found(self):
         PATCH_RENDER = IMAGE_VIEW_WIDGET + 'ImageViewWidget.render'
@@ -471,6 +494,12 @@ class TestMainFormMethodRender(TestMainForm):
 
 
 class TestMainFormMethodProcessingFinished(TestMainForm):
+
+    def test_attr_widgets_processing_set_to_False(self):
+        self.w.widgets_processing = True
+        self.w.processingFinished()
+
+        self.assertFalse(self.w.widgets_processing)
 
     def test_switchStartBtn_called(self):
         with mock.patch(MAIN_WINDOW+'MainWindow.switchStartBtn') as mock_btn:
@@ -519,90 +548,26 @@ class TestMainFormMethodProcessingFinished(TestMainForm):
         self.assertFalse(self.w.autoSelectAction.isEnabled())
 
 
-class TestMainFormMethodImageProcessingInterrupted(TestMainForm):
+class TestMainFormMethodProcessingInterrupted(TestMainForm):
 
     def test_clearThreadpool_called(self):
         with mock.patch(self.MW+'_clearThreadpool') as mock_clear_call:
-            with mock.patch(self.MW+'imageProcessingFinished'):
-                self.w.imageProcessingInterrupted()
+            with mock.patch(self.MW+'processingFinished'):
+                self.w.processingInterrupted()
 
         mock_clear_call.assert_called_once_with()
-
-    def test_imageProcessingFinished_called(self):
-        with mock.patch(self.MW+'_clearThreadpool'):
-            with mock.patch(self.MW
-                            +'imageProcessingFinished') as mock_fin_call:
-                self.w.imageProcessingInterrupted()
-
-        mock_fin_call.assert_called_once_with()
-
-
-class TestMainFormMethodImageProcessingFinished(TestMainForm):
 
     def test_attr_image_processing_set_to_False(self):
         self.w.image_processing = True
-
-        self.w.imageProcessingFinished()
+        self.w.processingInterrupted()
 
         self.assertFalse(self.w.image_processing)
 
-    def test_processingFinished_not_called_if_widgets_processing_True(self):
-        self.w.widgets_processing = True
-
-        with mock.patch(self.MW+'processingFinished') as mock_fin_call:
-            self.w.imageProcessingFinished()
-
-        mock_fin_call.assert_not_called()
-
-    def test_processingFinished_called_if_widgets_processing_False(self):
-        self.w.widgets_processing = False
-
-        with mock.patch(self.MW+'processingFinished') as mock_fin_call:
-            self.w.imageProcessingFinished()
-
-        mock_fin_call.assert_called_once_with()
-
-
-class TestMainFormMethodWidgetsProcessingInterrupted(TestMainForm):
-
-    def test_clearThreadpool_called(self):
-        with mock.patch(self.MW+'_clearThreadpool') as mock_clear_call:
-            with mock.patch(self.MW+'widgetsProcessingFinished'):
-                self.w.widgetsProcessingInterrupted()
-
-        mock_clear_call.assert_called_once_with()
-
-    def test_widgetsProcessingFinished_called(self):
+    def test_processingFinished_called(self):
         with mock.patch(self.MW+'_clearThreadpool'):
             with mock.patch(self.MW
-                            +'widgetsProcessingFinished') as mock_fin_call:
-                self.w.widgetsProcessingInterrupted()
-
-        mock_fin_call.assert_called_once_with()
-
-
-class TestMainFormMethodWidgetsProcessingFinished(TestMainForm):
-
-    def test_attr_widgets_processing_set_to_False(self):
-        self.w.widgets_processing = True
-
-        self.w.widgetsProcessingFinished()
-
-        self.assertFalse(self.w.widgets_processing)
-
-    def test_processingFinished_not_called_if_image_processing_True(self):
-        self.w.image_processing = True
-
-        with mock.patch(self.MW+'processingFinished') as mock_fin_call:
-            self.w.widgetsProcessingFinished()
-
-        mock_fin_call.assert_not_called()
-
-    def test_processingFinished_called_if_image_processing_False(self):
-        self.w.image_processing = False
-
-        with mock.patch(self.MW+'processingFinished') as mock_fin_call:
-            self.w.widgetsProcessingFinished()
+                            +'processingFinished') as mock_fin_call:
+                self.w.processingInterrupted()
 
         mock_fin_call.assert_called_once_with()
 
