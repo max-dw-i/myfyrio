@@ -43,10 +43,11 @@ class ImageProcessingSignals(QtCore.QObject):
 class ThumbnailsProcessingSignals(QtCore.QObject):
     '''Supported signals:
     ------------------
-    :signal thumbnail:          image thumbnail: QtGui.QImage
+    :signal finished:          image thumbnail is made and assigned to
+                               attribute "thumb" of the "Image" object
     '''
 
-    thumbnail = QtCore.pyqtSignal(QtGui.QImage)
+    finished = QtCore.pyqtSignal()
 
 
 class WidgetsRenderingSignals(QtCore.QObject):

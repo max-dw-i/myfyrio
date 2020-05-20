@@ -262,9 +262,9 @@ class ThumbnailProcessing:
 
     def run(self) -> None:
         try:
-            thumbnail = self.image.thumbnail(self.size)
+            self.image.thumbnail(self.size)
         except OSError as e:
             logger.error(e)
-            thumbnail = QtGui.QImage()
+            self.image.thumb = QtGui.QImage()
 
-        self.signals.thumbnail.emit(thumbnail)
+        self.signals.finished.emit()

@@ -487,26 +487,19 @@ class TestClassThumbnailProcessingMethodRun(TestClassThumbnailProcessing):
 
         self.mock_image.thumbnail.assert_called_once_with(self.size)
 
-    def test_thumbnail_result_emitted(self):
-        thumbnail = QtGui.QImage()
-        self.mock_image.thumbnail.return_value = thumbnail
-        spy = QtTest.QSignalSpy(self.proc.signals.thumbnail)
-
-        self.proc.run()
-
-        self.assertEqual(len(spy), 1)
-        self.assertEqual(spy[0][0], thumbnail)
-
     def test_logging_if_image_thumbnail_raise_OSError(self):
         self.mock_image.thumbnail.side_effect = OSError
         with self.assertLogs('main.processing', 'ERROR'):
             self.proc.run()
 
-    def test_empty_QImage_emitted_if_image_thumbnail_raise_OSError(self):
+    def test_empty_QImage_assigned_to_image_attr_thumb_if_raise_OSError(self):
         self.mock_image.thumbnail.side_effect = OSError
-        spy = QtTest.QSignalSpy(self.proc.signals.thumbnail)
+        self.proc.run()
 
+        self.assertEqual(self.proc.image.thumb, QtGui.QImage())
+
+    def test_signal_finished_emitted(self):
+        spy = QtTest.QSignalSpy(self.proc.signals.finished)
         self.proc.run()
 
         self.assertEqual(len(spy), 1)
-        self.assertEqual(spy[0][0], QtGui.QImage())

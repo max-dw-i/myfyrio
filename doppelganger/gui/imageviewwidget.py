@@ -103,8 +103,6 @@ class ImagePathLabel(InfoLabel):
 class ThumbnailWidget(QtWidgets.QLabel):
     '''Widget renderering the thumbnail of an image'''
 
-    RENDERED = 0
-
     def __init__(self, image: core.Image, size: int, lazy: bool,
                  parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
@@ -124,7 +122,7 @@ class ThumbnailWidget(QtWidgets.QLabel):
             self.qtimer = QtCore.QTimer(self)
             self.qtimer.timeout.connect(self._clear)
         else:
-            self._render()
+            self._makeThumbnail()
 
     def _setEmptyPixmap(self) -> None:
         width, height = self.image.scaling_dimensions(self.size)
@@ -136,38 +134,33 @@ class ThumbnailWidget(QtWidgets.QLabel):
 
         self.empty = True
 
-    def _setThumbnail(self, qimage: QtGui.QImage) -> None:
+    def _setThumbnail(self) -> None:
         pixmap = QtGui.QPixmap()
-        if not pixmap.convertFromImage(qimage):
-            err_msg = ('Something happened while converting '
-                       'QImage into QPixmap')
-            logger.error(err_msg)
-            pixmap = QtGui.QPixmap(resource(Image.ERR_IMG)).scaled(self.size,
-                                                                   self.size)
+        if not pixmap.convertFromImage(self.image.thumb):
+            pixmap = self._errorThumbnail()
+
         self.setPixmap(pixmap)
         self.updateGeometry()
 
         self.empty = False
-        ThumbnailWidget.RENDERED += 1
+
+    def _errorThumbnail(self) -> QtGui.QPixmap:
+        logger.error('Something happened while converting QImage into QPixmap')
+        size = self.size
+        err_pixmap = QtGui.QPixmap(resource(Image.ERR_IMG))
+        return err_pixmap.scaled(size, size)
 
     def _makeThumbnail(self) -> None:
         p = processing.ThumbnailProcessing(self.image, self.size)
-        p.signals.thumbnail.connect(self._setThumbnail)
+        p.signals.finished.connect(self._setThumbnail)
 
         worker = processing.Worker(p.run)
         threadpool = QtCore.QThreadPool.globalInstance()
         threadpool.start(worker)
 
-    def _render(self) -> None:
-        if self.empty:
-            if self.image.thumb is None:
-                self._makeThumbnail()
-            else:
-                self._setThumbnail(self.image.thumb)
-
     def paintEvent(self, event) -> None:
-        if self.lazy:
-            self._render()
+        if self.lazy and self.empty:
+            self._makeThumbnail()
 
             self.qtimer.start(10000)
 
@@ -181,7 +174,6 @@ class ThumbnailWidget(QtWidgets.QLabel):
             self.image.thumb = None
 
             self.empty = True
-            ThumbnailWidget.RENDERED -= 1
 
     def isVisible(self) -> bool:
         '''Check if the widget is visible by the user
@@ -408,8 +400,13 @@ class ImageGroupWidget(QtWidgets.QWidget):
         self.setLayout(self.layout)
 
     def _setDuplicateWidgets(self) -> None:
+        lazy = self.conf['lazy']
+
         for image in self.image_group:
             dupl_w = DuplicateWidget(image, self.conf)
+            while not lazy and dupl_w.imageLabel.empty:
+                QtCore.QCoreApplication.processEvents()
+
             self.widgets.append(dupl_w)
             self.layout.addWidget(dupl_w)
             self.updateGeometry()
@@ -485,29 +482,19 @@ class ImageViewWidget(QtWidgets.QWidget):
         :param image_groups: groups of similar images
         '''
 
-        images_num = 0
-        ThumbnailWidget.RENDERED = 0
-
         for group in image_groups:
             if self.interrupted:
                 self.signals.interrupted.emit()
                 return
 
             widget = ImageGroupWidget(group, self.conf)
-            images_num += len(group)
             self.layout.addWidget(widget)
             self.widgets.append(widget)
             self.updateGeometry()
 
             QtCore.QCoreApplication.processEvents()
 
-        if self.conf['lazy']:
-            self.signals.finished.emit()
-        else:
-            while images_num != ThumbnailWidget.RENDERED:
-                QtCore.QCoreApplication.processEvents()
-
-            self.signals.finished.emit()
+        self.signals.finished.emit()
 
     def hasSelectedWidgets(self) -> bool:
         '''Check if there are selected "DuplicateWidget"s
