@@ -400,82 +400,69 @@ class TestThumbnailWidgetMethodSetThumbnail(TestThumbnailWidget):
 
         qtimer.start.assert_called_once_with(10000)
 
-    def test_convertFromImage_not_called_with_qimage_arg_if_lazy_and_not_visible(self):
+    def test_convertFromImage_not_called_if_lazy_and_not_visible(self):
         self.w.lazy = True
-        self.mock_pixmap.convertFromImage.return_value = True
         with mock.patch(self.ThW+'isVisible', return_value=False):
             with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_pixmap):
-                with mock.patch(self.ThW+'setPixmap'):
-                    self.w._setThumbnail()
+                self.w._setThumbnail()
 
         self.mock_pixmap.convertFromImage.assert_not_called()
 
-    def test_setPixmap_not_called_with_image_read_from_attr_thumb_if_lazy_and_not_visible(self):
+    def test_setPixmap_not_called_if_lazy_and_not_visible(self):
         self.w.lazy = True
-        self.mock_pixmap.convertFromImage.return_value = True
         with mock.patch(self.ThW+'isVisible', return_value=False):
-            with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_pixmap):
-                with mock.patch(self.ThW+'setPixmap') as mock_setPixmap_call:
-                    self.w._setThumbnail()
+            with mock.patch(self.ThW+'setPixmap') as mock_setPixmap_call:
+                self.w._setThumbnail()
 
         mock_setPixmap_call.assert_not_called()
 
-    def test_errorThumbnail_not_called_if_qimage_cannot_be_read_if_lazy_and_not_visible(self):
+    def test_errorThumbnail_not_called_if_lazy_and_not_visible(self):
         self.w.lazy = True
-        self.mock_pixmap.convertFromImage.return_value = False
         with mock.patch(self.ThW+'isVisible', return_value=False):
-            with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_pixmap):
-                with mock.patch(self.ThW+'setPixmap'):
-                    with mock.patch(self.ThW+'_errorThumbnail') as mock_err_call:
-                        self.w._setThumbnail()
+            with mock.patch(self.ThW+'_errorThumbnail') as mock_err_call:
+                self.w._setThumbnail()
 
         mock_err_call.assert_not_called()
 
-    def test_setPixmap_not_called_with_error_image_if_qimage_cannot_be_read_if_lazy_and_not_visible(self):
+    def test_setPixmap_not_called_if_lazy_and_not_visible(self):
         self.w.lazy = True
-        self.mock_pixmap.convertFromImage.return_value = False
         with mock.patch(self.ThW+'isVisible', return_value=False):
-            with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_pixmap):
-                with mock.patch(self.ThW+'setPixmap') as mock_setPixmap_call:
-                    with mock.patch(self.ThW+'_errorThumbnail',
-                                    return_value='error_image'):
-                        self.w._setThumbnail()
+            with mock.patch(self.ThW+'setPixmap') as mock_setPixmap_call:
+                self.w._setThumbnail()
 
         mock_setPixmap_call.assert_not_called()
 
     def test_updateGeometry_not_called_if_lazy_and_not_visible(self):
         self.w.lazy = True
-        self.mock_pixmap.convertFromImage.return_value = True
         with mock.patch(self.ThW+'isVisible', return_value=False):
-            with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_pixmap):
-                with mock.patch(self.ThW+'setPixmap'):
-                    with mock.patch(self.ThW+'updateGeometry') as mock_upd_call:
-                        self.w._setThumbnail()
+            with mock.patch(self.ThW+'updateGeometry') as mock_upd_call:
+                self.w._setThumbnail()
 
         mock_upd_call.assert_not_called()
 
     def test_empty_attr_stay_True_if_lazy_and_not_visible(self):
         self.w.lazy = True
-        self.mock_pixmap.convertFromImage.return_value = True
         self.w.empty = True
         with mock.patch(self.ThW+'isVisible', return_value=False):
-            with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_pixmap):
-                with mock.patch(self.ThW+'setPixmap'):
-                    self.w._setThumbnail()
+            self.w._setThumbnail()
 
         self.assertTrue(self.w.empty)
 
     def test_qtimer_start_not_called_if_lazy_and_not_visible(self):
         self.w.lazy = True
-        self.mock_pixmap.convertFromImage.return_value = True
         qtimer = mock.Mock()
         self.w.qtimer = qtimer
         with mock.patch(self.ThW+'isVisible', return_value=False):
-            with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_pixmap):
-                with mock.patch(self.ThW+'setPixmap'):
-                    self.w._setThumbnail()
+            self.w._setThumbnail()
 
         qtimer.start.assert_not_called()
+
+    def test_assign_None_to_image_attr_thumb_if_lazy_and_not_visible(self):
+        self.w.lazy = True
+        with mock.patch(self.ThW+'isVisible', return_value=False):
+            self.w._setThumbnail()
+
+        self.assertIsNone(self.w.image.thumb)
 
 
 class TestThumbnailWidgetMethodErrorThumbnail(TestThumbnailWidget):

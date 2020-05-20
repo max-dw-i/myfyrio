@@ -147,6 +147,8 @@ class ThumbnailWidget(QtWidgets.QLabel):
 
             self.empty = False
             self.qtimer.start(10000)
+        else:
+            self.image.thumb = None
 
     def _errorThumbnail(self) -> QtGui.QPixmap:
         logger.error('Something happened while converting QImage into QPixmap')
