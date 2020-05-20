@@ -16,17 +16,20 @@ You should have received a copy of the GNU General Public License
 along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 '''
 
+from __future__ import annotations
+
 import os
 import pathlib
 import sys
 from multiprocessing import Pool
-from typing import Any, Callable, Collection, Iterable, List, Set, Tuple
+from typing import Any, Callable, Collection, Iterable, List, Set, Tuple, Union
 
 from PyQt5 import QtCore, QtGui
 
 from doppelganger import config, core, signals
 from doppelganger.cache import Cache
 from doppelganger.exception import InterruptProcessing
+from doppelganger.gui import imageviewwidget  # !!! Potential cyclic dep !!!
 from doppelganger.logger import Logger
 
 logger = Logger.getLogger('processing')
@@ -251,20 +254,26 @@ class ThumbnailProcessing:
     '''Class implementing thumbnails making
 
     :param image: "Image" object,
-    :param size: the biggest size (width or height) of the scaled image
+    :param size: the biggest size (width or height) of the scaled image,
+    :param widget: "ThumbnailWidget" object (optional)
     '''
 
-    def __init__(self, image: core.Image, size) -> None:
+    def __init__(self, image: core.Image, size: Union[core.Width, core.Height],
+                 widget: imageviewwidget.ThumbnailWidget = None) -> None:
         self.image = image
         self.size = size
+        self.widget = widget
 
         self.signals = signals.ThumbnailsProcessingSignals()
 
     def run(self) -> None:
-        try:
-            self.image.thumbnail(self.size)
-        except OSError as e:
-            logger.error(e)
-            self.image.thumb = QtGui.QImage()
+        # If 'lazy' mode and the widget is not visible,
+        # there's no point in making the thumbnail
+        if self.widget is None or self.widget.isVisible():
+            try:
+                self.image.thumbnail(self.size)
+            except OSError as e:
+                logger.error(e)
+                self.image.thumb = QtGui.QImage()
 
-        self.signals.finished.emit()
+            self.signals.finished.emit()

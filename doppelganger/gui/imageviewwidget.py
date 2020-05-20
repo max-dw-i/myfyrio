@@ -135,14 +135,18 @@ class ThumbnailWidget(QtWidgets.QLabel):
         self.empty = True
 
     def _setThumbnail(self) -> None:
-        pixmap = QtGui.QPixmap()
-        if not pixmap.convertFromImage(self.image.thumb):
-            pixmap = self._errorThumbnail()
+        # If 'lazy' mode and the widget is not visible,
+        # there's no point in setting the made thumbnail
+        if not self.lazy or self.isVisible():
+            pixmap = QtGui.QPixmap()
+            if not pixmap.convertFromImage(self.image.thumb):
+                pixmap = self._errorThumbnail()
 
-        self.setPixmap(pixmap)
-        self.updateGeometry()
+            self.setPixmap(pixmap)
+            self.updateGeometry()
 
-        self.empty = False
+            self.empty = False
+            self.qtimer.start(10000)
 
     def _errorThumbnail(self) -> QtGui.QPixmap:
         logger.error('Something happened while converting QImage into QPixmap')
@@ -151,7 +155,11 @@ class ThumbnailWidget(QtWidgets.QLabel):
         return err_pixmap.scaled(size, size)
 
     def _makeThumbnail(self) -> None:
-        p = processing.ThumbnailProcessing(self.image, self.size)
+        if self.lazy:
+            p = processing.ThumbnailProcessing(self.image, self.size, self)
+        else:
+            p = processing.ThumbnailProcessing(self.image, self.size)
+
         p.signals.finished.connect(self._setThumbnail)
 
         worker = processing.Worker(p.run)
@@ -161,8 +169,6 @@ class ThumbnailWidget(QtWidgets.QLabel):
     def paintEvent(self, event) -> None:
         if self.lazy and self.empty:
             self._makeThumbnail()
-
-            self.qtimer.start(10000)
 
         super().paintEvent(event)
 

@@ -465,6 +465,7 @@ class TestClassThumbnailProcessing(TestCase):
 
     def setUp(self):
         self.mock_image = mock.Mock()
+        self.mock_image.thumb = None
         self.size = 200
 
         self.proc = processing.ThumbnailProcessing(self.mock_image, self.size)
@@ -481,25 +482,87 @@ class TestClassThumbnailProcessingMethodInit(TestClassThumbnailProcessing):
 
 class TestClassThumbnailProcessingMethodRun(TestClassThumbnailProcessing):
 
-    def test_image_thumbnail_called_with_size_arg(self):
+    def test_image_thumbnail_called_with_size_arg_if_widget_None(self):
         self.mock_image.thumbnail.return_value = QtGui.QImage()
         self.proc.run()
 
         self.mock_image.thumbnail.assert_called_once_with(self.size)
 
-    def test_logging_if_image_thumbnail_raise_OSError(self):
+    def test_logging_if_image_thumbnail_raise_OSError_and_widget_None(self):
         self.mock_image.thumbnail.side_effect = OSError
         with self.assertLogs('main.processing', 'ERROR'):
             self.proc.run()
 
-    def test_empty_QImage_assigned_to_image_attr_thumb_if_raise_OSError(self):
+    def test_empty_QImage_assigned_to_thumb_if_OSError_and_widget_None(self):
         self.mock_image.thumbnail.side_effect = OSError
         self.proc.run()
 
         self.assertEqual(self.proc.image.thumb, QtGui.QImage())
 
-    def test_signal_finished_emitted(self):
+    def test_signal_finished_emitted_if_widget_None(self):
         spy = QtTest.QSignalSpy(self.proc.signals.finished)
         self.proc.run()
 
         self.assertEqual(len(spy), 1)
+
+    def test_thumbnail_called_with_size_arg_if_widg_not_None_and_visible(self):
+        widget = mock.Mock()
+        widget.isVisible.return_value = True
+        self.proc.widget = widget
+        self.mock_image.thumbnail.return_value = QtGui.QImage()
+        self.proc.run()
+
+        self.mock_image.thumbnail.assert_called_once_with(self.size)
+
+    def test_logging_if_OSError_and_widget_not_None_and_visible(self):
+        widget = mock.Mock()
+        widget.isVisible.return_value = True
+        self.proc.widget = widget
+        self.mock_image.thumbnail.side_effect = OSError
+        with self.assertLogs('main.processing', 'ERROR'):
+            self.proc.run()
+
+    def test_empty_QImage_set_to_thumb_if_OSError_widg_not_None_and_vis(self):
+        widget = mock.Mock()
+        widget.isVisible.return_value = True
+        self.proc.widget = widget
+        self.mock_image.thumbnail.side_effect = OSError
+        self.proc.run()
+
+        self.assertEqual(self.proc.image.thumb, QtGui.QImage())
+
+    def test_signal_finished_emitted_if_widget_not_None_and_visible(self):
+        widget = mock.Mock()
+        widget.isVisible.return_value = True
+        self.proc.widget = widget
+        spy = QtTest.QSignalSpy(self.proc.signals.finished)
+        self.proc.run()
+
+        self.assertEqual(len(spy), 1)
+
+    def test_thumbnail_not_called_with_size_arg_if_widg_not_None_not_vis(self):
+        widget = mock.Mock()
+        widget.isVisible.return_value = False
+        self.proc.widget = widget
+        self.mock_image.thumbnail.return_value = QtGui.QImage()
+        self.proc.run()
+
+        self.mock_image.thumbnail.assert_not_called()
+
+    def test_empty_QImage_not_to_thumb_if_OSError_widg_not_None_not_vis(self):
+        widget = mock.Mock()
+        widget.isVisible.return_value = False
+        self.proc.widget = widget
+        self.mock_image.thumbnail.side_effect = OSError
+        self.proc.run()
+
+        self.assertIsNone(self.proc.image.thumb)
+
+    def test_signal_finished_not_emitted_if_widget_not_None_and_not_vis(self):
+        widget = mock.Mock()
+        widget.isVisible.return_value = False
+        self.proc.widget = widget
+        spy = QtTest.QSignalSpy(self.proc.signals.finished)
+        self.proc.run()
+
+        self.assertEqual(len(spy), 0)
