@@ -145,7 +145,8 @@ class ThumbnailWidget(QtWidgets.QLabel):
             self.updateGeometry()
 
             self.empty = False
-            self.qtimer.start(10000)
+            if self.lazy:
+                self.qtimer.start(10000)
         else:
             self.image.thumb = None
 

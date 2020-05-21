@@ -305,7 +305,7 @@ class TestThumbnailWidgetMethodSetThumbnail(TestThumbnailWidget):
 
         self.assertFalse(self.w.empty)
 
-    def test_qtimer_start_called_if_not_lazy(self):
+    def test_qtimer_start_not_called_if_not_lazy(self):
         self.w.lazy = False
         self.mock_pixmap.convertFromImage.return_value = True
         qtimer = mock.Mock()
@@ -313,7 +313,7 @@ class TestThumbnailWidgetMethodSetThumbnail(TestThumbnailWidget):
         with mock.patch(self.ThW+'setPixmap'):
             self.w._setThumbnail()
 
-        qtimer.start.assert_called_once_with(10000)
+        qtimer.start.assert_not_called()
 
     def test_convertFromImage_called_with_img_thumb_if_lazy_and_visible(self):
         self.w.lazy = True
@@ -390,7 +390,8 @@ class TestThumbnailWidgetMethodSetThumbnail(TestThumbnailWidget):
     def test_convertFromImage_not_called_if_lazy_and_not_visible(self):
         self.w.lazy = True
         with mock.patch(self.ThW+'isVisible', return_value=False):
-            with mock.patch('PyQt5.QtGui.QPixmap', return_value=self.mock_pixmap):
+            with mock.patch('PyQt5.QtGui.QPixmap',
+                            return_value=self.mock_pixmap):
                 self.w._setThumbnail()
 
         self.mock_pixmap.convertFromImage.assert_not_called()
