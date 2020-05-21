@@ -221,6 +221,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def disableStopBtn(self) -> None:
         self.processingGrp.stopBtn.setEnabled(False)
 
+    def _connectDuplicateWidgetSignals(self) -> None:
+        for group_w in self.imageViewWidget.widgets:
+            for dup_w in group_w.widgets:
+                dup_w.signals.clicked.connect(self.switchImgActionsAndBtns)
+
     def processingFinished(self) -> None:
         self.widgets_processing = False
         self.switchStartBtn()
@@ -228,6 +233,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.processingGrp.processProg.setValue(100)
 
         if self.imageViewWidget.widgets:
+            self._connectDuplicateWidgetSignals()
+
             self.actionsGrp.autoSelectBtn.setEnabled(True)
             self.autoSelectAction.setEnabled(True)
 
@@ -309,9 +316,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.widgets_processing = True
             self.image_processing = False
             self.imageViewWidget.render(image_groups)
-
-            for dup_w in self.imageViewWidget.widgets[-1].widgets:
-                dup_w.signals.clicked.connect(self.switchImgActionsAndBtns)
         else:
             msg_box = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Information,

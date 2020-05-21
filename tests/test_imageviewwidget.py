@@ -1174,6 +1174,12 @@ class TestDuplicateWidgetMethodMouseReleaseEvent(TestDuplicateWidget):
 
         mock_click.assert_called_once_with()
 
+    @mock.patch(VIEW+'DuplicateWidget.click')
+    def test_event_ignored(self, mock_click):
+        self.w.mouseReleaseEvent(self.mock_event)
+
+        self.mock_event.ignore.assert_called_once_with()
+
 
 class TestDuplicateWidgetMethodDelete(TestDuplicateWidget):
 

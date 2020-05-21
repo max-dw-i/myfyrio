@@ -20,7 +20,6 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
 
-from doppelganger import signals
 from doppelganger.gui import aboutwindow, mainwindow, preferenceswindow
 
 # Check if there's QApplication instance already
@@ -493,7 +492,12 @@ class TestMainFormMethodRender(TestMainForm):
         mock_box.exec.assert_called_once_with()
 
 
-class TestMainFormMethodProcessingFinished(TestMainForm):
+class TestMainWindowMethodProcessingFinished(TestMainForm):
+
+    def setUp(self):
+        super().setUp()
+
+        self.w.imageViewWidget.widgets = []
 
     def test_attr_widgets_processing_set_to_False(self):
         self.w.widgets_processing = True
@@ -522,30 +526,43 @@ class TestMainFormMethodProcessingFinished(TestMainForm):
     def test_autoSelectBtn_enabled_if_images_rendered(self):
         self.w.actionsGrp.autoSelectBtn.setEnabled(False)
         self.w.imageViewWidget.widgets = ['group_widget']
-        self.w.processingFinished()
+        with mock.patch(self.MW+'_connectDuplicateWidgetSignals'):
+            self.w.processingFinished()
 
         self.assertTrue(self.w.actionsGrp.autoSelectBtn.isEnabled())
 
     def test_autoselect_menu_action_enabled_if_images_rendered(self):
         self.w.autoSelectAction.setEnabled(False)
         self.w.imageViewWidget.widgets = ['group_widget']
-        self.w.processingFinished()
+        with mock.patch(self.MW+'_connectDuplicateWidgetSignals'):
+            self.w.processingFinished()
 
         self.assertTrue(self.w.autoSelectAction.isEnabled())
 
+    def test_connectDuplicateWidgetSignals_called_if_images_rendered(self):
+        self.w.imageViewWidget.widgets = ['group_widget']
+        with mock.patch(self.MW+'_connectDuplicateWidgetSignals') as mock_call:
+            self.w.processingFinished()
+
+        mock_call.assert_called_once_with()
+
     def test_autoSelectBtn_disabled_if_images_not_rendered(self):
         self.w.actionsGrp.autoSelectBtn.setEnabled(False)
-        self.w.imageViewWidget.widgets = []
         self.w.processingFinished()
 
         self.assertFalse(self.w.actionsGrp.autoSelectBtn.isEnabled())
 
     def test_autoselect_menu_action_disabled_if_images_not_rendered(self):
         self.w.autoSelectAction.setEnabled(False)
-        self.w.imageViewWidget.widgets = []
         self.w.processingFinished()
 
         self.assertFalse(self.w.autoSelectAction.isEnabled())
+
+    def test_connectDuplicateWidgetSignals_called_if_images_not_rendered(self):
+        with mock.patch(self.MW+'_connectDuplicateWidgetSignals') as mock_call:
+            self.w.processingFinished()
+
+        mock_call.assert_not_called()
 
 
 class TestMainFormMethodProcessingInterrupted(TestMainForm):

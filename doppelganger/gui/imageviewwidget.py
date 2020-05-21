@@ -357,6 +357,8 @@ class DuplicateWidget(QtWidgets.QWidget):
     def mouseReleaseEvent(self, event) -> None:
         self.click()
 
+        event.ignore()
+
     def delete(self) -> None:
         '''Delete the image from the disk and its "DuplicateWidget" instance
 
