@@ -446,42 +446,38 @@ class TestMainFormMethodMoveImages(TestMainForm):
 
 class TestMainFormMethodRender(TestMainForm):
 
-    def test_attr_widgets_processing_set_to_True(self):
-        PATCH_RENDER = IMAGE_VIEW_WIDGET + 'ImageViewWidget.render'
-        img_group = ['image']
-        mock_widget = mock.Mock()
-        mock_widget.widgets = []
-        self.w.imageViewWidget.widgets.append(mock_widget)
-        self.w.widgets_processing = False
+    def setUp(self):
+        super().setUp()
 
-        with mock.patch(PATCH_RENDER):
-            self.w.render(img_group)
+        self.PATCH_RENDER = IMAGE_VIEW_WIDGET + 'ImageViewWidget.render'
+        self.img_group = ['image']
+
+    def test_attr_widgets_processing_set_to_True(self):
+        self.w.widgets_processing = False
+        with mock.patch(self.PATCH_RENDER):
+            self.w.render(self.img_group)
 
         self.assertTrue(self.w.widgets_processing)
 
-    def test_attr_image_processing_set_to_False(self):
-        PATCH_RENDER = IMAGE_VIEW_WIDGET + 'ImageViewWidget.render'
-        img_group = ['image']
-        mock_widget = mock.Mock()
-        mock_widget.widgets = []
-        self.w.imageViewWidget.widgets.append(mock_widget)
-        self.w.image_processing = True
+    def test_imageViewWidget_progressBarValue_set_to_current_progbar_val(self):
+        self.w.processingGrp.processProg.setValue(69)
+        with mock.patch(self.PATCH_RENDER):
+            self.w.render(self.img_group)
 
-        with mock.patch(PATCH_RENDER):
-            self.w.render(img_group)
+        self.assertEqual(self.w.imageViewWidget.progressBarValue, 69)
+
+    def test_attr_image_processing_set_to_False(self):
+        self.w.image_processing = True
+        with mock.patch(self.PATCH_RENDER):
+            self.w.render(self.img_group)
 
         self.assertFalse(self.w.image_processing)
 
-    def test_ImageViewWidget_called_if_duplicates_found(self):
-        PATCH_RENDER = IMAGE_VIEW_WIDGET + 'ImageViewWidget.render'
-        img_group = ['image']
-        mock_widget = mock.Mock()
-        mock_widget.widgets = []
-        self.w.imageViewWidget.widgets.append(mock_widget)
-        with mock.patch(PATCH_RENDER) as mock_render_call:
-            self.w.render(img_group)
+    def test_ImageViewWidget_render_called_if_duplicates_found(self):
+        with mock.patch(self.PATCH_RENDER) as mock_render_call:
+            self.w.render(self.img_group)
 
-        mock_render_call.assert_called_once_with(img_group)
+        mock_render_call.assert_called_once_with(self.img_group)
 
     def test_msg_box_called_if_no_duplicates_found(self):
         PATCH_BOX = 'PyQt5.QtWidgets.QMessageBox'

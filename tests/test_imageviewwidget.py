@@ -1463,6 +1463,18 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
 
         mock_upd_call.assert_called_once_with()
 
+    def test_updateProgressBar_called_with_proper_args(self):
+        self.w.progressBarValue = 11
+        with mock.patch(self.IVW+'_progressBarStep',
+                        return_value=23) as mock_step_call:
+            with mock.patch(self.IVW+'_updateProgressBar') as mock_upd_call:
+                with mock.patch(VIEW+'ImageGroupWidget',
+                                return_value=self.mock_group_w):
+                    self.w.render(self.image_groups)
+
+        mock_step_call.assert_called_once_with(len(self.image_groups))
+        mock_upd_call.assert_called_once_with(11+23)
+
     def test_processEvents_called(self):
         proc_events = 'PyQt5.QtCore.QCoreApplication.processEvents'
         with mock.patch(VIEW+'ImageGroupWidget',
@@ -1503,6 +1515,42 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
 
         self.assertEqual(len(spy), 1)
 
+
+class TestImageViewWidgetMethodUpdateProgressBar(TestImageViewWidget):
+
+    def test_attr_progressBarValue_set_to_value_arg(self):
+        self.w.progressBarValue = 33
+        self.w._updateProgressBar(44)
+
+        self.assertEqual(self.w.progressBarValue, 44)
+
+    def test_signal_emitted(self):
+        spy = QtTest.QSignalSpy(self.w.signals.update_progressbar)
+        self.w._updateProgressBar(44)
+
+        self.assertEqual(len(spy), 1)
+        self.assertEqual(spy[0][0], 44)
+
+
+class TestImageViewWidgetMethodProgressBarStep(TestImageViewWidget):
+
+    def test_return_0_if_progressBarValue_100__denominator_1(self):
+        self.w.progressBarValue = 100
+        res = self.w._progressBarStep(1)
+
+        self.assertAlmostEqual(res, 0)
+
+    def test_return_100_if_progressBarValue_0__denominator_1(self):
+        self.w.progressBarValue = 0
+        res = self.w._progressBarStep(1)
+
+        self.assertAlmostEqual(res, 100)
+
+    def test_return_50_if_progressBarValue_50__denominator_1(self):
+        self.w.progressBarValue = 50
+        res = self.w._progressBarStep(1)
+
+        self.assertAlmostEqual(res, 50)
 
 class TestImageViewWidgetMethodHasSelectedWidgets(TestImageViewWidget):
 

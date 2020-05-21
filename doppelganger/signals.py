@@ -20,7 +20,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 Module implementing custom signals
 '''
 
-from PyQt5 import QtCore, QtGui
+from PyQt5 import QtCore
 
 
 class ImageProcessingSignals(QtCore.QObject):
@@ -53,10 +53,12 @@ class ThumbnailsProcessingSignals(QtCore.QObject):
 class WidgetsRenderingSignals(QtCore.QObject):
     '''Supported signals:
     ------------------
+    :signal update_progressbar: new value of progress bar: float,
     :signal finished:           widgets rendering has been finished,
     :signal interrupted:        widgets rendering has been interrupted by user
     '''
 
+    update_progressbar = QtCore.pyqtSignal(float)
     finished = QtCore.pyqtSignal()
     interrupted = QtCore.pyqtSignal()
 

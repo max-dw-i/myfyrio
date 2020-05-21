@@ -21,7 +21,7 @@ Module implementing window "Main"
 '''
 
 import webbrowser
-from typing import Iterable
+from typing import Collection
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
@@ -113,6 +113,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.processingGrp.stopBtn.clicked.connect(self.disableStopBtn)
         self.processingGrp.stopBtn.clicked.connect(
             self.imageViewWidget.setInterrupted
+        )
+
+        self.imageViewWidget.signals.update_progressbar.connect(
+            self.processingGrp.processProg.setValue
         )
 
     def _setSensitivityGroupBox(self) -> None:
@@ -311,9 +315,11 @@ class MainWindow(QtWidgets.QMainWindow):
             self.imageViewWidget.move(new_dst)
             self.switchImgActionsAndBtns()
 
-    def render(self, image_groups: Iterable[core.Group]) -> None:
+    def render(self, image_groups: Collection[core.Group]) -> None:
         if image_groups:
             self.widgets_processing = True
+            value = self.processingGrp.processProg.value()
+            self.imageViewWidget.progressBarValue = value
             self.image_processing = False
             self.imageViewWidget.render(image_groups)
         else:

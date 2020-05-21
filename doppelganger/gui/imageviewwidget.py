@@ -24,7 +24,7 @@ Module implementing widgets rendering duplicate images found
 import pathlib
 import subprocess
 import sys
-from typing import Callable, Iterable, List
+from typing import Callable, Collection, Iterable, List
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -478,6 +478,7 @@ class ImageViewWidget(QtWidgets.QWidget):
         self.widgets: List[ImageGroupWidget] = []
 
         self.signals = signals.WidgetsRenderingSignals()
+        self.progressBarValue: float = 0.0
         self.interrupted = False
 
         self.layout = QtWidgets.QVBoxLayout()
@@ -486,11 +487,13 @@ class ImageViewWidget(QtWidgets.QWidget):
         self.layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
         self.setLayout(self.layout)
 
-    def render(self, image_groups: Iterable[core.Group]) -> None:
+    def render(self, image_groups: Collection[core.Group]) -> None:
         '''Create and render "ImageGroupWidget"s
 
         :param image_groups: groups of similar images
         '''
+
+        step = self._progressBarStep(len(image_groups))
 
         for group in image_groups:
             if self.interrupted:
@@ -502,9 +505,20 @@ class ImageViewWidget(QtWidgets.QWidget):
             self.widgets.append(widget)
             self.updateGeometry()
 
+            self._updateProgressBar(self.progressBarValue+step)
+
             QtCore.QCoreApplication.processEvents()
 
         self.signals.finished.emit()
+
+    def _updateProgressBar(self, value: float) -> None:
+        self.progressBarValue = value
+        self.signals.update_progressbar.emit(value)
+
+    def _progressBarStep(self, denominator: int) -> float:
+        current = self.progressBarValue
+        numerator = (100 - current) if current else 100
+        return numerator / denominator
 
     def hasSelectedWidgets(self) -> bool:
         '''Check if there are selected "DuplicateWidget"s
