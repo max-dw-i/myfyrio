@@ -138,11 +138,10 @@ class ThumbnailWidget(QtWidgets.QLabel):
         # If 'lazy' mode and the widget is not visible,
         # there's no point in setting the made thumbnail
         if not self.lazy or self.isVisible():
-            pixmap = QtGui.QPixmap()
-            if not pixmap.convertFromImage(self.image.thumb):
-                pixmap = self._errorThumbnail()
+            if not self.pixmap.convertFromImage(self.image.thumb):
+                self.pixmap = self._errorThumbnail()
 
-            self.setPixmap(pixmap)
+            self.setPixmap(self.pixmap)
             self.updateGeometry()
 
             self.empty = False
