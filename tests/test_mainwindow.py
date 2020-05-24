@@ -479,11 +479,26 @@ class TestMainFormMethodRender(TestMainForm):
 
         mock_render_call.assert_called_once_with(self.img_group)
 
+    def test_attr_image_processing_set_to_False_if_no_duplicates_found(self):
+        with mock.patch(self.MW+'processingFinished'):
+            with mock.patch('PyQt5.QtWidgets.QMessageBox'):
+                self.w.render([])
+
+        self.assertFalse(self.w.image_processing)
+
+    def test_processingFinished_called_if_no_duplicates_found(self):
+        with mock.patch(self.MW+'processingFinished') as mock_fin_call:
+            with mock.patch('PyQt5.QtWidgets.QMessageBox'):
+                self.w.render([])
+
+        mock_fin_call.assert_called_once_with()
+
     def test_msg_box_called_if_no_duplicates_found(self):
-        PATCH_BOX = 'PyQt5.QtWidgets.QMessageBox'
         mock_box = mock.Mock()
-        with mock.patch(PATCH_BOX, return_value=mock_box):
-            self.w.render([])
+        with mock.patch(self.MW+'processingFinished'):
+            with mock.patch('PyQt5.QtWidgets.QMessageBox',
+                            return_value=mock_box):
+                self.w.render([])
 
         mock_box.exec.assert_called_once_with()
 

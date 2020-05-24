@@ -323,6 +323,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.image_processing = False
             self.imageViewWidget.render(image_groups)
         else:
+            self.image_processing = False
+            self.processingFinished()
+
             msg_box = QtWidgets.QMessageBox(
                 QtWidgets.QMessageBox.Information,
                 'No duplicate images found',
