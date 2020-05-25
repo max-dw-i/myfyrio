@@ -20,9 +20,17 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 This module contains custom exceptions
 '''
 
+from typing import List
+
+from doppelganger import core
+
+
 class InterruptProcessing(Exception):
-    pass
+    '''Raised when the image processing has been interrupted'''
 
+    def __init__(self, images: List[core.Image] = None) -> None:
+        self.images: List[core.Image] = []
+        if images is not None:
+            self.images = images
 
-class ThumbnailError(Exception):
-    pass
+        super().__init__()

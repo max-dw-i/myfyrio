@@ -92,9 +92,15 @@ class ImageProcessing:
             cached, not_cached = self._check_cache(images, cache)
 
             if not_cached:
-                calculated = self._calculate_hashes(not_cached)
-                cache = self._update_cache(cache, calculated)
-                cache.save(str(self.CACHE_FILE))
+                try:
+                    calculated = self._calculate_hashes(not_cached)
+                except InterruptProcessing as e:
+                    calculated = e.images
+                    raise InterruptProcessing
+                finally:
+                    cache = self._update_cache(cache, calculated)
+                    cache.save(str(self.CACHE_FILE))
+
                 cached.extend(calculated)
 
             image_groups = self._image_grouping(cached)
@@ -205,7 +211,7 @@ class ImageProcessing:
             img_gen = p.imap(core.Image.dhash_parallel, images)
             for i, img in enumerate(img_gen):
                 if self.interrupted:
-                    raise InterruptProcessing
+                    raise InterruptProcessing(hashed_images)
 
                 hashed_images.append(img)
 
