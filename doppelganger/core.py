@@ -69,7 +69,8 @@ def find_image(folders: Iterable[FolderPath],
     :raise FileNotFoundError: any of the folders does not exist
     '''
 
-    IMG_SUFFIXES = {'.png', '.jpg', '.jpeg', '.bmp'}
+    IMG_SUFFIXES = {'.png', '.jpg', '.jpeg', '.bmp', '.pbm', '.pgm', '.ppm',
+                    '.xbm', '.xpm'}
     pattern = '**/*' if recursive else '*'
 
     for path in folders:
