@@ -215,7 +215,7 @@ class DuplicateWidget(QtWidgets.QWidget):
     about it (its similarity rate, size and path)
     '''
 
-    def __init__(self, image: core.Image, conf: config.Conf,
+    def __init__(self, image: core.Image, conf: config.Config,
                  parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
         self.image = image
@@ -393,7 +393,7 @@ class DuplicateWidget(QtWidgets.QWidget):
 class ImageGroupWidget(QtWidgets.QWidget):
     '''Widget grouping similar images together'''
 
-    def __init__(self, image_group: Iterable[core.Image], conf: config.Conf,
+    def __init__(self, image_group: Iterable[core.Image], conf: config.Config,
                  parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
 
@@ -470,7 +470,7 @@ class ImageGroupWidget(QtWidgets.QWidget):
 class ImageViewWidget(QtWidgets.QWidget):
     '''Widget rendering duplicate images found'''
 
-    def __init__(self, conf: config.Conf, parent: QtWidgets.QWidget = None) \
+    def __init__(self, conf: config.Config, parent: QtWidgets.QWidget = None) \
         -> None:
         super().__init__(parent)
 

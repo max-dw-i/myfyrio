@@ -68,7 +68,7 @@ class ImageProcessing:
 
     def __init__(self, folders: Iterable[core.FolderPath],
                  sensitivity: core.Sensitivity,
-                 conf: config.Conf) -> None:
+                 conf: config.Config) -> None:
         self.folders = folders
         self.sensitivity = sensitivity
         self.conf = conf

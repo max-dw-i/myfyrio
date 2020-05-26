@@ -25,22 +25,20 @@ from doppelganger import config
 # pylint: disable=unused-argument,missing-class-docstring
 
 
-class TestConfig(TestCase):
+class TestClassConfig(TestCase):
 
     def setUp(self):
         self.c = config.Config()
 
-    def test_init_with_config_data_passed(self):
-        conf_data = {'test_param': 'test_value'}
-        c = config.Config(conf_data)
 
-        self.assertDictEqual(conf_data, c.data)
+class TestMethodInit(TestClassConfig):
 
-    @mock.patch('doppelganger.config.Config.default')
-    def test_init_without_config_data_passed(self, mock_def):
-        config.Config()
+    def test_attr_data_is_empty(self):
 
-        mock_def.assert_called_once_with()
+        self.assertDictEqual(self.c.data, {})
+
+
+class TestMethodDefault(TestClassConfig):
 
     def test_default(self):
         DEFAULT_CONFIG = {
@@ -61,68 +59,94 @@ class TestConfig(TestCase):
             'cores': os.cpu_count() or 1,
             'lazy': False
         }
+        self.c._default()
 
         self.assertEqual(self.c.data, DEFAULT_CONFIG)
 
-    @mock.patch('pickle.dump')
-    def test_save_into_config_p(self, mock_dump):
-        with mock.patch('builtins.open', mock.mock_open()) as mock_open:
-            self.c.save()
 
-        mock_open.assert_called_once_with(self.c.CONFIG_FILE, 'wb')
+class TestMethodSave(TestClassConfig):
+
+    def setUp(self):
+        super().setUp()
+
+        self.file = 'config_file'
 
     @mock.patch('pickle.dump')
-    def test_save_dump_config_data(self, mock_dump):
+    def test_save_into_file(self, mock_dump_call):
+        with mock.patch('builtins.open', mock.mock_open()) as mock_open_call:
+            self.c.save(self.file)
+
+        mock_open_call.assert_called_once_with(self.file, 'wb')
+
+    @mock.patch('pickle.dump')
+    def test_save_dump_config_data(self, mock_dump_call):
         with mock.patch('builtins.open', mock.mock_open()):
-            self.c.save()
+            self.c.save(self.file)
 
-        data = mock_dump.call_args[0][0]
-
-        mock_dump.assert_called_once()
+        data = mock_dump_call.call_args[0][0]
         self.assertDictEqual(data, self.c.data)
 
     @mock.patch('builtins.open', side_effect=OSError)
-    def test_save_raise_OSError_if_open_raise_OSError(self, mock_open):
+    def test_save_raise_OSError_if_open_raise_OSError(self, mock_open_call):
         with self.assertRaises(OSError):
-            self.c.save()
+            self.c.save(self.file)
+
+
+class TestMethodLoad(TestClassConfig):
+
+    def setUp(self):
+        super().setUp()
+
+        self.file = 'config_file'
 
     @mock.patch('pickle.load')
-    def test_load_from_config_p(self, mock_load):
-        with mock.patch('builtins.open', mock.mock_open()) as mock_open:
-            self.c.load()
+    def test_load_from_file(self, mock_load_call):
+        with mock.patch('builtins.open', mock.mock_open()) as mock_open_call:
+            self.c.load(self.file)
 
-        mock_open.assert_called_once_with(self.c.CONFIG_FILE, 'rb')
+        mock_open_call.assert_called_once_with(self.file, 'rb')
 
     @mock.patch('pickle.load', return_value='test')
     @mock.patch('builtins.open')
-    def test_load_assign_loaded_conf_to_attr_data(self, mock_open, mock_load):
-        self.c.load()
+    def test_load_assign_loaded_conf_to_attr_data(self, mock_open_call,
+                                                  mock_load_call):
+        self.c.load(self.file)
 
         self.assertEqual('test', self.c.data)
 
-    @mock.patch('doppelganger.config.Config.default')
+    @mock.patch('doppelganger.config.Config._default')
     @mock.patch('builtins.open', side_effect=FileNotFoundError)
-    def test_load_assign_default_conf_if_FileNotFoundError(
-            self, mock_open, mock_def
-        ):
-        self.c.load()
+    def test_default_called_if_FileNotFoundError(self, mock_open_call,
+                                                 mock_default_call):
+        self.c.load(self.file)
 
-        mock_def.assert_called_once_with()
+        mock_default_call.assert_called_once_with()
 
-    @mock.patch('pickle.load')
+    @mock.patch('doppelganger.config.Config._default')
     @mock.patch('builtins.open', side_effect=EOFError)
-    def test_load_if_EOFError(self, mock_open, mock_dump):
+    def test_default_called__OSError_raised_if_EOFError(self, mock_open_call,
+                                                        mock_default_call):
         with self.assertRaises(OSError):
-            self.c.load()
+            self.c.load(self.file)
 
-    @mock.patch('pickle.load')
+        mock_default_call.assert_called_once_with()
+
+    @mock.patch('doppelganger.config.Config._default')
     @mock.patch('builtins.open', side_effect=OSError)
-    def test_load_if_OSError(self, mock_open, mock_dump):
+    def test_default_called__OSError_raised_if_OSError(self, mock_open_call,
+                                                       mock_default_call):
         with self.assertRaises(OSError):
-            self.c.load()
+            self.c.load(self.file)
 
+        mock_default_call.assert_called_once_with()
+
+    @mock.patch('doppelganger.config.Config._default')
     @mock.patch('pickle.load', side_effect=pickle.UnpicklingError)
     @mock.patch('builtins.open')
-    def test_load_if_UnpicklingError(self, mock_open, mock_dump):
+    def test_default_called__OSError_raised_if_UnpicklingError(
+            self, mock_open_call, mock_load_call, mock_default_call
+    ):
         with self.assertRaises(OSError):
-            self.c.load()
+            self.c.load(self.file)
+
+        mock_default_call.assert_called_once_with()

@@ -17,41 +17,52 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
-Module implementing saving/loading programme's preferences to/from
-a config file
+Module implementing config containing programme's preferences
 '''
 
 import os
-import pathlib
 import pickle
-import sys
-from typing import Any, Dict, Optional
+from collections import UserDict
 
 ###############################Types##############################
 
-Param = str
-Value = Any
-Conf = Dict[Param, Value] # preferences
+ConfFile = str                  # Path to the cache file
 
 ##################################################################
 
 
-class Config:
-    '''Represent "config" containing programme's preferences'''
+class Config(UserDict):
+    '''Represent config containing programme's preferences. The config is a
+    dictionary with the keys:
 
-    CONFIG_FILE = (pathlib.Path(sys.executable).parent
-                   if getattr(sys, 'frozen', False)
-                   else pathlib.Path(__file__).parents[1]) / 'config.p'
+        size: int - size (width or height) of image thumbnails,
+        show_similarity: bool - show (or not) the similarity rates
+                                of duplicate images,
+        show_size: bool - show (or not) the sizes of duplicate images,
+        show_path: bool - show (or not) the paths of duplicate images,
+        sort: int - sorting type (duplicate images in every group
+                    can be sorted),
+        delete_dirs: bool - delete (or not) empty directories when
+                            duplicate images are moved or deleted,
+        size_format: int - duplicate image size format (bytes, kilobytes...),
+        subfolders: bool - search through the directories recursively (or not),
+        close_confirmation: bool - ask the user confirmation when he/she
+                                   closes the programme,
+        filter_img_size: bool - search for duplicate images only among
+                                the images with the specific width and height,
+        min_width: int - if "filter_img_size" is True, the min width of images,
+        max_width: int - if "filter_img_size" is True, the max width of images,
+        min_height: int - if "filter_img_size" is True, the min height
+                          of images,
+        max_height: int - if "filter_img_size" is True, the max height
+                          of images,
+        cores: int - number of CPU cores to use,
+        lazy: bool - use lazy thumbnail loading (or not).
 
-    def __init__(self, data: Optional[Conf] = None) -> None:
-        if data is None:
-            self.default()
-        else:
-            self.data = data
+    The dictionary is kept in the attribute "data"
+    '''
 
-    def default(self) -> None:
-        '''Load default preferences'''
-
+    def _default(self) -> None:
         DEFAULT_CONFIG = {
             'size': 200,
             'show_similarity': True,
@@ -73,31 +84,32 @@ class Config:
 
         self.data = DEFAULT_CONFIG.copy()
 
-    def save(self) -> None:
-        '''Save data with preferences into file "config.p"
+    def save(self, file: ConfFile) -> None:
+        '''Save data with preferences into the config file
 
-        :raise OSError: if something goes wrong during
-                        "config.p" saving attempt
+        :param file: path to the config file,
+        :raise OSError: something went wrong during saving attempt
         '''
 
         try:
-            with open(self.CONFIG_FILE, 'wb') as f:
+            with open(file, 'wb') as f:
                 pickle.dump(self.data, f)
         except OSError as e:
             raise OSError(e)
 
-    def load(self) -> None:
-        '''Load file "config.p". If the file does not
-        exist yet, load default config
+    def load(self, file: ConfFile) -> None:
+        '''Load the config file. If the file does not exist yet (or any
+        other exception is raised), load the default config
 
-        :raise OSError: if something goes wrong during
-                        "config.p" loading attempt
+        :param file: path to the config file,
+        :raise OSError: something went wrong during loading attempt
         '''
 
         try:
-            with open(self.CONFIG_FILE, 'rb') as f:
+            with open(file, 'rb') as f:
                 self.data = pickle.load(f)
         except FileNotFoundError as e:
-            self.default()
+            self._default()
         except (EOFError, OSError, pickle.UnpicklingError) as e:
+            self._default()
             raise OSError(e)

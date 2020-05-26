@@ -34,16 +34,18 @@ from doppelganger.resources.manager import UI, resource
 logger = Logger.getLogger('preferences')
 
 
-def load_config() -> config.Conf:
-    '''Load and return config with the preferences
+def load_config() -> config.Config:
+    '''Load and return config with the programme's preferences
 
-    :return: dict with the loaded preferences
+    :return: "Config" object
     '''
 
-    c = config.Config()
+    conf = config.Config()
     try:
-        c.load()
+        conf.load('config.p')
     except OSError as e:
+        logger.error(e)
+
         msg_box = QtWidgets.QMessageBox(
             QtWidgets.QMessageBox.Warning,
             'Errors',
@@ -52,23 +54,19 @@ def load_config() -> config.Conf:
              f'see "{Logger.FILE_NAME}"')
         )
         msg_box.exec()
+    return conf
 
-        logger.error(e)
-
-        c.default()
-
-    return c.data
-
-def save_config(conf: config.Conf) -> None:
+def save_config(conf: config.Config) -> None:
     '''Save config with the preferences
 
-    :param conf: dict with config data
+    :param conf: "Config" object
     '''
 
-    c = config.Config(conf)
     try:
-        c.save()
+        conf.save('config.p')
     except OSError as e:
+        logger.error(e)
+
         msg_box = QtWidgets.QMessageBox(
             QtWidgets.QMessageBox.Warning,
             'Error',
@@ -76,8 +74,6 @@ def save_config(conf: config.Conf) -> None:
              f"For more details, see '{Logger.FILE_NAME}'")
         )
         msg_box.exec()
-
-        logger.error(e)
 
 def setVal(widget: Widget, val: Value) -> None:
     '''Set value of widget
@@ -149,18 +145,18 @@ class PreferencesWindow(QtWidgets.QMainWindow):
             if w.property('conf_param') == 'cores':
                 w.setMaximum(os.cpu_count() or 1)
 
-    def update_prefs(self, conf: config.Conf) -> None:
+    def update_prefs(self, conf: config.Config) -> None:
         '''Update the form with new preferences
 
-        :param conf: new preferences
+        :param conf: "Config" object
         '''
 
         for w in self.widgets:
             setVal(w, conf[w.property('conf_param')])
 
     def gather_prefs(self):
-        '''Gather checked/unchecked/filled by a user options
-        and update the config dictionary
+        '''Gather checked/unchecked/filled by the user options
+        and update the config
         '''
 
         for w in self.widgets:
