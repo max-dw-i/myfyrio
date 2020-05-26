@@ -21,11 +21,10 @@ Module implementing logging
 import logging
 import logging.handlers as handlers
 import sys
-from pathlib import Path
 
 
 class Logger:
-    '''Class implementing setting and getting programme's logger'''
+    '''Class implementing setting and getting the programme's logger'''
 
     NAME = 'main'
     FILE_NAME = 'errors.log'
@@ -34,7 +33,7 @@ class Logger:
 
     @classmethod
     def setLogger(cls) -> None:
-        '''Set programme's logger. The logger has level 'WARNING',
+        '''Set the programme's logger. The logger has level 'WARNING',
         rotates log files (2 files 2 MegaBytes each at most). Message format is
         'time - logger name - message level - messsage'
         '''
@@ -45,9 +44,7 @@ class Logger:
         FORMAT = '{asctime} - {name} - {levelname} - {message}'
         formatter = logging.Formatter(fmt=FORMAT, style='{')
 
-        frozen = getattr(sys, 'frozen', False)
-        entry_point = sys.executable if frozen else __file__
-        logfile = Path(entry_point).parents[1] / cls.FILE_NAME
+        logfile = cls.FILE_NAME
         rh = handlers.RotatingFileHandler(logfile, maxBytes=cls.MAX_FILE_SIZE,
                                           backupCount=cls.FILES_TOTAL-1)
         rh.setFormatter(formatter)
@@ -59,11 +56,11 @@ class Logger:
 
     @classmethod
     def getLogger(cls, suffix: str) -> logging.Logger:
-        '''Get programme's logger with name 'NAME + . + :suffix:'
+        '''Get the programme's logger with name 'NAME + . + :suffix:'
         (e.g. 'main.processing' if :suffix: == 'processing').
 
-        :param suffix: suffix of logger's name,
-        :return: logger object
+        :param suffix: suffix of the logger name,
+        :return: "Logger" object
         '''
 
         logger_name = '.'.join([cls.NAME, suffix])
