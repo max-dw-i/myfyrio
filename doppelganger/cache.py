@@ -31,12 +31,13 @@ CacheFile = str # Path to the cache file
 
 
 class Cache(UserDict):
-    '''Represent "cache" containing image hashes. Cache is a dictionary with
-    pairs "ImagePath: Hash". Cache is empty when a new instance is created
+    '''Represent cache containing image hashes. The cache is a dictionary with
+    pairs "ImagePath: Hash". The cache is empty when a new instance is created.
+    The dictionary is kept in the attribute "data"
     '''
 
     def load(self, file: CacheFile) -> None:
-        '''Load the cache with earlier calculated hashes
+        '''Load the cache with the earlier calculated hashes
 
         :param file: path to the cache file,
         :raise FileNotFoundError: cache file does not exist,

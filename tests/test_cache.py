@@ -26,6 +26,8 @@ from doppelganger import cache
 
 class TestClassCache(TestCase):
 
+    CACHE_FILE = 'cache_file'
+
     def setUp(self):
         self.c = cache.Cache()
 
@@ -37,8 +39,6 @@ class TestInitMethod(TestClassCache):
 
 
 class TestMethodLoad(TestClassCache):
-
-    CACHE_FILE = 'cache_file'
 
     @mock.patch('pickle.load')
     def test_args_open_called_with(self, mock_load):
@@ -75,8 +75,6 @@ class TestMethodSave(TestClassCache):
     ALREADY POPULATED CACHE FILE AND YOU DON'T PATCH OPEN()
     AND DUMP(), YOU'LL REWRITE THE FILE
     '''
-
-    CACHE_FILE = 'cache_file'
 
     def setUp(self):
         super().setUp()
