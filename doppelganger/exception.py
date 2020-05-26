@@ -17,7 +17,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
-This module contains custom exceptions
+Module implementing custom exceptions
 '''
 
 from typing import List
