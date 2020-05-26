@@ -63,7 +63,7 @@ def find_image(folders: Iterable[FolderPath],
     '''Find next image in :folders: and yield its representation
     as "Image" object
 
-    :param folders: paths of the folders,
+    :param folders: paths to the folders,
     :param recursive: recursive search (include subfolders),
     :yield: next image as "Image" object,
     :raise FileNotFoundError: any of the folders does not exist
@@ -86,7 +86,7 @@ def image_grouping(images: Collection[Image], sensitivity: Sensitivity) \
     -> Generator[List[Group], None, None]:
     '''Find similar images and group them. Yield an intermediate result
     after checking every image in :images:. The last yielded value is
-    the result. If :images: is empty or no duplicate image is found,
+    the result. If :images: is empty or no duplicate images are found,
     an empty list is returned
 
     :param images: images to process,
@@ -158,7 +158,11 @@ def _add_new_group(img1: Image, img2: Image, checked: Dict[Image, int],
 
 
 class Sort:
-    '''Custom sort for duplicate images (already grouped)'''
+    '''Custom sort for duplicate images (already grouped if the sort
+    by similarity will be used)
+
+    :param images: duplicate images to sort
+    '''
 
     def __init__(self, images: Group) -> None:
         self.images = images
@@ -203,7 +207,9 @@ class Sort:
 
 
 class SizeFormat(Enum):
-    '''Class representing size formats'''
+    '''Class representing size formats. Bytes (B), kilobytes (KB),
+    megabytes (MB) are implemented
+    '''
 
     B = 0     # Bytes
     KB = 1    # KiloBytes
@@ -222,23 +228,25 @@ class SizeFormat(Enum):
 
 
 class Image:
-    '''Class representing images'''
+    '''Class representing images
+
+    :param path: image path
+    '''
 
     def __init__(self, path: ImagePath) -> None:
         self.path = path
-        self.dhash: Optional[Hash] = None
+        self.dhash: Hash = None
         # Difference between the hash of the image
         # and the hash of the 1st image in the group
         self.difference = 0
-        self.thumb: Optional[QtGui.QImage] = None
+        self.thumb: QtGui.QImage = None
         self.size: FileSize = None
         self._width: Width = None
         self._height: Height = None
-        self._suffix: Suffix = None
 
     def calculate_dhash(self) -> Hash:
         '''Return perceptual hash of the image and assign it
-        to attribute "dhash"
+        to the attribute "dhash"
 
         :return: perceptual hash or -1 if the hash cannot be calculated
         '''
@@ -397,7 +405,7 @@ class Image:
         else:
             self.size = image_size
 
-    def filesize(self, size_format: SizeFormat = SizeFormat.KB) -> FileSize:
+    def filesize(self, size_format: SizeFormat = SizeFormat.B) -> FileSize:
         '''Return the file size of the image
 
         :param size_format: any of enum 'SizeFormat',
@@ -411,17 +419,6 @@ class Image:
 
         formatted_size = round(self.size / size_format.coefficient, 1)
         return formatted_size
-
-    @property
-    def suffix(self) -> Suffix:
-        '''Return image suffix (format)
-
-        :return: image suffix (e.g. 'jpg', 'png', etc.)
-        '''
-
-        if self._suffix is None:
-            self._suffix = Path(self.path).suffix[1:]
-        return self._suffix
 
     def delete(self) -> None:
         '''Delete the image from the disk
