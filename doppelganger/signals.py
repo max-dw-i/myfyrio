@@ -30,7 +30,8 @@ class ImageProcessingSignals(QtCore.QObject):
     :signal update_progressbar: new value of progress bar: float,
     :signal image_groups:       list of image groups: List[Group],
     :signal error:              error: str,
-    :signal interrupted:        image processing has been interrupted by user
+    :signal interrupted:        image processing has been interrupted
+                                by the user
     '''
 
     update_info = QtCore.pyqtSignal(str, str)
@@ -55,7 +56,8 @@ class WidgetsRenderingSignals(QtCore.QObject):
     ------------------
     :signal update_progressbar: new value of progress bar: float,
     :signal finished:           widgets rendering has been finished,
-    :signal interrupted:        widgets rendering has been interrupted by user
+    :signal interrupted:        widgets rendering has been interrupted
+                                by the user
     '''
 
     update_progressbar = QtCore.pyqtSignal(float)
