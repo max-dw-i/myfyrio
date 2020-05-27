@@ -82,7 +82,7 @@ class Config(UserDict):
             'lazy': False
         }
 
-        self.data = DEFAULT_CONFIG.copy()
+        self.data = DEFAULT_CONFIG.copy() # pylint: disable=attribute-defined-outside-init
 
     def save(self, file: ConfFile) -> None:
         '''Save data with preferences into the config file
@@ -107,7 +107,7 @@ class Config(UserDict):
 
         try:
             with open(file, 'rb') as f:
-                self.data = pickle.load(f)
+                self.data = pickle.load(f) # pylint: disable=attribute-defined-outside-init
         except FileNotFoundError as e:
             self._default()
         except (EOFError, OSError, pickle.UnpicklingError) as e:

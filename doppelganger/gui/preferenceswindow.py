@@ -27,9 +27,8 @@ from typing import List, Union
 
 from PyQt5 import QtCore, QtWidgets, uic
 
-from doppelganger import config
+from doppelganger import config, manager
 from doppelganger.logger import Logger
-from doppelganger.resources.manager import UI, resource
 
 logger = Logger.getLogger('preferences')
 
@@ -42,16 +41,18 @@ def load_config() -> config.Config:
 
     conf = config.Config()
     try:
-        conf.load('config.p')
+        conf.load(manager.Config.CONFIG.abs_path) # pylint: disable=no-member
     except OSError as e:
         logger.error(e)
+
+        log_file = manager.Log.ERROR.value # pylint: disable=no-member
 
         msg_box = QtWidgets.QMessageBox(
             QtWidgets.QMessageBox.Warning,
             'Errors',
             ('Cannot load preferences from file "config.p". Default '
              'preferences will be loaded. For more details, '
-             f'see "{Logger.FILE_NAME}"')
+             f'see "{log_file}"')
         )
         msg_box.exec()
     return conf
@@ -63,15 +64,17 @@ def save_config(conf: config.Config) -> None:
     '''
 
     try:
-        conf.save('config.p')
+        conf.save(manager.Config.CONFIG.abs_path) # pylint: disable=no-member
     except OSError as e:
         logger.error(e)
+
+        log_file = manager.Log.ERROR.value # pylint: disable=no-member
 
         msg_box = QtWidgets.QMessageBox(
             QtWidgets.QMessageBox.Warning,
             'Error',
             ("Cannot save preferences into file 'config.p'. "
-             f"For more details, see '{Logger.FILE_NAME}'")
+             f"For more details, see '{log_file}'")
         )
         msg_box.exec()
 
@@ -112,7 +115,8 @@ class PreferencesWindow(QtWidgets.QMainWindow):
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
 
-        uic.loadUi(resource(UI.PREFERENCES), self)
+        pref_ui = manager.UI.PREFERENCES.abs_path # pylint: disable=no-member
+        uic.loadUi(pref_ui, self)
 
         self.widgets = self._gather_widgets()
         self._init_widgets()

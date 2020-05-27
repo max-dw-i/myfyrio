@@ -22,12 +22,13 @@ import logging
 import logging.handlers as handlers
 import sys
 
+from doppelganger import manager
+
 
 class Logger:
     '''Class implementing setting and getting the programme's logger'''
 
     NAME = 'main'
-    FILE_NAME = 'errors.log'
     MAX_FILE_SIZE = 1024**2 # Bytes
     FILES_TOTAL = 2
 
@@ -44,7 +45,7 @@ class Logger:
         FORMAT = '{asctime} - {name} - {levelname} - {message}'
         formatter = logging.Formatter(fmt=FORMAT, style='{')
 
-        logfile = cls.FILE_NAME
+        logfile = manager.Log.ERROR.abs_path # pylint: disable=no-member
         rh = handlers.RotatingFileHandler(logfile, maxBytes=cls.MAX_FILE_SIZE,
                                           backupCount=cls.FILES_TOTAL-1)
         rh.setFormatter(formatter)

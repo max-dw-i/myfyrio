@@ -27,8 +27,7 @@ from typing import List
 
 from PyQt5 import QtCore, QtWidgets, uic
 
-from doppelganger import core
-from doppelganger.resources.manager import UI, resource
+from doppelganger import core, manager
 
 
 class MousePressFilter(QtCore.QObject):
@@ -41,7 +40,7 @@ class MousePressFilter(QtCore.QObject):
 
         self.dialog = dialog
 
-    def eventFilter(self, obj, event: QtCore.QEvent) -> bool:
+    def eventFilter(self, obj, event: QtCore.QEvent) -> bool: # pylint: disable=unused-argument
         if event.type() == QtCore.QEvent.MouseButtonPress:
             if event.button() == QtCore.Qt.LeftButton:
                 if not self.dialog.ctrl_pressed:
@@ -62,7 +61,7 @@ class CtrlPressFilter(QtCore.QObject):
 
         self.dialog = dialog
 
-    def eventFilter(self, obj, event: QtCore.QEvent) -> bool:
+    def eventFilter(self, obj, event: QtCore.QEvent) -> bool: # pylint: disable=unused-argument
         if event.type() == QtCore.QEvent.KeyPress:
             if event.key() == QtCore.Qt.Key_Control:
                 self.dialog.ctrl_pressed = True
@@ -115,7 +114,8 @@ class PathsGroupBox(QtWidgets.QGroupBox):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        uic.loadUi(resource(UI.PATHS), self)
+        paths_ui = manager.UI.PATHS.abs_path # pylint: disable=no-member
+        uic.loadUi(paths_ui, self)
 
         self.addFolderBtn.clicked.connect(self.addPath)
         self.delFolderBtn.clicked.connect(self.delPath)

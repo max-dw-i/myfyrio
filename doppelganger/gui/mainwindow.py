@@ -25,12 +25,11 @@ from typing import Collection
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-from doppelganger import core, processing
+from doppelganger import core, manager, processing
 from doppelganger.gui import (actionsgroupbox, imageviewwidget, pathsgroupbox,
                               processinggroupbox, sensitivitygroupbox)
 from doppelganger.gui.aboutwindow import AboutWindow
 from doppelganger.gui.preferenceswindow import PreferencesWindow
-from doppelganger.resources.manager import UI, Image, resource
 
 
 def errorMessage(msg: str) -> None:
@@ -51,9 +50,11 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self) -> None:
         super().__init__()
 
-        uic.loadUi(resource(UI.MAIN), self)
+        main_ui = manager.UI.MAIN.abs_path # pylint: disable=no-member
+        uic.loadUi(main_ui, self)
 
-        app_icon = QtGui.QIcon(resource(Image.ICON))
+        icon = manager.Image.ICON.abs_path # pylint: disable=no-member
+        app_icon = QtGui.QIcon(icon)
         self.setWindowIcon(app_icon)
 
         self.aboutWindow = AboutWindow(self)

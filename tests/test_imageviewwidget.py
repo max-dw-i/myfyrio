@@ -25,7 +25,7 @@ from PyQt5 import QtCore, QtTest, QtWidgets
 from doppelganger import signals
 from doppelganger.core import SizeFormat
 from doppelganger.gui import imageviewwidget
-from doppelganger.resources.manager import Image
+from doppelganger.manager import Image
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -453,12 +453,9 @@ class TestThumbnailWidgetMethodErrorThumbnail(TestThumbnailWidget):
 
     def test_QPixmap_called_with_error_image_path(self):
         with mock.patch('PyQt5.QtGui.QPixmap') as mock_pixmap_call:
-            with mock.patch(VIEW+'resource',
-                            return_value='error_image_path') as mock_err_path:
-                self.w._errorThumbnail()
+            self.w._errorThumbnail()
 
-        mock_err_path.assert_called_once_with(Image.ERR_IMG)
-        mock_pixmap_call.assert_called_once_with('error_image_path')
+        mock_pixmap_call.assert_called_once_with(Image.ERR_IMG.abs_path)
 
     def test_return_scaled_image_with_size_from_attr_size(self):
         mock_pixmap = mock.Mock()

@@ -22,7 +22,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtWidgets
 
-from doppelganger import config
+from doppelganger import config, manager
 from doppelganger.gui import preferenceswindow
 
 # Configure a logger for testing purposes
@@ -59,7 +59,9 @@ class TestFuncLoadConfig(TestCase):
         with mock.patch(self.NAME, return_value=self.mock_Config):
             res = preferenceswindow.load_config()
 
-        self.mock_Config.load.assert_called_once_with('config.p')
+        self.mock_Config.load.assert_called_once_with(
+            manager.Config.CONFIG.abs_path
+        )
         self.assertEqual(res, self.mock_Config)
 
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
@@ -88,7 +90,9 @@ class TestSaveConfigFunc(TestCase):
     def test_save_is_ok(self):
         preferenceswindow.save_config(self.mock_Config)
 
-        self.mock_Config.save.assert_called_once_with('config.p')
+        self.mock_Config.save.assert_called_once_with(
+            manager.Config.CONFIG.abs_path
+        )
 
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
     def test_show_msg_if_save_raise_OSError(self, mock_exec):

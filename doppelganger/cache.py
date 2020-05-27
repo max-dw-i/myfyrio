@@ -55,7 +55,7 @@ class Cache(UserDict):
         except OSError as e:
             raise OSError(e)
         else:
-            self.data = cache
+            self.data = cache # pylint: disable=attribute-defined-outside-init
 
     def save(self, file: CacheFile) -> None:
         '''Save cache on the disk

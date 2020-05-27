@@ -19,14 +19,12 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import annotations
 
 import os
-import pathlib
-import sys
 from multiprocessing import Pool
 from typing import Any, Callable, Collection, Iterable, List, Set, Tuple, Union
 
 from PyQt5 import QtCore, QtGui
 
-from doppelganger import config, core, signals
+from doppelganger import config, core, manager, signals
 from doppelganger.cache import Cache
 from doppelganger.exception import InterruptProcessing
 from doppelganger.gui import imageviewwidget  # !!! Potential cyclic dep !!!
@@ -60,9 +58,7 @@ class ImageProcessing:
     :param conf: dict with programme preferences
     '''
 
-    CACHE_FILE = (pathlib.Path(sys.executable).parent
-                  if getattr(sys, 'frozen', False)
-                  else pathlib.Path(__file__).parents[1]) / 'cache.p'
+    CACHE_FILE = manager.Cache.CACHE.abs_path # pylint: disable=no-member
 
     THUMBNAILED_NUM = 10
 

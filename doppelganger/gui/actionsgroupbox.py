@@ -23,7 +23,7 @@ unselect, auto-select)
 
 from PyQt5 import QtWidgets, uic
 
-from doppelganger.resources.manager import UI, resource
+from doppelganger import manager
 
 
 class ActionsGroupBox(QtWidgets.QGroupBox):
@@ -32,7 +32,8 @@ class ActionsGroupBox(QtWidgets.QGroupBox):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        uic.loadUi(resource(UI.ACTIONS), self)
+        actions_ui = manager.UI.ACTIONS.abs_path # pylint: disable=no-member
+        uic.loadUi(actions_ui, self)
 
     def setEnabled(self, enable: bool) -> None:
         '''Enable/disable buttons "Move", "Delete", "Unselect"
