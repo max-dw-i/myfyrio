@@ -20,10 +20,9 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 import logging
 from unittest import TestCase, mock
 
-from PyQt5 import QtCore, QtTest, QtWidgets
+from PyQt5 import QtCore, QtGui, QtTest, QtWidgets
 
-from doppelganger import signals
-from doppelganger.core import SizeFormat
+from doppelganger import core, signals
 from doppelganger.gui import imageviewwidget
 from doppelganger.manager import Image
 
@@ -113,7 +112,7 @@ class ImageSizeLabel(TestCase):
     def test_init(self, mock_init):
         w, h = 100, 200
         file_size = 222
-        size_format = SizeFormat.MB
+        size_format = core.SizeFormat.MB
         widget_width = 55
         imageviewwidget.ImageSizeLabel(w, h, file_size, size_format,
                                        widget_width)
@@ -139,14 +138,15 @@ class TestThumbnailWidget(TestCase):
     ThW = VIEW + 'ThumbnailWidget.'
 
     def setUp(self):
-        self.mock_image = mock.Mock()
+        self.mock_image = mock.Mock(autospec=core.Image)
         self.mock_image.thumb = None
         self.size = 333
         self.lazy = True
 
         with mock.patch(self.ThW+'_setEmptyPixmap'):
-            self.w = imageviewwidget.ThumbnailWidget(self.mock_image,
-                                                     self.size, self.lazy)
+            with mock.patch(self.ThW+'_setSize'):
+                self.w = imageviewwidget.ThumbnailWidget(self.mock_image,
+                                                         self.size, self.lazy)
 
 
 class TestThumbnailWidgetMethodInit(TestThumbnailWidget):
@@ -162,19 +162,31 @@ class TestThumbnailWidgetMethodInit(TestThumbnailWidget):
         self.assertEqual(size_policy.horizontalPolicy(),
                          QtWidgets.QSizePolicy.Fixed)
         self.assertEqual(size_policy.verticalPolicy(),
-                         QtWidgets.QSizePolicy.Preferred)
+                         QtWidgets.QSizePolicy.Fixed)
+
+    def test_frame_style(self):
+        self.assertEqual(self.w.frameStyle(), QtWidgets.QFrame.Box)
 
     def test_setEmptyPixmap_called(self):
         with mock.patch(self.ThW+'_setEmptyPixmap') as mock_empty_call:
-            imageviewwidget.ThumbnailWidget(self.mock_image, self.size,
-                                            self.lazy)
+            with mock.patch(self.ThW+'_setSize'):
+                imageviewwidget.ThumbnailWidget(self.mock_image,
+                                                self.size, self.lazy)
 
         mock_empty_call.assert_called_once_with()
 
+    def test_setSize_called(self):
+        with mock.patch(self.ThW+'_setSize') as mock_size_call:
+            imageviewwidget.ThumbnailWidget(self.mock_image, self.size,
+                                            True)
+
+        mock_size_call.assert_called_once_with()
+
     def test_QTimer_made_if_lazy(self):
         with mock.patch(self.ThW+'_setEmptyPixmap'):
-            w = imageviewwidget.ThumbnailWidget(self.mock_image, self.size,
-                                                True)
+            with mock.patch(self.ThW+'_setSize'):
+                w = imageviewwidget.ThumbnailWidget(self.mock_image,
+                                                    self.size, True)
 
         self.assertIsInstance(w.qtimer, QtCore.QTimer)
 
@@ -187,31 +199,50 @@ class TestThumbnailWidgetMethodInit(TestThumbnailWidget):
         mock_make_call.assert_called_once_with()
 
 
-class TestThumbnailWidgetMethodSetEmptyPixmap(TestThumbnailWidget):
+class TestThumbnailWidgetMethodSetSize(TestThumbnailWidget):
 
     def setUp(self):
         super().setUp()
 
-        self.width, self.height = 'width', 'height'
+        self.width, self.height = 1905, 1917
         self.mock_image.scaling_dimensions.return_value = (self.width,
                                                            self.height)
 
     def test_scaling_dimensions_called_with_attr_size(self):
-        with mock.patch('PyQt5.QtGui.QPixmap'):
-            with mock.patch(self.ThW+'setPixmap'):
-                self.w._setEmptyPixmap()
+        self.w._setSize()
 
-        self.mock_image.scaling_dimensions.assert_called_once_with(self.w.size)
+        self.mock_image.scaling_dimensions.assert_called_once_with(self.size)
 
-    def test_args_QPixmap_called_with(self):
+    def test_fixed_width_set(self):
+        self.w._setSize()
+
+        self.assertEqual(self.w.minimumWidth(), self.width)
+        self.assertEqual(self.w.maximumWidth(), self.width)
+
+    def test_fixed_height_set(self):
+        self.w._setSize()
+
+        self.assertEqual(self.w.minimumHeight(), self.height)
+        self.assertEqual(self.w.maximumHeight(), self.height)
+
+    def test_updateGeometry_called(self):
+        with mock.patch(self.ThW+'updateGeometry') as mock_upd_call:
+            self.w._setEmptyPixmap()
+
+        mock_upd_call.assert_called_once_with()
+
+
+class TestThumbnailWidgetMethodSetEmptyPixmap(TestThumbnailWidget):
+
+    def test_null_QPixmap_made(self):
         with mock.patch('PyQt5.QtGui.QPixmap') as mock_QPixmap_call:
             with mock.patch(self.ThW+'setPixmap'):
                 self.w._setEmptyPixmap()
 
-        mock_QPixmap_call.assert_called_once_with(self.width, self.height)
+        mock_QPixmap_call.assert_called_once_with()
 
     def test_setPixmap_called_with_QPixmap_result(self):
-        mock_pixmap = mock.Mock()
+        mock_pixmap = mock.Mock(autospec=QtGui.QPixmap)
         with mock.patch('PyQt5.QtGui.QPixmap', return_value=mock_pixmap):
             with mock.patch(self.ThW+'setPixmap') as mock_setPixmap_call:
                 self.w._setEmptyPixmap()
@@ -226,20 +257,13 @@ class TestThumbnailWidgetMethodSetEmptyPixmap(TestThumbnailWidget):
 
         mock_upd_call.assert_called_once_with()
 
-    def test_frame(self):
+    def test_attr_empty_set_to_True(self):
+        self.w.empty = False
         with mock.patch('PyQt5.QtGui.QPixmap'):
             with mock.patch(self.ThW+'setPixmap'):
                 self.w._setEmptyPixmap()
 
-        self.assertEqual(self.w.frameStyle(), QtWidgets.QFrame.Box)
-
-    def test_background_colour(self):
-        mock_pixmap = mock.Mock()
-        with mock.patch('PyQt5.QtGui.QPixmap', return_value=mock_pixmap):
-            with mock.patch(self.ThW+'setPixmap'):
-                self.w._setEmptyPixmap()
-
-        mock_pixmap.fill.assert_called_once_with(QtCore.Qt.transparent)
+        self.assertTrue(self.w.empty)
 
 
 class TestThumbnailWidgetMethodSetThumbnail(TestThumbnailWidget):
@@ -247,7 +271,7 @@ class TestThumbnailWidgetMethodSetThumbnail(TestThumbnailWidget):
     def setUp(self):
         super().setUp()
 
-        self.mock_pixmap = mock.Mock()
+        self.mock_pixmap = mock.Mock(autospec=QtGui.QPixmap)
         self.w.pixmap = self.mock_pixmap
 
     def test_convertFromImage_called_with_image_thumb_arg_if_not_lazy(self):
@@ -455,7 +479,7 @@ class TestThumbnailWidgetMethodErrorThumbnail(TestThumbnailWidget):
         with mock.patch('PyQt5.QtGui.QPixmap') as mock_pixmap_call:
             self.w._errorThumbnail()
 
-        mock_pixmap_call.assert_called_once_with(Image.ERR_IMG.abs_path)
+        mock_pixmap_call.assert_called_once_with(Image.ERR_IMG.abs_path) # pylint: disable=no-member
 
     def test_return_scaled_image_with_size_from_attr_size(self):
         mock_pixmap = mock.Mock()
@@ -878,7 +902,7 @@ class TestMethodSetImageSizeLabel(TestDuplicateWidget):
                 self.w._setImageSizeLabel()
 
         mock_widget_call.assert_called_once_with(33, 55, 5000,
-                                                 SizeFormat.B, 200)
+                                                 core.SizeFormat.B, 200)
 
     def test_filesize_called_with_SizeFormat_B(self):
         self.mock_image.filesize.return_value = 5000
@@ -886,7 +910,7 @@ class TestMethodSetImageSizeLabel(TestDuplicateWidget):
             with mock.patch(self.ADD):
                 self.w._setImageSizeLabel()
 
-        self.mock_image.filesize.assert_called_once_with(SizeFormat.B)
+        self.mock_image.filesize.assert_called_once_with(core.SizeFormat.B)
 
     def test_args_ImageSizeLabel_called_with_if_width_raise_OSError(self):
         type(self.mock_image).width = mock.PropertyMock(side_effect=OSError)
@@ -896,7 +920,7 @@ class TestMethodSetImageSizeLabel(TestDuplicateWidget):
                 self.w._setImageSizeLabel()
 
         mock_widget_call.assert_called_once_with(0, 0, 5000,
-                                                 SizeFormat.B, 200)
+                                                 core.SizeFormat.B, 200)
 
     def test_logging_if_width_raise_OSError(self):
         type(self.mock_image).width = mock.PropertyMock(side_effect=OSError)
@@ -914,7 +938,7 @@ class TestMethodSetImageSizeLabel(TestDuplicateWidget):
                 self.w._setImageSizeLabel()
 
         mock_widget_call.assert_called_once_with(0, 0, 5000,
-                                                 SizeFormat.B, 200)
+                                                 core.SizeFormat.B, 200)
 
     def test_logging_if_height_raise_OSError(self):
         type(self.mock_image).height = mock.PropertyMock(side_effect=OSError)
@@ -931,7 +955,7 @@ class TestMethodSetImageSizeLabel(TestDuplicateWidget):
                 self.w._setImageSizeLabel()
 
         mock_widget_call.assert_called_once_with(33, 55, 0,
-                                                 SizeFormat.B, 200)
+                                                 core.SizeFormat.B, 200)
 
     def test_logging_if_filesize_raise_OSError(self):
         self.mock_image.filesize.side_effect = OSError

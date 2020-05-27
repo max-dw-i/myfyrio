@@ -113,23 +113,30 @@ class ThumbnailWidget(QtWidgets.QLabel):
         self.empty = True
 
         self.setSizePolicy(QtWidgets.QSizePolicy.Fixed,
-                           QtWidgets.QSizePolicy.Preferred)
+                           QtWidgets.QSizePolicy.Fixed)
+
+        self.setFrameStyle(QtWidgets.QFrame.Box)
 
         self._setEmptyPixmap()
 
         if lazy:
+            self._setSize()
+
             self.qtimer = QtCore.QTimer(self)
             self.qtimer.timeout.connect(self._clear)
         else:
             self._makeThumbnail()
 
-    def _setEmptyPixmap(self) -> None:
+    def _setSize(self) -> None:
         width, height = self.image.scaling_dimensions(self.size)
-        self.pixmap = QtGui.QPixmap(width, height)
-        self.pixmap.fill(QtCore.Qt.transparent)
+        self.setFixedWidth(width)
+        self.setFixedHeight(height)
+        self.updateGeometry()
+
+    def _setEmptyPixmap(self) -> None:
+        self.pixmap = QtGui.QPixmap()
         self.setPixmap(self.pixmap)
         self.updateGeometry()
-        self.setFrameStyle(QtWidgets.QFrame.Box)
 
         self.empty = True
 
