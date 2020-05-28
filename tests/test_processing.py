@@ -21,7 +21,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtGui, QtTest, QtWidgets
 
-from doppelganger import exception, processing, signals
+from doppelganger import exceptions, processing, signals
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -141,7 +141,7 @@ class TestMethodFindImages(TestClassImageProcessing):
     def test_raise_InterruptProcessing_if_attr_interrupt_True(self):
         self.proc.interrupted = True
         with mock.patch(CORE+'find_image', return_value=self.found_images):
-            with self.assertRaises(exception.InterruptProcessing):
+            with self.assertRaises(exceptions.InterruptProcessing):
                 self.proc._find_images()
 
     def test_emits_update_info_signal_with_loaded_images_arg(self):
@@ -317,7 +317,7 @@ class TestMethodCalculateHashes(TestClassImageProcessing):
     def test_raise_InterruptProcessing_if_interrupt_attr_is_True(self):
         self.proc.interrupted = True
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
-            with self.assertRaises(exception.InterruptProcessing):
+            with self.assertRaises(exceptions.InterruptProcessing):
                 self.proc._calculate_hashes(self.images)
 
 
@@ -343,7 +343,7 @@ class TestMethodImageGrouping(TestClassImageProcessing):
     @mock.patch(CORE+'image_grouping', return_value=(gs for gs in [[['img']]]))
     def test_raise_InterruptProcessing(self, mock_group):
         self.proc.interrupted = True
-        with self.assertRaises(exception.InterruptProcessing):
+        with self.assertRaises(exceptions.InterruptProcessing):
             self.proc._image_grouping(self.imgs)
 
     @mock.patch(CORE+'image_grouping',
@@ -428,13 +428,13 @@ class TestMethodRun(TestClassImageProcessing):
     # SINCE WE TEST OTHER BLOCKS
 
     def test_log_info_if_some_func_raise_InterruptProcessing(self):
-        exc = exception.InterruptProcessing
+        exc = exceptions.InterruptProcessing
         with mock.patch(self.FIND_IMAGES, side_effect=exc):
             with self.assertLogs('main.processing', 'INFO'):
                 self.proc.run()
 
     def test_interrupted_signal_emitted_if_raise_InterruptProcessing(self):
-        exc = exception.InterruptProcessing
+        exc = exceptions.InterruptProcessing
         spy = QtTest.QSignalSpy(self.proc.signals.interrupted)
         with mock.patch(self.FIND_IMAGES, side_effect=exc):
             self.proc.run()

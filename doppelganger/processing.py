@@ -26,7 +26,7 @@ from PyQt5 import QtCore, QtGui
 
 from doppelganger import config, core, resources, signals
 from doppelganger.cache import Cache
-from doppelganger.exception import InterruptProcessing
+from doppelganger.exceptions import InterruptProcessing
 from doppelganger.gui import imageviewwidget  # !!! Potential cyclic dep !!!
 from doppelganger.logger import Logger
 
