@@ -27,7 +27,7 @@ from typing import List
 
 from PyQt5 import QtCore, QtWidgets, uic
 
-from doppelganger import core, manager
+from doppelganger import core, resources
 
 
 class MousePressFilter(QtCore.QObject):
@@ -114,7 +114,7 @@ class PathsGroupBox(QtWidgets.QGroupBox):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        paths_ui = manager.UI.PATHS.abs_path # pylint: disable=no-member
+        paths_ui = resources.UI.PATHS.abs_path # pylint: disable=no-member
         uic.loadUi(paths_ui, self)
 
         self.addFolderBtn.clicked.connect(self.addPath)

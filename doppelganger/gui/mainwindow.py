@@ -25,7 +25,7 @@ from typing import Collection
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-from doppelganger import core, manager, processing
+from doppelganger import core, processing, resources
 from doppelganger.gui import (actionsgroupbox, imageviewwidget, pathsgroupbox,
                               processinggroupbox, sensitivitygroupbox)
 from doppelganger.gui.aboutwindow import AboutWindow
@@ -50,10 +50,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self) -> None:
         super().__init__()
 
-        main_ui = manager.UI.MAIN.abs_path # pylint: disable=no-member
+        main_ui = resources.UI.MAIN.abs_path # pylint: disable=no-member
         uic.loadUi(main_ui, self)
 
-        icon = manager.Image.ICON.abs_path # pylint: disable=no-member
+        icon = resources.Image.ICON.abs_path # pylint: disable=no-member
         app_icon = QtGui.QIcon(icon)
         self.setWindowIcon(app_icon)
 

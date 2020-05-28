@@ -22,7 +22,7 @@ Module implementing window "About"
 
 from PyQt5 import QtCore, QtWidgets, uic
 
-from doppelganger import manager
+from doppelganger import resources
 
 
 class AboutWindow(QtWidgets.QMainWindow):
@@ -31,7 +31,7 @@ class AboutWindow(QtWidgets.QMainWindow):
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
 
-        about_ui = manager.UI.ABOUT.abs_path # pylint: disable=no-member
+        about_ui = resources.UI.ABOUT.abs_path # pylint: disable=no-member
         uic.loadUi(about_ui, self)
 
         sizeHint = self.sizeHint()

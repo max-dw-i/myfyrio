@@ -23,7 +23,7 @@ unselect, auto-select)
 
 from PyQt5 import QtWidgets, uic
 
-from doppelganger import manager
+from doppelganger import resources
 
 
 class ActionsGroupBox(QtWidgets.QGroupBox):
@@ -32,7 +32,7 @@ class ActionsGroupBox(QtWidgets.QGroupBox):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        actions_ui = manager.UI.ACTIONS.abs_path # pylint: disable=no-member
+        actions_ui = resources.UI.ACTIONS.abs_path # pylint: disable=no-member
         uic.loadUi(actions_ui, self)
 
     def setEnabled(self, enable: bool) -> None:

@@ -22,7 +22,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtWidgets
 
-from doppelganger import config, manager
+from doppelganger import config, resources
 from doppelganger.gui import preferenceswindow
 
 # Configure a logger for testing purposes
@@ -60,7 +60,7 @@ class TestFuncLoadConfig(TestCase):
             res = preferenceswindow.load_config()
 
         self.mock_Config.load.assert_called_once_with(
-            manager.Config.CONFIG.abs_path
+            resources.Config.CONFIG.abs_path
         )
         self.assertEqual(res, self.mock_Config)
 
@@ -91,7 +91,7 @@ class TestSaveConfigFunc(TestCase):
         preferenceswindow.save_config(self.mock_Config)
 
         self.mock_Config.save.assert_called_once_with(
-            manager.Config.CONFIG.abs_path
+            resources.Config.CONFIG.abs_path
         )
 
     @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')

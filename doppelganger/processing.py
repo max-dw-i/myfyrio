@@ -24,7 +24,7 @@ from typing import Any, Callable, Collection, Iterable, List, Set, Tuple, Union
 
 from PyQt5 import QtCore, QtGui
 
-from doppelganger import config, core, manager, signals
+from doppelganger import config, core, resources, signals
 from doppelganger.cache import Cache
 from doppelganger.exception import InterruptProcessing
 from doppelganger.gui import imageviewwidget  # !!! Potential cyclic dep !!!
@@ -58,7 +58,7 @@ class ImageProcessing:
     :param conf: dict with programme preferences
     '''
 
-    CACHE_FILE = manager.Cache.CACHE.abs_path # pylint: disable=no-member
+    CACHE_FILE = resources.Cache.CACHE.abs_path # pylint: disable=no-member
 
     THUMBNAILED_NUM = 10
 

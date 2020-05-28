@@ -27,7 +27,7 @@ from typing import List, Union
 
 from PyQt5 import QtCore, QtWidgets, uic
 
-from doppelganger import config, manager
+from doppelganger import config, resources
 from doppelganger.logger import Logger
 
 logger = Logger.getLogger('preferences')
@@ -41,11 +41,11 @@ def load_config() -> config.Config:
 
     conf = config.Config()
     try:
-        conf.load(manager.Config.CONFIG.abs_path) # pylint: disable=no-member
+        conf.load(resources.Config.CONFIG.abs_path) # pylint: disable=no-member
     except OSError as e:
         logger.error(e)
 
-        log_file = manager.Log.ERROR.value # pylint: disable=no-member
+        log_file = resources.Log.ERROR.value # pylint: disable=no-member
 
         msg_box = QtWidgets.QMessageBox(
             QtWidgets.QMessageBox.Warning,
@@ -64,11 +64,11 @@ def save_config(conf: config.Config) -> None:
     '''
 
     try:
-        conf.save(manager.Config.CONFIG.abs_path) # pylint: disable=no-member
+        conf.save(resources.Config.CONFIG.abs_path) # pylint: disable=no-member
     except OSError as e:
         logger.error(e)
 
-        log_file = manager.Log.ERROR.value # pylint: disable=no-member
+        log_file = resources.Log.ERROR.value # pylint: disable=no-member
 
         msg_box = QtWidgets.QMessageBox(
             QtWidgets.QMessageBox.Warning,
@@ -115,7 +115,7 @@ class PreferencesWindow(QtWidgets.QMainWindow):
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
 
-        pref_ui = manager.UI.PREFERENCES.abs_path # pylint: disable=no-member
+        pref_ui = resources.UI.PREFERENCES.abs_path # pylint: disable=no-member
         uic.loadUi(pref_ui, self)
 
         self.widgets = self._gather_widgets()

@@ -23,7 +23,7 @@ Module implementing widget setting sensitivity of duplicate images search
 
 from PyQt5 import QtWidgets, uic
 
-from doppelganger import manager
+from doppelganger import resources
 
 
 class SensitivityGroupBox(QtWidgets.QGroupBox):
@@ -32,7 +32,7 @@ class SensitivityGroupBox(QtWidgets.QGroupBox):
     def __init__(self, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
 
-        sens_ui = manager.UI.SENSITIVITY.abs_path # pylint: disable=no-member
+        sens_ui = resources.UI.SENSITIVITY.abs_path # pylint: disable=no-member
         uic.loadUi(sens_ui, self)
 
         self.veryHighRbtn.clicked.connect(self.setVeryHighSensitivity)

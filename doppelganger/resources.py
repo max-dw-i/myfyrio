@@ -44,20 +44,20 @@ class Resource(Enum):
 class UI(Resource):
     '''Enum class representing .ui files and the paths to them'''
 
-    ABOUT = 'doppelganger/resources/ui/aboutwindow.ui'
-    ACTIONS = 'doppelganger/resources/ui/actionsgroupbox.ui'
-    MAIN = 'doppelganger/resources/ui/mainwindow.ui'
-    PATHS = 'doppelganger/resources/ui/pathsgroupbox.ui'
-    PREFERENCES = 'doppelganger/resources/ui/preferenceswindow.ui'
-    PROCESSING = 'doppelganger/resources/ui/processinggroupbox.ui'
-    SENSITIVITY = 'doppelganger/resources/ui/sensitivitygroupbox.ui'
+    ABOUT = 'doppelganger/static/ui/aboutwindow.ui'
+    ACTIONS = 'doppelganger/static/ui/actionsgroupbox.ui'
+    MAIN = 'doppelganger/static/ui/mainwindow.ui'
+    PATHS = 'doppelganger/static/ui/pathsgroupbox.ui'
+    PREFERENCES = 'doppelganger/static/ui/preferenceswindow.ui'
+    PROCESSING = 'doppelganger/static/ui/processinggroupbox.ui'
+    SENSITIVITY = 'doppelganger/static/ui/sensitivitygroupbox.ui'
 
 
 class Image(Resource):
     '''Enum class representing images and the paths to them'''
 
-    ICON = 'doppelganger/resources/images/icon.png'
-    ERR_IMG = 'doppelganger/resources/images/image_error.png'
+    ICON = 'doppelganger/static/images/icon.png'
+    ERR_IMG = 'doppelganger/static/images/image_error.png'
 
 
 class Config(Resource):

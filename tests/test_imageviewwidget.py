@@ -24,7 +24,7 @@ from PyQt5 import QtCore, QtGui, QtTest, QtWidgets
 
 from doppelganger import core, signals
 from doppelganger.gui import imageviewwidget
-from doppelganger.manager import Image
+from doppelganger.resources import Image
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')

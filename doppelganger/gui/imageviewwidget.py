@@ -28,7 +28,7 @@ from typing import Callable, Collection, Iterable, List
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from doppelganger import config, core, manager, processing, signals
+from doppelganger import config, core, processing, resources, signals
 from doppelganger.logger import Logger
 
 logger = Logger.getLogger('widgets')
@@ -159,7 +159,7 @@ class ThumbnailWidget(QtWidgets.QLabel):
     def _errorThumbnail(self) -> QtGui.QPixmap:
         logger.error('Something happened while converting QImage into QPixmap')
         size = self.size
-        err_img = manager.Image.ERR_IMG.abs_path # pylint: disable=no-member
+        err_img = resources.Image.ERR_IMG.abs_path # pylint: disable=no-member
         err_pixmap = QtGui.QPixmap(err_img)
         return err_pixmap.scaled(size, size)
 
