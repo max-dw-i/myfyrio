@@ -28,7 +28,7 @@ from typing import Callable, Collection, Iterable, List
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from doppelganger import config, core, processing, resources, signals
+from doppelganger import config, core, resources, signals, workers
 from doppelganger.logger import Logger
 
 logger = Logger.getLogger('widgets')
@@ -165,13 +165,13 @@ class ThumbnailWidget(QtWidgets.QLabel):
 
     def _makeThumbnail(self) -> None:
         if self.lazy:
-            p = processing.ThumbnailProcessing(self.image, self.size, self)
+            p = workers.ThumbnailProcessing(self.image, self.size, self)
         else:
-            p = processing.ThumbnailProcessing(self.image, self.size)
+            p = workers.ThumbnailProcessing(self.image, self.size)
 
         p.signals.finished.connect(self._setThumbnail)
 
-        worker = processing.Worker(p.run)
+        worker = workers.Worker(p.run)
         threadpool = QtCore.QThreadPool.globalInstance()
         threadpool.start(worker)
 

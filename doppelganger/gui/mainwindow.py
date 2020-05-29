@@ -25,7 +25,7 @@ from typing import Collection
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-from doppelganger import core, processing, resources
+from doppelganger import core, resources, workers
 from doppelganger.gui import (actionsgroupbox, imageviewwidget, pathsgroupbox,
                               processinggroupbox, sensitivitygroupbox)
 from doppelganger.gui.aboutwindow import AboutWindow
@@ -191,8 +191,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.deleteAction.setEnabled(False)
             self.unselectAction.setEnabled(False)
 
-    def _setImageProcessingObj(self) -> processing.ImageProcessing:
-        p = processing.ImageProcessing(
+    def _setImageProcessingObj(self) -> workers.ImageProcessing:
+        p = workers.ImageProcessing(
             self.pathsGrp.paths(),
             self.sensitivityGrp.sensitivity,
             self.preferencesWindow.conf
@@ -220,7 +220,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.image_processing = True
 
         processing_obj = self._setImageProcessingObj()
-        worker = processing.Worker(processing_obj.run)
+        worker = workers.Worker(processing_obj.run)
         self.threadpool.start(worker)
 
     def disableStopBtn(self) -> None:

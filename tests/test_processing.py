@@ -21,7 +21,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtGui, QtTest, QtWidgets
 
-from doppelganger import exceptions, processing, signals
+from doppelganger import exceptions, signals, workers
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -40,7 +40,7 @@ if app is None:
 
 CORE = 'doppelganger.core.'
 CACHE = 'doppelganger.cache.'
-PROCESSING = 'doppelganger.processing.'
+PROCESSING = 'doppelganger.workers.'
 
 
 class TestClassImageProcessing(TestCase):
@@ -57,8 +57,8 @@ class TestClassImageProcessing(TestCase):
                      'min_height': 5,
                      'max_height': 10,
                      'cores': 16}
-        self.proc = processing.ImageProcessing(self.folders, self.sensitivity,
-                                               self.CONF)
+        self.proc = workers.ImageProcessing(self.folders, self.sensitivity,
+                                            self.CONF)
 
 
 class TestMethodInit(TestClassImageProcessing):
@@ -252,7 +252,7 @@ class TestMethodUpdateCache(TestClassImageProcessing):
 
     def test_log_error_if_hash_is_minus_1(self):
         self.mock_img.dhash = -1
-        with self.assertLogs('main.processing', 'ERROR'):
+        with self.assertLogs('main.workers', 'ERROR'):
             self.proc._update_cache(self.cache, self.images)
 
     def test_set_error_attr_to_True_if_hash_is_minus_1(self):
@@ -430,7 +430,7 @@ class TestMethodRun(TestClassImageProcessing):
     def test_log_info_if_some_func_raise_InterruptProcessing(self):
         exc = exceptions.InterruptProcessing
         with mock.patch(self.FIND_IMAGES, side_effect=exc):
-            with self.assertLogs('main.processing', 'INFO'):
+            with self.assertLogs('main.workers', 'INFO'):
                 self.proc.run()
 
     def test_interrupted_signal_emitted_if_raise_InterruptProcessing(self):
@@ -443,7 +443,7 @@ class TestMethodRun(TestClassImageProcessing):
 
     def test_log_error_if_some_func_raise_general_exception(self):
         with mock.patch(self.FIND_IMAGES, side_effect=Exception):
-            with self.assertLogs('main.processing', 'ERROR'):
+            with self.assertLogs('main.workers', 'ERROR'):
                 self.proc.run()
 
     def test_set_errors_attr_True_if_some_func_raise_general_exception(self):
@@ -468,7 +468,7 @@ class TestClassThumbnailProcessing(TestCase):
         self.mock_image.thumb = None
         self.size = 200
 
-        self.proc = processing.ThumbnailProcessing(self.mock_image, self.size)
+        self.proc = workers.ThumbnailProcessing(self.mock_image, self.size)
 
 
 class TestClassThumbnailProcessingMethodInit(TestClassThumbnailProcessing):
@@ -490,7 +490,7 @@ class TestClassThumbnailProcessingMethodRun(TestClassThumbnailProcessing):
 
     def test_logging_if_image_thumbnail_raise_OSError_and_widget_None(self):
         self.mock_image.thumbnail.side_effect = OSError
-        with self.assertLogs('main.processing', 'ERROR'):
+        with self.assertLogs('main.workers', 'ERROR'):
             self.proc.run()
 
     def test_empty_QImage_assigned_to_thumb_if_OSError_and_widget_None(self):
@@ -519,7 +519,7 @@ class TestClassThumbnailProcessingMethodRun(TestClassThumbnailProcessing):
         widget.isVisible.return_value = True
         self.proc.widget = widget
         self.mock_image.thumbnail.side_effect = OSError
-        with self.assertLogs('main.processing', 'ERROR'):
+        with self.assertLogs('main.workers', 'ERROR'):
             self.proc.run()
 
     def test_empty_QImage_set_to_thumb_if_OSError_widg_not_None_and_vis(self):

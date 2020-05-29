@@ -494,7 +494,7 @@ class TestThumbnailWidgetMethodErrorThumbnail(TestThumbnailWidget):
 
 class TestThumbnailWidgetMethodMakeThumbnail(TestThumbnailWidget):
 
-    PROC = 'doppelganger.processing.'
+    PROC = 'doppelganger.workers.'
 
     def test_args_ThumbnailProcessing_called_with_if_lazy(self):
         self.w.lazy = True

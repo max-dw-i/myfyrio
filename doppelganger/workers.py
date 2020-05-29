@@ -14,6 +14,10 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+
+-------------------------------------------------------------------------------
+
+Module implementing working with worker threads
 '''
 
 from __future__ import annotations
@@ -30,7 +34,7 @@ from doppelganger.exceptions import InterruptProcessing
 from doppelganger.gui import imageviewwidget  # !!! Potential cyclic dep !!!
 from doppelganger.logger import Logger
 
-logger = Logger.getLogger('processing')
+logger = Logger.getLogger('workers')
 
 
 class Worker(QtCore.QRunnable):

@@ -115,7 +115,7 @@ class TestMainFormMethodSwitchStartBtn(TestMainForm):
 
 class TestMainFormMethodSetImageProcessingObj(TestMainForm):
 
-    PATCH_IMG_PROC = 'doppelganger.processing.ImageProcessing'
+    PATCH_IMG_PROC = 'doppelganger.workers.ImageProcessing'
 
     def setUp(self):
         super().setUp()
