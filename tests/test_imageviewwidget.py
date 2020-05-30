@@ -1448,10 +1448,12 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
         super().setUp()
 
         self.conf['lazy'] = True
+        self.conf['sort'] = 0
 
         self.w.layout = mock.Mock()
 
-        self.image_groups = [['image']]
+        mock_image = mock.Mock(autospec=core.Image)
+        self.image_groups = [[mock_image]]
         self.mock_group_w = mock.Mock()
 
     def test_args_ImageGroupWidget_called_with(self):

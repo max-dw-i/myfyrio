@@ -28,7 +28,7 @@ from typing import Callable, Collection, Iterable, List
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from doppelganger import config, core, resources, signals, workers
+from doppelganger import config, core, workers, resources, signals
 from doppelganger.logger import Logger
 
 logger = Logger.getLogger('widgets')
@@ -169,7 +169,7 @@ class ThumbnailWidget(QtWidgets.QLabel):
         else:
             p = workers.ThumbnailProcessing(self.image, self.size)
 
-        p.signals.finished.connect(self._setThumbnail)
+        p.finished.connect(self._setThumbnail)
 
         worker = workers.Worker(p.run)
         threadpool = QtCore.QThreadPool.globalInstance()
@@ -506,6 +506,8 @@ class ImageViewWidget(QtWidgets.QWidget):
             if self.interrupted:
                 self.signals.interrupted.emit()
                 return
+
+            core.Sort(group).sort(self.conf['sort'])
 
             widget = ImageGroupWidget(group, self.conf)
             self.layout.addWidget(widget)

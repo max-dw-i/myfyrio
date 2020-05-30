@@ -23,34 +23,6 @@ Module implementing custom signals
 from PyQt5 import QtCore
 
 
-class ImageProcessingSignals(QtCore.QObject):
-    '''Supported signals:
-    ------------------
-    :signal update_info:        label to update: str, text to set: str,
-    :signal update_progressbar: new value of progress bar: float,
-    :signal image_groups:       list of image groups: List[Group],
-    :signal error:              error: str,
-    :signal interrupted:        image processing has been interrupted
-                                by the user
-    '''
-
-    update_info = QtCore.pyqtSignal(str, str)
-    update_progressbar = QtCore.pyqtSignal(float)
-    image_groups = QtCore.pyqtSignal(list)
-    error = QtCore.pyqtSignal(str)
-    interrupted = QtCore.pyqtSignal()
-
-
-class ThumbnailsProcessingSignals(QtCore.QObject):
-    '''Supported signals:
-    ------------------
-    :signal finished:          image thumbnail is made and assigned to
-                               attribute "thumb" of the "Image" object
-    '''
-
-    finished = QtCore.pyqtSignal()
-
-
 class WidgetsRenderingSignals(QtCore.QObject):
     '''Supported signals:
     ------------------

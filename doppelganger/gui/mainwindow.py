@@ -198,15 +198,15 @@ class MainWindow(QtWidgets.QMainWindow):
             self.preferencesWindow.conf
         )
 
-        p.signals.update_info.connect(self.processingGrp.updateLabel)
-        p.signals.update_progressbar.connect(
+        p.update_label.connect(self.processingGrp.updateLabel)
+        p.update_progressbar.connect(
             self.processingGrp.processProg.setValue
         )
-        p.signals.image_groups.connect(self.render)
-        p.signals.error.connect(errorMessage)
-        p.signals.interrupted.connect(self.processingInterrupted)
+        p.image_groups.connect(self.render)
+        p.error.connect(errorMessage)
+        p.interrupted.connect(self.processingInterrupted)
 
-        self.processingGrp.stopBtn.clicked.connect(p.setInterrupted)
+        self.processingGrp.stopBtn.clicked.connect(p.interrupt)
 
         return p
 
