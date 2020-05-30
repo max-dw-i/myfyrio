@@ -49,7 +49,6 @@ class TestClassImageProcessing(TestCase):
 
     def setUp(self):
         self.folders = []
-        self.sensitivity = 0
         self.conf = {'sort': 0,
                      'subfolders': True,
                      'size': 200,
@@ -58,16 +57,15 @@ class TestClassImageProcessing(TestCase):
                      'max_width': 10,
                      'min_height': 5,
                      'max_height': 10,
-                     'cores': 16}
-        self.proc = workers.ImageProcessing(self.folders, self.sensitivity,
-                                            self.conf)
+                     'cores': 16,
+                     'sensitivity': 0}
+        self.proc = workers.ImageProcessing(self.folders, self.conf)
 
 
 class TestMethodInit(TestClassImageProcessing):
 
     def test_attrs_initial_values(self):
         self.assertListEqual(self.proc._folders, [])
-        self.assertEqual(self.proc._sensitivity, 0)
         self.assertEqual(self.proc._conf, self.conf)
         self.assertFalse(self.proc._interrupted)
         self.assertFalse(self.proc._error)
@@ -527,7 +525,7 @@ class TestClassImageProcessingMethodImageGrouping(TestClassImageProcessing):
             self.proc._image_grouping(self.images)
 
         mock_group_call.assert_called_once_with(self.images,
-                                                self.proc._sensitivity)
+                                                self.conf['sensitivity'])
 
     def test_emit_image_groups_signal_with_found_groups_arg(self):
         gen = (gs for gs in [self.groups])

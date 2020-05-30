@@ -69,7 +69,9 @@ class ImageProcessing(QtCore.QObject):
     :param folders:             folders to search for images in,
     :param sensitivity:         images are considered similar if the difference
                                 between their hashes is at most this value,
-    :param conf:                "Config" object with the programme's settings,
+    :param conf:                "Config" object with the programme's settings
+                                extended with the additional parameter
+                                "sensitivity"
 
     :signal update_label:       update the text of a label: Tuple[str, str],
                                 the first arg is the label "alias" (every label
@@ -90,11 +92,10 @@ class ImageProcessing(QtCore.QObject):
     error = QtCore.pyqtSignal(str)
 
     def __init__(self, folders: Iterable[core.FolderPath],
-                 sensitivity: core.Sensitivity, conf: Config) -> None:
+                 conf: Config) -> None:
         super().__init__(parent=None)
 
         self._folders = folders
-        self._sensitivity = sensitivity
         self._conf = conf
 
         self._interrupted = False
@@ -231,7 +232,7 @@ class ImageProcessing(QtCore.QObject):
         image_groups = []
         progress_step = 30 / len(images)
 
-        gen = core.image_grouping(images, self._sensitivity)
+        gen = core.image_grouping(images, self._conf['sensitivity'])
         for image_groups in gen:
             if self._interrupted:
                 self.interrupted.emit()

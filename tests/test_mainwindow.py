@@ -120,6 +120,8 @@ class TestMainFormMethodSetImageProcessingObj(TestMainForm):
     def setUp(self):
         super().setUp()
 
+        self.w.preferencesWindow.conf['sensitivity'] = 0
+
         self.mock_proc_obj = mock.Mock()
 
     def test_args_ImageProcessing_called_with(self):
@@ -129,7 +131,6 @@ class TestMainFormMethodSetImageProcessingObj(TestMainForm):
 
         mock_proc_call.assert_called_once_with(
             self.w.pathsGrp.paths(),
-            self.w.sensitivityGrp.sensitivity,
             self.w.preferencesWindow.conf
         )
 

@@ -192,12 +192,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.unselectAction.setEnabled(False)
 
     def _setImageProcessingObj(self) -> workers.ImageProcessing:
-        p = workers.ImageProcessing(
-            self.pathsGrp.paths(),
-            self.sensitivityGrp.sensitivity,
-            self.preferencesWindow.conf
-        )
+        conf = self.preferencesWindow.conf.copy()
+        conf.update({'sensitivity': self.sensitivityGrp.sensitivity})
 
+        p = workers.ImageProcessing(self.pathsGrp.paths(), conf)
         p.update_label.connect(self.processingGrp.updateLabel)
         p.update_progressbar.connect(
             self.processingGrp.processProg.setValue
