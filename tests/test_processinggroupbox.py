@@ -28,7 +28,7 @@ if app is None:
     app = QtWidgets.QApplication([])
 
 
-# pylint: disable=missing-class-docstring,protected-access
+# pylint: disable=missing-class-docstring
 
 
 class TestProcessingGroupBox(TestCase):
@@ -86,8 +86,8 @@ class TestProcessingGroupBox(TestCase):
             else:
                 self.assertEqual(label.text()[-2:], self.new_val)
 
-    def test_update_label_with_alias_remaining_images(self):
-        alias = 'remaining_images'
+    def test_update_label_with_alias_calculated(self):
+        alias = 'calculated'
         new_text = '666'
         self.w.updateLabel(alias, new_text)
         for label in self.w.findChildren(QtWidgets.QLabel):

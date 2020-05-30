@@ -49,7 +49,7 @@ class ProcessingGroupBox(QtWidgets.QGroupBox):
         '''Update text of the label
 
         :param label_alias: one of ("thumbnails", "image_groups",
-                                    "remaining_images", "found_in_cache",
+                                    "calculated", "found_in_cache",
                                     "loaded_images", "duplicates"),
         :param text: new text of the label
         '''

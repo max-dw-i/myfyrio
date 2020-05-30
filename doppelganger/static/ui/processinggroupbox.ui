@@ -82,7 +82,7 @@
          <string>New hashes calculated ... 0</string>
         </property>
         <property name="alias" stdset="0">
-         <string>remaining_images</string>
+         <string>calculated</string>
         </property>
        </widget>
       </item>

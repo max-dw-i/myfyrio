@@ -200,7 +200,7 @@ class ImageProcessing(QtCore.QObject):
 
                 calculated.append(img)
 
-                self.update_label.emit('remaining_images', str(i+1))
+                self.update_label.emit('calculated', str(i+1))
                 new_val = self._progressbar_value + progress_step
                 self._update_progressbar(new_val)
 

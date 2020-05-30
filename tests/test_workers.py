@@ -435,7 +435,7 @@ class TestClassImageProcessingMethodCalculateHashes(TestClassImageProcessing):
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
             self.proc._calculate_hashes(self.images)
 
-        self.assertEqual(spy[0][0], 'remaining_images')
+        self.assertEqual(spy[0][0], 'calculated')
         self.assertEqual(spy[0][1], '1')
 
     def test_update_progressbar_called_with_current_value_plus_step(self):
