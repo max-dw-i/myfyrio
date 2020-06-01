@@ -666,7 +666,7 @@
     </item>
    </layout>
   </widget>
-  <widget class="QMenuBar" name="menubar">
+  <widget class="MenuBar" name="menubar">
    <property name="enabled">
     <bool>true</bool>
    </property>
@@ -845,6 +845,11 @@
    <class>ProgressLabel</class>
    <extends>QLabel</extends>
    <header>doppelganger/gui/progresslabel</header>
+  </customwidget>
+  <customwidget>
+   <class>MenuBar</class>
+   <extends>QMenuBar</extends>
+   <header>doppelganger/gui/menubar</header>
   </customwidget>
  </customwidgets>
  <resources/>
