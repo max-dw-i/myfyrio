@@ -298,7 +298,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QProgressBar" name="processProg">
+           <widget class="ProgressBar" name="processProg">
             <property name="value">
              <number>0</number>
             </property>
@@ -840,6 +840,11 @@
    <class>PushButton</class>
    <extends>QPushButton</extends>
    <header>doppelganger/gui/pushbutton</header>
+  </customwidget>
+  <customwidget>
+   <class>ProgressBar</class>
+   <extends>QProgressBar</extends>
+   <header>doppelganger/gui/progressbar</header>
   </customwidget>
  </customwidgets>
  <resources/>
