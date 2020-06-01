@@ -252,18 +252,12 @@
                <property name="text">
                 <string>Loaded images ... 0</string>
                </property>
-               <property name="alias" stdset="0">
-                <string>loaded_images</string>
-               </property>
               </widget>
              </item>
              <item>
               <widget class="ProgressLabel" name="foundInCacheLbl">
                <property name="text">
                 <string>Images found in cache ... 0</string>
-               </property>
-               <property name="alias" stdset="0">
-                <string>found_in_cache</string>
                </property>
               </widget>
              </item>
@@ -272,18 +266,12 @@
                <property name="text">
                 <string>New hashes calculated ... 0</string>
                </property>
-               <property name="alias" stdset="0">
-                <string>calculated</string>
-               </property>
               </widget>
              </item>
              <item>
               <widget class="ProgressLabel" name="duplicatesLbl">
                <property name="text">
                 <string>Duplicate images found ... 0</string>
-               </property>
-               <property name="alias" stdset="0">
-                <string>duplicates</string>
                </property>
               </widget>
              </item>
@@ -303,9 +291,6 @@
                </property>
                <property name="text">
                 <string>Groups with duplicate images ... 0</string>
-               </property>
-               <property name="alias" stdset="0">
-                <string>image_groups</string>
                </property>
               </widget>
              </item>
@@ -344,7 +329,7 @@
               <number>0</number>
              </property>
              <item>
-              <widget class="QPushButton" name="startBtn">
+              <widget class="PushButton" name="startBtn">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -375,7 +360,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="stopBtn">
+              <widget class="PushButton" name="stopBtn">
                <property name="enabled">
                 <bool>false</bool>
                </property>
@@ -615,7 +600,7 @@
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QPushButton" name="autoSelectBtn">
+                 <widget class="PushButton" name="autoSelectBtn">
                   <property name="enabled">
                    <bool>false</bool>
                   </property>
@@ -850,6 +835,11 @@
    <class>MenuBar</class>
    <extends>QMenuBar</extends>
    <header>doppelganger/gui/menubar</header>
+  </customwidget>
+  <customwidget>
+   <class>PushButton</class>
+   <extends>QPushButton</extends>
+   <header>doppelganger/gui/pushbutton</header>
   </customwidget>
  </customwidgets>
  <resources/>
