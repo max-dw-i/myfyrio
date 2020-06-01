@@ -73,21 +73,31 @@ class ImageProcessing(QtCore.QObject):
                                 extended with the additional parameter
                                 "sensitivity"
 
-    :signal update_label:       update the text of a label: Tuple[str, str],
-                                the first arg is the label "alias" (every label
-                                in the "processinggroupbox" widget has
-                                the property "alias", the value is the thing),
-                                the second arg is the text to set,
+    :signal images_loaded:      number of the found in the :folders:
+                                images: int, emitted when a new image is found,
+    :signal found_in_cache:     number of the found in the cache images: int,
+                                emitted when the whole cache is checked,
+    :signal hashes_calculated:  number of new calculatedhashes: int,
+                                emitted when a new hash is calculated,
+    :signal duplicates_found:   number of found duplicate images: int,
+                                emitted when a new image is found,
+    :signal groups_found:       number of found duplicate image groups: int,
+                                emitted when a new group is found,
     :signal update_progressbar: new progress bar value: int,
-    :signal image_groups:       list of similar image groups: List[Group],
+    :signal finished:           list of duplicate image groups: List[Group],
     :signal interrupted:        image processing has been interrupted
                                 by the user,
     :signal error:              error text: str
     '''
 
-    update_label = QtCore.pyqtSignal(str, str)
+    images_loaded = QtCore.pyqtSignal(int)
+    found_in_cache = QtCore.pyqtSignal(int)
+    hashes_calculated = QtCore.pyqtSignal(int)
+    duplicates_found = QtCore.pyqtSignal(int)
+    groups_found = QtCore.pyqtSignal(int)
+
     update_progressbar = QtCore.pyqtSignal(float)
-    image_groups = QtCore.pyqtSignal(list)
+    finished = QtCore.pyqtSignal(list)
     interrupted = QtCore.pyqtSignal()
     error = QtCore.pyqtSignal(str)
 
@@ -148,10 +158,10 @@ class ImageProcessing(QtCore.QObject):
                                    and min_h <= img.height <= max_h):
                 images.add(img)
                 # Slower than showing the result number
-                self.update_label.emit('loaded_images', str(len(images)))
+                self.images_loaded.emit(len(images))
 
         if not images:
-            self.image_groups.emit([])
+            self.finished.emit([])
 
         return images
 
@@ -180,7 +190,7 @@ class ImageProcessing(QtCore.QObject):
                 img.dhash = dhash
                 cached.append(img)
 
-        self.update_label.emit('found_in_cache', str(len(cached)))
+        self.found_in_cache.emit(len(cached))
         if not_cached:
             self._update_progressbar(5)
         else:
@@ -201,7 +211,7 @@ class ImageProcessing(QtCore.QObject):
 
                 calculated.append(img)
 
-                self.update_label.emit('calculated', str(i+1))
+                self.hashes_calculated.emit(i+1)
                 new_val = self._progressbar_value + progress_step
                 self._update_progressbar(new_val)
 
@@ -239,15 +249,15 @@ class ImageProcessing(QtCore.QObject):
                 return
 
             # Slower than showing the result number
-            duplicates_found = str(sum(len(g) for g in image_groups))
-            self.update_label.emit('duplicates', duplicates_found)
-            self.update_label.emit('image_groups', str(len(image_groups)))
+            duplicates_found = sum(len(g) for g in image_groups)
+            self.duplicates_found.emit(duplicates_found)
+            self.groups_found.emit(len(image_groups))
             new_val = self._progressbar_value + progress_step
             self._update_progressbar(new_val)
 
         self._update_progressbar(70)
 
-        self.image_groups.emit(image_groups)
+        self.finished.emit(image_groups)
 
     def _available_cores(self) -> int:
         cores = self._conf['cores']

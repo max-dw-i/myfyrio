@@ -133,16 +133,15 @@ class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
 
         self.assertSetEqual(res, {self.mock_image})
 
-    def test_emit_update_label_signal_if_no_size_filter(self):
+    def test_emit_images_loaded_signal_if_no_size_filter(self):
         self.mock_image.width = 100
         self.mock_image.height = 100
-        spy = QtTest.QSignalSpy(self.proc.update_label)
+        spy = QtTest.QSignalSpy(self.proc.images_loaded)
         with mock.patch(CORE+'find_image', return_value=self.found_images):
             self.proc._find_images()
 
         self.assertEqual(len(spy), 1)
-        self.assertEqual(spy[0][0], 'loaded_images')
-        self.assertEqual(spy[0][1], '1')
+        self.assertEqual(spy[0][0], 1)
 
     def test_return_images_if_size_filter_and_image_fits(self):
         self.conf['filter_img_size'] = True
@@ -151,15 +150,14 @@ class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
 
         self.assertSetEqual(res, {self.mock_image})
 
-    def test_emit_update_label_signal_if_size_filter_and_image_fits(self):
+    def test_emit_images_loaded_signal_if_size_filter_and_image_fits(self):
         self.conf['filter_img_size'] = True
-        spy = QtTest.QSignalSpy(self.proc.update_label)
+        spy = QtTest.QSignalSpy(self.proc.images_loaded)
         with mock.patch(CORE+'find_image', return_value=self.found_images):
             self.proc._find_images()
 
         self.assertEqual(len(spy), 1)
-        self.assertEqual(spy[0][0], 'loaded_images')
-        self.assertEqual(spy[0][1], '1')
+        self.assertEqual(spy[0][0], 1)
 
     def test_return_empty_set_if_size_filter_and_too_small_width(self):
         self.conf['filter_img_size'] = True
@@ -169,19 +167,19 @@ class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
 
         self.assertSetEqual(res, set())
 
-    def test_not_emit_update_label_if_size_filter_and_too_small_width(self):
+    def test_not_emit_images_loaded_if_size_filter_and_too_small_width(self):
         self.conf['filter_img_size'] = True
         self.mock_image.width = 4
-        spy = QtTest.QSignalSpy(self.proc.update_label)
+        spy = QtTest.QSignalSpy(self.proc.images_loaded)
         with mock.patch(CORE+'find_image', return_value=self.found_images):
             self.proc._find_images()
 
         self.assertEqual(len(spy), 0)
 
-    def test_emit_empty_image_groups_if_size_filter_and_too_small_width(self):
+    def test_emit_empty_finished_if_size_filter_and_too_small_width(self):
         self.conf['filter_img_size'] = True
         self.mock_image.width = 4
-        spy = QtTest.QSignalSpy(self.proc.image_groups)
+        spy = QtTest.QSignalSpy(self.proc.finished)
         with mock.patch(CORE+'find_image', return_value=self.found_images):
             self.proc._find_images()
 
@@ -196,19 +194,19 @@ class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
 
         self.assertSetEqual(res, set())
 
-    def test_not_emit_update_label_if_size_filter_and_too_big_width(self):
+    def test_not_emit_images_loaded_if_size_filter_and_too_big_width(self):
         self.conf['filter_img_size'] = True
         self.mock_image.width = 11
-        spy = QtTest.QSignalSpy(self.proc.update_label)
+        spy = QtTest.QSignalSpy(self.proc.images_loaded)
         with mock.patch(CORE+'find_image', return_value=self.found_images):
             self.proc._find_images()
 
         self.assertEqual(len(spy), 0)
 
-    def test_emit_empty_image_groups_if_size_filter_and_too_big_width(self):
+    def test_emit_empty_finished_if_size_filter_and_too_big_width(self):
         self.conf['filter_img_size'] = True
         self.mock_image.width = 11
-        spy = QtTest.QSignalSpy(self.proc.image_groups)
+        spy = QtTest.QSignalSpy(self.proc.finished)
         with mock.patch(CORE+'find_image', return_value=self.found_images):
             self.proc._find_images()
 
@@ -223,19 +221,19 @@ class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
 
         self.assertSetEqual(res, set())
 
-    def test_not_emit_update_label_if_size_filter_and_too_small_height(self):
+    def test_not_emit_images_loaded_if_size_filter_and_too_small_height(self):
         self.conf['filter_img_size'] = True
         self.mock_image.height = 4
-        spy = QtTest.QSignalSpy(self.proc.update_label)
+        spy = QtTest.QSignalSpy(self.proc.images_loaded)
         with mock.patch(CORE+'find_image', return_value=self.found_images):
             self.proc._find_images()
 
         self.assertEqual(len(spy), 0)
 
-    def test_emit_empty_image_groups_if_size_filter_and_too_small_height(self):
+    def test_emit_empty_finished_if_size_filter_and_too_small_height(self):
         self.conf['filter_img_size'] = True
         self.mock_image.height = 4
-        spy = QtTest.QSignalSpy(self.proc.image_groups)
+        spy = QtTest.QSignalSpy(self.proc.finished)
         with mock.patch(CORE+'find_image', return_value=self.found_images):
             self.proc._find_images()
 
@@ -250,19 +248,19 @@ class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
 
         self.assertSetEqual(res, set())
 
-    def test_not_emit_update_label_if_size_filter_and_too_big_height(self):
+    def test_not_emit_images_loaded_if_size_filter_and_too_big_height(self):
         self.conf['filter_img_size'] = True
         self.mock_image.height = 11
-        spy = QtTest.QSignalSpy(self.proc.update_label)
+        spy = QtTest.QSignalSpy(self.proc.images_loaded)
         with mock.patch(CORE+'find_image', return_value=self.found_images):
             self.proc._find_images()
 
         self.assertEqual(len(spy), 0)
 
-    def test_emit_empty_image_groups_if_size_filter_and_too_big_height(self):
+    def test_emit_empty_finished_if_size_filter_and_too_big_height(self):
         self.conf['filter_img_size'] = True
         self.mock_image.height = 11
-        spy = QtTest.QSignalSpy(self.proc.image_groups)
+        spy = QtTest.QSignalSpy(self.proc.finished)
         with mock.patch(CORE+'find_image', return_value=self.found_images):
             self.proc._find_images()
 
@@ -284,9 +282,9 @@ class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
 
         self.assertSetEqual(res, set())
 
-    def test_emit_empty_image_groups_signal_if_images_not_found(self):
+    def test_emit_empty_finished_signal_if_images_not_found(self):
         found_images = (img for img in [])
-        spy = QtTest.QSignalSpy(self.proc.image_groups)
+        spy = QtTest.QSignalSpy(self.proc.finished)
         with mock.patch(CORE+'find_image', return_value=found_images):
             self.proc._find_images()
 
@@ -368,13 +366,12 @@ class TestMethodCheckCache(TestClassImageProcessing):
 
         self.assertEqual(self.mock_img1.dhash, 'hash')
 
-    def test_emit_update_label_with_found_in_cache_and_len_cache_args(self):
-        spy = QtTest.QSignalSpy(self.proc.update_label)
+    def test_emit_found_in_cache_with_found_in_cache_images_number_arg(self):
+        spy = QtTest.QSignalSpy(self.proc.found_in_cache)
         self.proc._check_cache(self.paths, self.cache)
 
         self.assertEqual(len(spy), 1)
-        self.assertEqual(spy[0][0], 'found_in_cache')
-        self.assertEqual(spy[0][1], '1')
+        self.assertEqual(spy[0][0], 1)
 
     def test_update_progressbar_called_with_35_if_there_arent_not_cached(self):
         paths = self.paths[:1]
@@ -428,13 +425,13 @@ class TestClassImageProcessingMethodCalculateHashes(TestClassImageProcessing):
 
         self.assertListEqual(res, self.images)
 
-    def test_emit_update_label_with_calculated_images_number(self):
-        spy = QtTest.QSignalSpy(self.proc.update_label)
+    def test_emit_hashes_calculated_with_calculated_hashes_number_arg(self):
+        spy = QtTest.QSignalSpy(self.proc.hashes_calculated)
         with mock.patch(PROCESSING+'Pool', return_value=self.mock_Pool):
             self.proc._calculate_hashes(self.images)
 
-        self.assertEqual(spy[0][0], 'calculated')
-        self.assertEqual(spy[0][1], '1')
+        self.assertEqual(len(spy), 1)
+        self.assertEqual(spy[0][0], 1)
 
     def test_update_progressbar_called_with_current_value_plus_step(self):
         self.proc._progressbar_value = 2
@@ -527,9 +524,9 @@ class TestClassImageProcessingMethodImageGrouping(TestClassImageProcessing):
         mock_group_call.assert_called_once_with(self.images,
                                                 self.conf['sensitivity'])
 
-    def test_emit_image_groups_signal_with_found_groups_arg(self):
+    def test_emit_finished_signal_with_found_groups_arg(self):
         gen = (gs for gs in [self.groups])
-        spy = QtTest.QSignalSpy(self.proc.image_groups)
+        spy = QtTest.QSignalSpy(self.proc.finished)
         with mock.patch(CORE+'image_grouping', return_value=gen):
             self.proc._image_grouping(self.images)
 
@@ -545,25 +542,30 @@ class TestClassImageProcessingMethodImageGrouping(TestClassImageProcessing):
 
         self.assertEqual(len(spy), 1)
 
-    def test_not_emit_image_groups_signal_if_attr_interrupted_is_True(self):
+    def test_not_emit_finished_signal_if_attr_interrupted_is_True(self):
         self.proc._interrupted = True
         gen = (gs for gs in [self.groups])
-        spy = QtTest.QSignalSpy(self.proc.image_groups)
+        spy = QtTest.QSignalSpy(self.proc.finished)
         with mock.patch(CORE+'image_grouping', return_value=gen):
             self.proc._image_grouping(self.images)
 
         self.assertEqual(len(spy), 0)
 
-    def test_emit_update_label_signal_with_duplicates_and_groups_args(self):
+    def test_emit_duplicates_found_signal_with_duplicates_found_num_arg(self):
         gen = (gs for gs in [self.groups])
-        spy = QtTest.QSignalSpy(self.proc.update_label)
+        spy = QtTest.QSignalSpy(self.proc.duplicates_found)
         with mock.patch(CORE+'image_grouping', return_value=gen):
             self.proc._image_grouping(self.images)
 
-        self.assertEqual(spy[0][0], 'duplicates')
-        self.assertEqual(spy[0][1], '2')
-        self.assertEqual(spy[1][0], 'image_groups')
-        self.assertEqual(spy[1][1], '1')
+        self.assertEqual(spy[0][0], 2)
+
+    def test_emit_groups_found_signal_with_duplicate_groups_found_arg(self):
+        gen = (gs for gs in [self.groups])
+        spy = QtTest.QSignalSpy(self.proc.groups_found)
+        with mock.patch(CORE+'image_grouping', return_value=gen):
+            self.proc._image_grouping(self.images)
+
+        self.assertEqual(spy[0][0], 1)
 
     def test_update_progress_bar_called_with_65(self):
         self.proc._progressbar_value = 30
