@@ -42,3 +42,15 @@ class MenuBar(QtWidgets.QMenuBar):
 
         docs_url = 'https://github.com/oratosquilla-oratoria/doppelganger'
         webbrowser.open(docs_url)
+
+    def _autoSelectAction(self) -> QtWidgets.QAction:
+        # Since we use Qt Designer to make the GUI and then load .ui file,
+        # the menubar actions' parent is the MainWindow and not the menubar.
+        # The menubar's parent is also the MainWindow (same reason)
+        return self.parent().autoSelectAction
+
+    def enableAutoSelectAction(self) -> None:
+        self._autoSelectAction().setEnabled(True)
+
+    def disableAutoSelectAction(self) -> None:
+        self._autoSelectAction().setEnabled(False)
