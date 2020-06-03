@@ -57,7 +57,8 @@ class TestMethodDefault(TestClassConfig):
             'min_height': 0,
             'max_height': 1000000,
             'cores': os.cpu_count() or 1,
-            'lazy': False
+            'lazy': False,
+            'sensitivity': 0
         }
         self.c._default()
 

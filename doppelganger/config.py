@@ -57,7 +57,9 @@ class Config(UserDict):
         max_height: int - if "filter_img_size" is True, the max height
                           of images,
         cores: int - number of CPU cores to use,
-        lazy: bool - use lazy thumbnail loading (or not).
+        lazy: bool - use lazy thumbnail loading (or not),
+        sensitivity: int - threshold used when images are compared to find out
+                           whether they are similar or not
 
     The dictionary is kept in the attribute "data"
     '''
@@ -79,7 +81,8 @@ class Config(UserDict):
             'min_height': 0,
             'max_height': 1000000,
             'cores': os.cpu_count() or 1,
-            'lazy': False
+            'lazy': False,
+            'sensitivity': 0
         }
 
         self.data = DEFAULT_CONFIG.copy() # pylint: disable=attribute-defined-outside-init
