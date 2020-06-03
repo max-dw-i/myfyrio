@@ -17,7 +17,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 import logging
-import multiprocessing
+from multiprocessing import pool
 from unittest import TestCase, mock
 
 from PyQt5 import QtGui, QtTest, QtWidgets
@@ -113,7 +113,7 @@ class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
     def setUp(self):
         super().setUp()
 
-        self.mock_image = mock.Mock(autospec=core.Image)
+        self.mock_image = mock.Mock(spec=core.Image)
         self.mock_image.width = 5
         self.mock_image.height = 5
         self.found_images = (img for img in [self.mock_image])
@@ -302,7 +302,7 @@ class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
 class TestClassImageProcessingMethodLoadCache(TestClassImageProcessing):
 
     def test_load_called_with_cache_file_path(self):
-        mock_cache = mock.Mock(autospec=cache.Cache)
+        mock_cache = mock.Mock(spec=cache.Cache)
         with mock.patch(PROCESSING+'Cache', return_value=mock_cache):
             self.proc._load_cache()
 
@@ -311,7 +311,7 @@ class TestClassImageProcessingMethodLoadCache(TestClassImageProcessing):
         )
 
     def test_return_Cache_object(self):
-        mock_cache = mock.Mock(autospec=cache.Cache)
+        mock_cache = mock.Mock(spec=cache.Cache)
         with mock.patch(PROCESSING+'Cache', return_value=mock_cache):
             res = self.proc._load_cache()
 
@@ -348,9 +348,9 @@ class TestMethodCheckCache(TestClassImageProcessing):
     def setUp(self):
         super().setUp()
 
-        self.mock_img1 = mock.Mock(autospec=core.Image)
+        self.mock_img1 = mock.Mock(spec=core.Image)
         self.mock_img1.path = 'path'
-        self.mock_img2 = mock.Mock(autospec=core.Image)
+        self.mock_img2 = mock.Mock(spec=core.Image)
         self.mock_img2.path = 'path_not_in_cache'
         self.paths = [self.mock_img1, self.mock_img2]
         self.cache = {'path': 'hash'}
@@ -394,10 +394,10 @@ class TestClassImageProcessingMethodCalculateHashes(TestClassImageProcessing):
     def setUp(self):
         super().setUp()
 
-        mock_img = mock.Mock(autospec=core.Image)
+        mock_img = mock.Mock(spec=core.Image)
         self.images = [mock_img]
 
-        self.mock_Pool = mock.MagicMock(autospec=multiprocessing.Pool)
+        self.mock_Pool = mock.MagicMock(spec=pool.Pool)
         self.mock_context_obj = mock.Mock()
         self.mock_Pool.__enter__.return_value = self.mock_context_obj
         imap_return = (h for h in self.images)
@@ -459,9 +459,9 @@ class TestClassImageProcessingMethodUpdateCache(TestClassImageProcessing):
     def setUp(self):
         super().setUp()
 
-        self.mock_cache = mock.MagicMock(autospec=cache.Cache)
+        self.mock_cache = mock.MagicMock(spec=cache.Cache)
 
-        self.mock_image = mock.Mock(autospec=core.Image)
+        self.mock_image = mock.Mock(spec=core.Image)
         self.mock_image.path = 'path'
         self.mock_image.dhash = 'hash'
         self.images = [self.mock_image]
@@ -585,7 +585,7 @@ class TestClassImageProcessingMethodAvailableCores(TestClassImageProcessing):
     def setUp(self):
         super().setUp()
 
-        self.mock_sched = mock.MagicMock(autospec=set)
+        self.mock_sched = mock.MagicMock(spec=set)
         self.mock_sched.__len__.return_value = 1
 
     def test_sched_getaffinity_called_with_0(self):
@@ -633,7 +633,7 @@ class TestClassImageProcessingMetodUpdateProgressbar(TestClassImageProcessing):
 class TestClassThumbnailProcessing(TestCase):
 
     def setUp(self):
-        self.mock_image = mock.Mock(autospec=core.Image)
+        self.mock_image = mock.Mock(spec=core.Image)
         self.mock_image.thumb = None
         self.size = 200
 
@@ -674,7 +674,7 @@ class TestClassThumbnailProcessingMethodRun(TestClassThumbnailProcessing):
         self.assertEqual(len(spy), 1)
 
     def test_thumbnail_called_with_size_arg_if_widg_not_None_and_visible(self):
-        widget = mock.Mock(autospec=imageviewwidget.ThumbnailWidget)
+        widget = mock.Mock(spec=imageviewwidget.ThumbnailWidget)
         widget.isVisible.return_value = True
         self.proc._widget = widget
         self.mock_image.thumbnail.return_value = QtGui.QImage()
@@ -683,7 +683,7 @@ class TestClassThumbnailProcessingMethodRun(TestClassThumbnailProcessing):
         self.mock_image.thumbnail.assert_called_once_with(self.size)
 
     def test_logging_if_OSError_and_widget_not_None_and_visible(self):
-        widget = mock.Mock(autospec=imageviewwidget.ThumbnailWidget)
+        widget = mock.Mock(spec=imageviewwidget.ThumbnailWidget)
         widget.isVisible.return_value = True
         self.proc._widget = widget
         self.mock_image.thumbnail.side_effect = OSError
@@ -691,7 +691,7 @@ class TestClassThumbnailProcessingMethodRun(TestClassThumbnailProcessing):
             self.proc.run()
 
     def test_empty_QImage_set_to_thumb_if_OSError_widg_not_None_and_vis(self):
-        widget = mock.Mock(autospec=imageviewwidget.ThumbnailWidget)
+        widget = mock.Mock(spec=imageviewwidget.ThumbnailWidget)
         widget.isVisible.return_value = True
         self.proc._widget = widget
         self.mock_image.thumbnail.side_effect = OSError
@@ -700,7 +700,7 @@ class TestClassThumbnailProcessingMethodRun(TestClassThumbnailProcessing):
         self.assertEqual(self.proc._image.thumb, QtGui.QImage())
 
     def test_signal_finished_emitted_if_widget_not_None_and_visible(self):
-        widget = mock.Mock(autospec=imageviewwidget.ThumbnailWidget)
+        widget = mock.Mock(spec=imageviewwidget.ThumbnailWidget)
         widget.isVisible.return_value = True
         self.proc._widget = widget
         spy = QtTest.QSignalSpy(self.proc.finished)
@@ -709,7 +709,7 @@ class TestClassThumbnailProcessingMethodRun(TestClassThumbnailProcessing):
         self.assertEqual(len(spy), 1)
 
     def test_thumbnail_not_called_with_size_arg_if_widg_not_None_not_vis(self):
-        widget = mock.Mock(autospec=imageviewwidget.ThumbnailWidget)
+        widget = mock.Mock(spec=imageviewwidget.ThumbnailWidget)
         widget.isVisible.return_value = False
         self.proc._widget = widget
         self.mock_image.thumbnail.return_value = QtGui.QImage()
@@ -718,7 +718,7 @@ class TestClassThumbnailProcessingMethodRun(TestClassThumbnailProcessing):
         self.mock_image.thumbnail.assert_not_called()
 
     def test_empty_QImage_not_to_thumb_if_OSError_widg_not_None_not_vis(self):
-        widget = mock.Mock(autospec=imageviewwidget.ThumbnailWidget)
+        widget = mock.Mock(spec=imageviewwidget.ThumbnailWidget)
         widget.isVisible.return_value = False
         self.proc._widget = widget
         self.mock_image.thumbnail.side_effect = OSError
@@ -727,7 +727,7 @@ class TestClassThumbnailProcessingMethodRun(TestClassThumbnailProcessing):
         self.assertIsNone(self.proc._image.thumb)
 
     def test_signal_finished_not_emitted_if_widget_not_None_and_not_vis(self):
-        widget = mock.Mock(autospec=imageviewwidget.ThumbnailWidget)
+        widget = mock.Mock(spec=imageviewwidget.ThumbnailWidget)
         widget.isVisible.return_value = False
         self.proc._widget = widget
         spy = QtTest.QSignalSpy(self.proc.finished)
