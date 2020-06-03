@@ -33,7 +33,7 @@ CORE = 'doppelganger.core.'
 class TestFuncFindImage(TestCase):
 
     def setUp(self):
-        self.mock_path = mock.Mock(autospec=Path)
+        self.mock_path = mock.Mock(spec=Path)
 
     def test_return_nothing_if_pass_empty_folders_list(self):
         paths = list(core.find_image([]))
@@ -64,7 +64,7 @@ class TestFuncFindImage(TestCase):
 
     def test_return_nothing_if_path_isnt_file(self):
         self.mock_path.exists.return_value = True
-        image_path = mock.Mock(autospec=Path)
+        image_path = mock.Mock(spec=Path)
         image_path.is_file.return_value = False
         self.mock_path.glob.return_value = [image_path]
         with mock.patch(CORE+'Path', return_value=self.mock_path):
@@ -74,7 +74,7 @@ class TestFuncFindImage(TestCase):
 
     def test_return_nothing_if_path_is_file_but_wrong_suffix(self):
         self.mock_path.exists.return_value = True
-        image_path = mock.Mock(autospec=Path)
+        image_path = mock.Mock(spec=Path)
         image_path.is_file.return_value = True
         image_path.suffix = '.www'
         self.mock_path.glob.return_value = [image_path]
@@ -85,7 +85,7 @@ class TestFuncFindImage(TestCase):
 
     def test_return_proper_Image_obj(self):
         self.mock_path.exists.return_value = True
-        image_path = mock.MagicMock(autospec=Path)
+        image_path = mock.MagicMock(spec=Path)
         image_path.is_file.return_value = True
         image_path.suffix = '.png'
         image_path.__str__.return_value = 'img_path'
@@ -100,9 +100,9 @@ class TestFuncFindImage(TestCase):
 class TestFuncImageGrouping(TestCase):
 
     def setUp(self):
-        self.image1 = mock.Mock(autospec=core.Image)
+        self.image1 = mock.Mock(spec=core.Image)
         self.image1.hash = 0
-        self.image2 = mock.Mock(autospec=core.Image)
+        self.image2 = mock.Mock(spec=core.Image)
         self.image2.hash = 1
         self.images = [self.image1, self.image2]
         self.tree = 'bktree'
@@ -151,8 +151,8 @@ class TestFuncImageGrouping(TestCase):
         mock_group.assert_not_called()
 
     def test_return_if_image_and_closest_not_in_checked(self):
-        closest1 = (17, mock.Mock(autospec=core.Image))
-        closest2 = (19, mock.Mock(autospec=core.Image))
+        closest1 = (17, mock.Mock(spec=core.Image))
+        closest2 = (19, mock.Mock(spec=core.Image))
         with mock.patch('pybktree.BKTree', return_value=self.tree):
             with mock.patch(CORE+'_closest', side_effect=[closest1, closest2]):
                 res = list(core.image_grouping(self.images, 0))
@@ -162,7 +162,7 @@ class TestFuncImageGrouping(TestCase):
 
     def test_return_if_image_in_checked_and_closest_not_in_checked(self):
         closest1 = (17, self.image2)
-        closest2 = (19, mock.Mock(autospec=core.Image))
+        closest2 = (19, mock.Mock(spec=core.Image))
         closest2[1].hash = 2
         with mock.patch('pybktree.BKTree', return_value=self.tree):
             with mock.patch(CORE+'_closest', side_effect=[closest1, closest2]):
@@ -172,7 +172,7 @@ class TestFuncImageGrouping(TestCase):
                                         closest2[1]]])
 
     def test_return_if_image_not_in_checked_and_closest_in_checked(self):
-        closest1 = (17, mock.Mock(autospec=core.Image))
+        closest1 = (17, mock.Mock(spec=core.Image))
         closest2 = (19, self.image1)
         closest1[1].hash = 2
         with mock.patch('pybktree.BKTree', return_value=self.tree):
@@ -186,8 +186,8 @@ class TestFuncImageGrouping(TestCase):
 class TestFuncClosest(TestCase):
 
     def setUp(self):
-        self.mock_tree = mock.Mock(autospec=BKTree)
-        self.mock_image = mock.Mock(autospec=core.Image)
+        self.mock_tree = mock.Mock(spec=BKTree)
+        self.mock_image = mock.Mock(spec=core.Image)
         self.mock_tree.find.return_value = [(0, self.mock_image)]
         self.sensitivity = 0
 
@@ -222,12 +222,12 @@ class TestFuncClosest(TestCase):
 class TestFuncAddImgToExistingGroup(TestCase):
 
     def setUp(self):
-        self.mock_image = mock.Mock(autospec=core.Image)
+        self.mock_image = mock.Mock(spec=core.Image)
         self.mock_image.hash = 235
         self.checked = {self.mock_image: 0}
         self.image_groups = [[self.mock_image]]
 
-        self.mock_img_not_in = mock.Mock(autospec=core.Image)
+        self.mock_img_not_in = mock.Mock(spec=core.Image)
         self.mock_img_not_in.hash = 487
 
     def test_image_added_to_proper_group(self):
@@ -256,8 +256,8 @@ class TestFuncAddImgToExistingGroup(TestCase):
 class TestFuncAddNewGroup(TestCase):
 
     def setUp(self):
-        self.mock_main_image = mock.Mock(autospec=core.Image)
-        self.mock_closest_img = mock.Mock(autospec=core.Image)
+        self.mock_main_image = mock.Mock(spec=core.Image)
+        self.mock_closest_img = mock.Mock(spec=core.Image)
         self.checked = {}
         self.image_groups = []
         self.distance = 888
@@ -296,7 +296,7 @@ class TestMethodCalculateDhash(TestClassImage):
     def setUp(self):
         super().setUp()
 
-        self.mock_qimage = mock.Mock(autospec=QtGui.QImage)
+        self.mock_qimage = mock.Mock(spec=QtGui.QImage)
 
     def test_Image_scaled_called_with_size_9(self):
         with mock.patch(CORE+'Image.scaled') as mock_scaled:
@@ -446,9 +446,9 @@ class TestMethodScaled(TestClassImage):
         self.height = 2
 
         self.QIR = 'PyQt5.QtGui.QImageReader'
-        self.reader = mock.Mock(autospec=QtGui.QImageReader)
+        self.reader = mock.Mock(spec=QtGui.QImageReader)
         self.reader.canRead.return_value = True
-        self.qimage = mock.Mock(autospec=QtGui.QImage)
+        self.qimage = mock.Mock(spec=QtGui.QImage)
         self.qimage.isNull.return_value = False
         self.reader.read.return_value = self.qimage
 
@@ -494,8 +494,8 @@ class TestMethodSetDimensions(TestClassImage):
     def test_width_and_height_assigned_to_proper_attrs(self):
         width = 333
         height = 444
-        mock_qimg = mock.Mock(autospec=QtGui.QImage)
-        mock_qsize = mock.Mock(autospec=QtCore.QSize)
+        mock_qimg = mock.Mock(spec=QtGui.QImage)
+        mock_qsize = mock.Mock(spec=QtCore.QSize)
         mock_qimg.size.return_value = mock_qsize
         mock_qsize.width.return_value = width
         mock_qsize.height.return_value = height
@@ -623,7 +623,7 @@ class TestMethodMove(TestClassImage):
     @mock.patch('os.rename')
     def test_what_args_is_Path_called_with(self, mock_move):
         new_dst = 'new_dst'
-        mock_path = mock.MagicMock(autospec=Path)
+        mock_path = mock.MagicMock(spec=Path)
         calls = [mock.call(self.image.path), mock.call(new_dst)]
         with mock.patch(CORE+'Path', return_value=mock_path) as mock_Path_call:
             self.image.move(new_dst)
@@ -634,7 +634,7 @@ class TestMethodMove(TestClassImage):
     def test_move_called_with_image_path_and_new_path_args(self, mock_move):
         dst = 'new_dst'
         new_path = dst + '/' + self.image.path
-        mock_path = mock.MagicMock(autospec=Path)
+        mock_path = mock.MagicMock(spec=Path)
         mock_path.__truediv__.return_value = new_path
         with mock.patch(CORE+'Path', return_value=mock_path):
             self.image.move(dst)
@@ -648,7 +648,7 @@ class TestMethodRename(TestClassImage):
         super().setUp()
 
         self.new_name = 'new_name.png'
-        self.mock_path = mock.MagicMock(autospec=Path)
+        self.mock_path = mock.MagicMock(spec=Path)
         self.mock_path.parent.__truediv__.return_value = self.new_name
 
     def test_rename_called_with_new_name_arg(self):
@@ -675,7 +675,7 @@ class TestMethodDelParentDir(TestClassImage):
     def setUp(self):
         super().setUp()
 
-        self.mock_path = mock.Mock(autospec=Path)
+        self.mock_path = mock.Mock(spec=Path)
         self.mock_path.parent.glob.return_value = []
 
     def test_Path_called_with_image_path_arg(self):
