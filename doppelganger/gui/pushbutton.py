@@ -34,3 +34,47 @@ class PushButton(QtWidgets.QPushButton):
 
     def disable(self) -> None:
         self.setEnabled(False)
+
+
+class StartButton(PushButton):
+    '''Special widget for the button "Start" since the button state depends on
+    whether there are any paths in the "pathsList" widget or not
+    '''
+
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__(parent=parent)
+
+        self._run = False
+        self._paths = False
+
+    def started(self) -> None:
+        '''Run when the "Start" button has been pressed. Disable the button'''
+
+        super().disable()
+        self._run = True
+
+    def finished(self) -> None:
+        '''Run when the image processing has been finished. Enable the button
+        if there are any paths in the "pathsList" widget
+        '''
+
+        if self._paths:
+            super().enable()
+
+        self._run = False
+
+    def switch(self, paths: bool) -> None:
+        '''Connect to the "hasItems" signal of the "pathsList" widget.
+        Enable the button if there are any paths in the "pathsList" widget
+        and image processing is not in progress, disable - there are no paths
+        in the "pathsList" widget and image processing is not in progress.
+        If image processing is in progress, do nothing
+        '''
+
+        self._paths = paths
+
+        if not self._run:
+            if paths:
+                super().enable()
+            else:
+                super().disable()
