@@ -69,9 +69,7 @@ class ImageProcessing(QtCore.QObject):
     :param folders:             folders to search for images in,
     :param sensitivity:         images are considered similar if the difference
                                 between their hashes is at most this value,
-    :param conf:                "Config" object with the programme's settings
-                                extended with the additional parameter
-                                "sensitivity"
+    :param conf:                "Config" object with the programme's settings,
 
     :signal images_loaded:      number of the found in the :folders:
                                 images: int, emitted when a new image is found,
