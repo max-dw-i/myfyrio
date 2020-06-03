@@ -45,12 +45,8 @@ class UI(Resource):
     '''Enum class representing .ui files and the paths to them'''
 
     ABOUT = 'doppelganger/static/ui/aboutwindow.ui'
-    ACTIONS = 'doppelganger/static/ui/actionsgroupbox.ui'
     MAIN = 'doppelganger/static/ui/mainwindow.ui'
-    PATHS = 'doppelganger/static/ui/pathsgroupbox.ui'
     PREFERENCES = 'doppelganger/static/ui/preferenceswindow.ui'
-    PROCESSING = 'doppelganger/static/ui/processinggroupbox.ui'
-    SENSITIVITY = 'doppelganger/static/ui/sensitivitygroupbox.ui'
 
 
 class Image(Resource):
