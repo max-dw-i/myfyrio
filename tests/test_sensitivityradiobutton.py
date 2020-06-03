@@ -31,7 +31,49 @@ if app is None:
 # pylint: disable=missing-class-docstring
 
 
-SensRBtn = 'doppelganger.gui.sensitivityradiobutton.SensitivityRadioButton.'
+SRBtn_MODULE = 'doppelganger.gui.sensitivityradiobutton.'
+
+
+class TestFuncCheckedRadioButton(TestCase):
+
+    def setUp(self):
+        self.w = mock.Mock(spec=QtWidgets.QWidget)
+        self.btn1 = mock.Mock(
+            spec=sensitivityradiobutton.SensitivityRadioButton
+        )
+        self.btn1.isChecked.return_value = False
+        self.btn2 = mock.Mock(
+            spec=sensitivityradiobutton.SensitivityRadioButton
+        )
+        self.btn2.isChecked.return_value = True
+        self.w.findChildren.return_value = [self.btn1, self.btn2]
+
+    def test_findChildren_called_with_SensitivityRadioButton_arg(self):
+        sensitivityradiobutton.checkedRadioButton(self.w)
+
+        self.w.findChildren.assert_called_once_with(
+            sensitivityradiobutton.SensitivityRadioButton
+        )
+
+    def test_raise_ValueError_if_buttons_not_found(self):
+        self.w.findChildren.return_value = []
+        with self.assertRaises(ValueError):
+            sensitivityradiobutton.checkedRadioButton(self.w)
+
+    def test_raise_ValueError_if_checked_more_than_one(self):
+        self.btn1.isChecked.return_value = True
+        with self.assertRaises(ValueError):
+            sensitivityradiobutton.checkedRadioButton(self.w)
+
+    def test_raise_ValueError_if_none_checked(self):
+        self.btn2.isChecked.return_value = False
+        with self.assertRaises(ValueError):
+            sensitivityradiobutton.checkedRadioButton(self.w)
+
+    def test_return_checked_button(self):
+        res = sensitivityradiobutton.checkedRadioButton(self.w)
+
+        self.assertEqual(res, self.btn2)
 
 
 class TestClassSensitivityRBtn(TestCase):
@@ -46,7 +88,8 @@ class TestClassSensitivityRBtnMethodInit(TestClassSensitivityRBtn):
         self.assertEqual(self.w.sensitivity, 0)
 
     def test_setSignals_called(self):
-        with mock.patch(SensRBtn+'_setSignals') as mock_signals_call:
+        PATCH_SIGNAL = SRBtn_MODULE + 'SensitivityRadioButton._setSignals'
+        with mock.patch(PATCH_SIGNAL) as mock_signals_call:
             sensitivityradiobutton.SensitivityRadioButton()
 
         mock_signals_call.assert_called_once_with()

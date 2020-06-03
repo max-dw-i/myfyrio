@@ -21,7 +21,43 @@ Module implementing radio buttons setting the sensitivity of duplicate image
 search
 '''
 
+from __future__ import annotations
+
 from PyQt5 import QtCore, QtWidgets
+
+
+def checkedRadioButton(widget: QtWidgets.QWidget) -> SensitivityRadioButton:
+    '''Find and return the checked sensitivity radio button
+
+    :param widget: widget to search for the radio button in,
+    :return: checked SensitivityRadioButton,
+    :raise ValueError: :widget: does not contain any SensitivityRadioButton,
+                       does not contain any checked SensitivityRadioButton
+                       or contains more than one SensitivityRadioButton
+    '''
+
+    buttons = widget.findChildren(SensitivityRadioButton)
+    if not buttons:
+        err_msg = ('The passed widget does not contain '
+                   'any SensitivityRadioButton')
+        raise ValueError(err_msg)
+
+    checked = None
+    for btn in buttons:
+        if btn.isChecked():
+            if checked is not None:
+                err_msg = ('The passed widget contains more than one '
+                           'checked SensitivityRadioButton')
+                raise ValueError(err_msg)
+
+            checked = btn
+
+    if checked is None:
+        err_msg = ('The passed widget does not contain '
+                   'any checked SensitivityRadioButton')
+        raise ValueError(err_msg)
+
+    return checked
 
 
 class SensitivityRadioButton(QtWidgets.QRadioButton):
