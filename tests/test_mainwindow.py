@@ -20,600 +20,793 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
 
-from doppelganger.gui import aboutwindow, mainwindow, preferenceswindow
+from doppelganger import workers
+from doppelganger.gui import (aboutwindow, imageviewwidget, mainwindow,
+                              pathslistwidget, preferenceswindow, pushbutton,
+                              sensitivityradiobutton)
 
 # Check if there's QApplication instance already
 app = QtWidgets.QApplication.instance()
 if app is None:
     app = QtWidgets.QApplication([])
 
-
-MAIN_WINDOW = 'doppelganger.gui.mainwindow.'
-IMAGE_VIEW_WIDGET = 'doppelganger.gui.imageviewwidget.'
-PROC_GRP_BOX = 'doppelganger.gui.processinggroupbox.'
+MW_MODULE = 'doppelganger.gui.mainwindow.'
+WORKERS_MODULE = 'doppelganger.workers.'
 
 
-# pylint: disable=unused-argument,missing-class-docstring
+# pylint: disable=missing-class-docstring
 
 
-class TestMainForm(TestCase):
+class TestMainWindow(TestCase):
 
-    MW = MAIN_WINDOW + 'MainWindow.'
+    MW = MW_MODULE + 'MainWindow.'
 
     @classmethod
     def setUpClass(cls):
-        cls.w = mainwindow.MainWindow()
+        cls.mw = mainwindow.MainWindow()
 
 
-class TestMainFormMethodInit(TestMainForm):
+class TestMainWindowMethodInit(TestMainWindow):
 
     def test_init_values(self):
-        self.assertIsInstance(self.w.aboutWindow, aboutwindow.AboutWindow)
-        self.assertIsInstance(self.w.preferencesWindow,
+        self.assertIsInstance(self.mw.aboutWindow, aboutwindow.AboutWindow)
+        self.assertIsInstance(self.mw.preferencesWindow,
                               preferenceswindow.PreferencesWindow)
-        self.assertIsInstance(self.w.threadpool, QtCore.QThreadPool)
+        self.assertIsInstance(self.mw.threadpool, QtCore.QThreadPool)
+        self.assertEqual(self.mw.verticalLayout.contentsMargins().top(), 9)
+        self.assertEqual(self.mw.verticalLayout.contentsMargins().bottom(), 9)
+        self.assertEqual(self.mw.verticalLayout.contentsMargins().right(), 9)
+        self.assertEqual(self.mw.verticalLayout.contentsMargins().left(), 9)
 
-        self.assertFalse(self.w.image_processing)
-        self.assertFalse(self.w.widgets_processing)
+    def test_enabled_by_default_actions(self):
+        self.assertTrue(self.mw.addFolderAction.isEnabled())
 
+    def test_enabled_by_default_buttons(self):
+        self.assertTrue(self.mw.addFolderBtn.isEnabled())
 
-class TestMainFormMethodSwitchDelFolderAction(TestMainForm):
+    def test_disabled_by_default_actions(self):
+        self.assertFalse(self.mw.delFolderAction.isEnabled())
+        self.assertFalse(self.mw.moveAction.isEnabled())
+        self.assertFalse(self.mw.deleteAction.isEnabled())
+        self.assertFalse(self.mw.autoSelectAction.isEnabled())
+        self.assertFalse(self.mw.unselectAction.isEnabled())
 
-    PATCH_SELECETED = 'PyQt5.QtWidgets.QListWidget.selectedItems'
+    def test_disabled_by_default_buttons(self):
+        self.assertFalse(self.mw.delFolderBtn.isEnabled())
+        self.assertFalse(self.mw.moveBtn.isEnabled())
+        self.assertFalse(self.mw.deleteBtn.isEnabled())
+        self.assertFalse(self.mw.autoSelectBtn.isEnabled())
+        self.assertFalse(self.mw.unselectBtn.isEnabled())
+        self.assertFalse(self.mw.startBtn.isEnabled())
+        self.assertFalse(self.mw.stopBtn.isEnabled())
 
-    def test_delFolderAction_enabled_if_there_are_selected_paths(self):
-        self.w.delFolderAction.setEnabled(False)
-        with mock.patch(self.PATCH_SELECETED, return_value=True):
-            self.w.switchDelFolderAction()
+    def test_sensitivity_radio_buttons_check_and_not_checked_by_default(self):
+        self.assertTrue(self.mw.veryHighRbtn.isChecked())
+        self.assertFalse(self.mw.highRbtn.isChecked())
+        self.assertFalse(self.mw.mediumRbtn.isChecked())
+        self.assertFalse(self.mw.lowRbtn.isChecked())
+        self.assertFalse(self.mw.veryLowRbtn.isChecked())
 
-        self.assertTrue(self.w.delFolderAction.isEnabled())
+    def test_pathsList_is_empty_by_default(self):
+        self.assertListEqual(self.mw.pathsList.paths(), [])
 
-    def test_delFolderAction_disabled_if_there_arent_selected_paths(self):
-        self.w.delFolderAction.setEnabled(True)
-        with mock.patch(self.PATCH_SELECETED, return_value=False):
-            self.w.switchDelFolderAction()
+    def test_processProg_set_to_0_by_default(self):
+        self.assertEqual(self.mw.processProg.value(), 0)
 
-        self.assertFalse(self.w.delFolderAction.isEnabled())
-
-
-class TestMainFormMethodSwitchStartBtn(TestMainForm):
-
-    PATCH_COUNT = 'PyQt5.QtWidgets.QListWidget.count'
-
-    def test_startBtn_enabled_if_there_are_paths_and_not_processing_run(self):
-        self.w.processingGrp.startBtn.setEnabled(False)
-        self.w.image_processing = False
-        self.w.widgets_processing = False
-        with mock.patch(self.PATCH_COUNT, return_value=1):
-            self.w.switchStartBtn()
-
-        self.assertTrue(self.w.processingGrp.startBtn.isEnabled())
-
-    def test_startBtn_disabled_if_there_are_paths_and_not_image_process(self):
-        self.w.processingGrp.startBtn.setEnabled(False)
-        self.w.image_processing = True
-        with mock.patch(self.PATCH_COUNT, return_value=1):
-            self.w.switchStartBtn()
-
-        self.assertFalse(self.w.processingGrp.startBtn.isEnabled())
-
-    def test_startBtn_disabled_if_there_are_paths_and_not_widget_process(self):
-        self.w.processingGrp.startBtn.setEnabled(False)
-        self.w.widgets_processing = True
-        with mock.patch(self.PATCH_COUNT, return_value=1):
-            self.w.switchStartBtn()
-
-        self.assertFalse(self.w.processingGrp.startBtn.isEnabled())
-
-    def test_startBtnn_disabled_if_there_are_no_paths(self):
-        self.w.processingGrp.startBtn.setEnabled(True)
-        with mock.patch(self.PATCH_COUNT, return_value=0):
-            self.w.switchStartBtn()
-
-        self.assertFalse(self.w.processingGrp.startBtn.isEnabled())
+    def test_processing_labels_numbers_are_0_by_default(self):
+        self.assertEqual(self.mw.loadedPicLbl.text()[-2:], ' 0')
+        self.assertEqual(self.mw.foundInCacheLbl.text()[-2:], ' 0')
+        self.assertEqual(self.mw.calculatedLbl.text()[-2:], ' 0')
+        self.assertEqual(self.mw.duplicatesLbl.text()[-2:], ' 0')
+        self.assertEqual(self.mw.groupsLbl.text()[-2:], ' 0')
 
 
-class TestMainFormMethodSetImageProcessingObj(TestMainForm):
-
-    PATCH_IMG_PROC = 'doppelganger.workers.ImageProcessing'
+class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
 
     def setUp(self):
-        super().setUp()
+        self.mock_IVW = mock.Mock(spec=imageviewwidget.ImageViewWidget)
+        self.mw.imageViewWidget = self.mock_IVW
 
-        self.w.preferencesWindow.conf['sensitivity'] = 0
+    def test_preferences_conf_assigned_to_attr_conf(self):
+        self.mw._setImageViewWidget()
 
-        self.mock_proc_obj = mock.Mock()
+        self.assertEqual(self.mw.imageViewWidget.conf,
+                         self.mw.preferencesWindow.conf)
 
-    def test_args_ImageProcessing_called_with(self):
-        with mock.patch(self.PATCH_IMG_PROC,
-                        return_value=self.mock_proc_obj) as mock_proc_call:
-            self.w._setImageProcessingObj()
+    def test_update_progressbar_signal_connected_to_processProg_setValue(self):
+        self.mw._setImageViewWidget()
 
-        mock_proc_call.assert_called_once_with(
-            self.w.pathsGrp.paths(),
-            self.w.preferencesWindow.conf
+        self.mock_IVW.update_progressbar.connect.assert_called_once_with(
+            self.mw.processProg.setValue
         )
 
-    def test_return_ImageProcessing_obj(self):
-        with mock.patch(self.PATCH_IMG_PROC, return_value=self.mock_proc_obj):
-            res = self.w._setImageProcessingObj()
+    def test_finished_signal_connected_to_5_slots(self):
+        self.mw._setImageViewWidget()
 
-        self.assertEqual(res, self.mock_proc_obj)
+        self.assertEqual(len(self.mock_IVW.finished.connect.call_args_list), 5)
+
+    def test_finished_signal_connected_to_processProg_setMaxValue(self):
+        self.mw._setImageViewWidget()
+
+        calls = [mock.call(self.mw.processProg.setMaxValue)]
+        self.mock_IVW.finished.connect.assert_has_calls(calls)
+
+    def test_finished_signal_connected_to_stopBtn_disable(self):
+        self.mw._setImageViewWidget()
+
+        calls = [mock.call(self.mw.stopBtn.disable)]
+        self.mock_IVW.finished.connect.assert_has_calls(calls)
+
+    def test_finished_signal_connected_to_startBtn_finished(self):
+        self.mw._setImageViewWidget()
+
+        calls = [mock.call(self.mw.startBtn.finished)]
+        self.mock_IVW.finished.connect.assert_has_calls(calls)
+
+    def test_finished_signal_connected_to_autoSelectBtn_enable(self):
+        self.mw._setImageViewWidget()
+
+        calls = [mock.call(self.mw.autoSelectBtn.enable)]
+        self.mock_IVW.finished.connect.assert_has_calls(calls)
+
+    def test_finished_signal_connected_to_menubar_enableAutoSelectAction(self):
+        self.mw._setImageViewWidget()
+
+        calls = [mock.call(self.mw.menubar.enableAutoSelectAction)]
+        self.mock_IVW.finished.connect.assert_has_calls(calls)
+
+    def test_interrupted_signal_connected_to_startBtn_finished(self):
+        self.mw._setImageViewWidget()
+
+        self.mock_IVW.interrupted.connect.assert_called_once_with(
+            self.mw.startBtn.finished
+        )
+
+    def test_test_hasSelected_signal_connected_to_6_slots(self):
+        self.mw._setImageViewWidget()
+
+        self.assertEqual(
+            len(self.mock_IVW.hasSelected.connect.call_args_list), 6
+        )
+
+    def test_hasSelected_signal_connected_to_moveBtn_setEnabled(self):
+        self.mw._setImageViewWidget()
+
+        calls = [mock.call(self.mw.moveBtn.setEnabled)]
+        self.mock_IVW.hasSelected.connect.assert_has_calls(calls)
+
+    def test_hasSelected_signal_connected_to_deleteBtn_setEnabled(self):
+        self.mw._setImageViewWidget()
+
+        calls = [mock.call(self.mw.deleteBtn.setEnabled)]
+        self.mock_IVW.hasSelected.connect.assert_has_calls(calls)
+
+    def test_hasSelected_signal_connected_to_unselectBtn_setEnabled(self):
+        self.mw._setImageViewWidget()
+
+        calls = [mock.call(self.mw.unselectBtn.setEnabled)]
+        self.mock_IVW.hasSelected.connect.assert_has_calls(calls)
+
+    def test_hasSelected_signal_connected_to_moveAction_setEnabled(self):
+        self.mw._setImageViewWidget()
+
+        calls = [mock.call(self.mw.moveAction.setEnabled)]
+        self.mock_IVW.hasSelected.connect.assert_has_calls(calls)
+
+    def test_hasSelected_signal_connected_to_deleteAction_setEnabled(self):
+        self.mw._setImageViewWidget()
+
+        calls = [mock.call(self.mw.deleteAction.setEnabled)]
+        self.mock_IVW.hasSelected.connect.assert_has_calls(calls)
+
+    def test_hasSelected_signal_connected_to_unselectAction_setEnabled(self):
+        self.mw._setImageViewWidget()
+
+        calls = [mock.call(self.mw.unselectAction.setEnabled)]
+        self.mock_IVW.hasSelected.connect.assert_has_calls(calls)
 
 
-class TestMainFormMethodStartProcessing(TestMainForm):
-
-    @mock.patch('PyQt5.QtCore.QThreadPool.start')
-    def test_attr_image_processing_set_to_True(self, mock_pool):
-        self.w.image_processing = False
-        self.w.startProcessing()
-
-        self.assertTrue(self.w.image_processing)
-
-    @mock.patch('PyQt5.QtCore.QThreadPool.start')
-    def test_imageviewwidget_attr_interrupted_set_to_False(self, mock_pool):
-        self.w.imageViewWidget.interrupted = True
-        self.w.startProcessing()
-
-        self.assertFalse(self.w.imageViewWidget.interrupted)
-
-    @mock.patch('PyQt5.QtCore.QThreadPool.start')
-    def test_ImageViewWidget_clear_called(self, mock_pool):
-        PATCH_CLEAR = IMAGE_VIEW_WIDGET + 'ImageViewWidget.clear'
-        with mock.patch(PATCH_CLEAR) as mock_clear:
-            self.w.startProcessing()
-
-        mock_clear.assert_called_once_with()
-
-    @mock.patch('PyQt5.QtCore.QThreadPool.start')
-    def test_autoSelectBtn_disabled(self, mock_pool):
-        self.w.actionsGrp.autoSelectBtn.setEnabled(True)
-        self.w.startProcessing()
-
-        self.assertFalse(self.w.actionsGrp.autoSelectBtn.isEnabled())
-
-    @mock.patch('PyQt5.QtCore.QThreadPool.start')
-    def test_autoSelectAction_disabled(self, mock_pool):
-        self.w.autoSelectAction.setEnabled(True)
-        self.w.startProcessing()
-
-        self.assertFalse(self.w.autoSelectAction.isEnabled())
-
-    @mock.patch('PyQt5.QtCore.QThreadPool.start')
-    def test_processinggroupbox_startProcessing_called(self, mock_pool):
-        PATCH_STARTPROC = PROC_GRP_BOX + 'ProcessingGroupBox.startProcessing'
-        with mock.patch(PATCH_STARTPROC) as mock_start_call:
-            self.w.startProcessing()
-
-        mock_start_call.assert_called_once_with()
-
-
-class TestMainFormMethodDisableStopBtn(TestMainForm):
-
-    def test_stopBtn_disabled(self):
-        self.w.disableStopBtn()
-
-        self.assertFalse(self.w.processingGrp.stopBtn.isEnabled())
-
-
-class TestMainFormMethodCloseEvent(TestMainForm):
+class TestMainWindowMethodSetFolderPathsGroupBox(TestMainWindow):
 
     def setUp(self):
-        super().setUp()
+        self.mock_paths = mock.Mock(spec=pathslistwidget.PathsListWidget)
+        self.mock_addBtn = mock.Mock(spec=QtWidgets.QPushButton)
+        self.mock_delBtn = mock.Mock(spec=QtWidgets.QPushButton)
 
-        self.mock_event = mock.Mock()
-        self.spy = QtTest.QSignalSpy(self.w.processingGrp.stopBtn.clicked)
+        self.mw.pathsList = self.mock_paths
+        self.mw.addFolderBtn = self.mock_addBtn
+        self.mw.delFolderBtn = self.mock_delBtn
 
-    def test_stopBtn_not_emitted_if_no_confirmation_and_no_stopBtn(self):
-        self.w.preferencesWindow.conf['close_confirmation'] = False
-        self.w.processingGrp.stopBtn.setEnabled(False)
+    def test_pathsList_hasSelection_signal_connected_to_2_slots(self):
+        self.mw._setFolderPathsGroupBox()
 
-        self.w.closeEvent(self.mock_event)
+        self.assertEqual(
+            len(self.mock_paths.hasSelection.connect.call_args_list), 2
+        )
 
-        self.assertEqual(len(self.spy), 0)
+    def test_pathsList_hasSelection_connected_to_delFolderBtn_setEnabled(self):
+        self.mw._setFolderPathsGroupBox()
 
-    def test_clearThreadpool_called_if_no_confirmation_and_no_stopBtn(self):
-        self.w.preferencesWindow.conf['close_confirmation'] = False
-        self.w.processingGrp.stopBtn.setEnabled(False)
+        calls = [mock.call(self.mw.delFolderBtn.setEnabled)]
+        self.mock_paths.hasSelection.connect.assert_has_calls(calls)
 
-        with mock.patch(self.MW+'_clearThreadpool') as mock_th_call:
-            self.w.closeEvent(self.mock_event)
+    def test_pathsList_hasSelection_connected_to_delFolderA_setEnabled(self):
+        self.mw._setFolderPathsGroupBox()
 
-        mock_th_call.assert_called_once_with()
+        calls = [mock.call(self.mw.delFolderAction.setEnabled)]
+        self.mock_paths.hasSelection.connect.assert_has_calls(calls)
 
-    def test_stopBtn_emitted_if_no_confirmation_and_stopBtn(self):
-        self.w.preferencesWindow.conf['close_confirmation'] = False
-        self.w.processingGrp.stopBtn.setEnabled(True)
+    def test_pathsList_hasItems_signal_connected_to_startBtn_switch(self):
+        self.mw._setFolderPathsGroupBox()
 
-        self.w.closeEvent(self.mock_event)
+        self.mock_paths.hasItems.connect.assert_called_once_with(
+            self.mw.startBtn.switch
+        )
 
-        self.assertEqual(len(self.spy), 1)
+    def test_addFolderBtn_clicked_signal_connected_to_pathsList_addPath(self):
+        self.mw._setFolderPathsGroupBox()
 
-    def test_stopBtn_not_emitted_if_Yes_confirmation_no_stopBtn(self):
-        self.w.preferencesWindow.conf['close_confirmation'] = True
-        self.w.processingGrp.stopBtn.setEnabled(False)
+        calls = [mock.call(self.mw.pathsList.addPath)]
+        self.mock_addBtn.clicked.connect.assert_has_calls(calls)
 
-        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
-                        return_value=QtWidgets.QMessageBox.Yes):
-            self.w.closeEvent(self.mock_event)
+    def test_delFolderBtn_clicked_signal_connected_to_pathsList_delPath(self):
+        self.mw._setFolderPathsGroupBox()
 
-        self.assertEqual(len(self.spy), 0)
+        calls = [mock.call(self.mw.pathsList.delPath)]
+        self.mock_delBtn.clicked.connect.assert_has_calls(calls)
 
-    def test_stopBtn_emitted_if_Yes_confirmation_and_stopBtn(self):
-        self.w.preferencesWindow.conf['close_confirmation'] = True
-        self.w.processingGrp.stopBtn.setEnabled(True)
 
-        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
-                        return_value=QtWidgets.QMessageBox.Yes):
-            self.w.closeEvent(self.mock_event)
+class TestMainWindowMethodSetImageProcessingGroupBox(TestMainWindow):
 
-        self.assertEqual(len(self.spy), 1)
+    def setUp(self):
+        self.mock_startBtn = mock.Mock(spec=pushbutton.StartButton)
+        self.mock_stopBtn = mock.Mock(spec=pushbutton.PushButton)
 
-    def test_clearThreadpool_called_if_Yes_confirmation_and_no_stopBtn(self):
-        self.w.preferencesWindow.conf['close_confirmation'] = True
-        self.w.processingGrp.stopBtn.setEnabled(False)
+        self.mw.startBtn = self.mock_startBtn
+        self.mw.stopBtn = self.mock_stopBtn
 
-        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
-                        return_value=QtWidgets.QMessageBox.Yes):
-            with mock.patch(self.MW+'_clearThreadpool') as mock_th_call:
-                self.w.closeEvent(self.mock_event)
+    def test_startBtn_clicked_signal_connected_to_12_slots(self):
+        self.mw._setImageProcessingGroupBox()
 
-        mock_th_call.assert_called_once_with()
+        self.assertEqual(
+            len(self.mock_startBtn.clicked.connect.call_args_list), 12
+        )
 
-    def test_stopBtn_not_emitted_if_confirmation_Cancel(self):
-        self.w.preferencesWindow.conf['close_confirmation'] = True
+    def test_startBtn_clicked_signal_connected_to_imageViewWidget_clear(self):
+        self.mw._setImageProcessingGroupBox()
+
+        calls = [mock.call(self.mw.imageViewWidget.clear)]
+        self.mock_startBtn.clicked.connect.assert_has_calls(calls)
+
+    def test_startBtn_clicked_connected_to_processProg_setMinValue(self):
+        self.mw._setImageProcessingGroupBox()
+
+        calls = [mock.call(self.mw.processProg.setMinValue)]
+        self.mock_startBtn.clicked.connect.assert_has_calls(calls)
+
+    def test_startBtn_clicked_signal_connected_to_loadedPicLbl_clear(self):
+        self.mw._setImageProcessingGroupBox()
+
+        calls = [mock.call(self.mw.loadedPicLbl.clear)]
+        self.mock_startBtn.clicked.connect.assert_has_calls(calls)
+
+    def test_startBtn_clicked_signal_connected_to_foundInCacheLbl_clear(self):
+        self.mw._setImageProcessingGroupBox()
+
+        calls = [mock.call(self.mw.foundInCacheLbl.clear)]
+        self.mock_startBtn.clicked.connect.assert_has_calls(calls)
+
+    def test_startBtn_clicked_signal_connected_to_calculatedLbl_clear(self):
+        self.mw._setImageProcessingGroupBox()
+
+        calls = [mock.call(self.mw.calculatedLbl.clear)]
+        self.mock_startBtn.clicked.connect.assert_has_calls(calls)
+
+    def test_startBtn_clicked_signal_connected_to_duplicatesLbl_clear(self):
+        self.mw._setImageProcessingGroupBox()
+
+        calls = [mock.call(self.mw.duplicatesLbl.clear)]
+        self.mock_startBtn.clicked.connect.assert_has_calls(calls)
+
+    def test_startBtn_clicked_signal_connected_to_groupsLbl_clear(self):
+        self.mw._setImageProcessingGroupBox()
+
+        calls = [mock.call(self.mw.groupsLbl.clear)]
+        self.mock_startBtn.clicked.connect.assert_has_calls(calls)
+
+    def test_startBtn_clicked_signal_connected_to_startBtn_started(self):
+        self.mw._setImageProcessingGroupBox()
+
+        calls = [mock.call(self.mw.startBtn.started)]
+        self.mock_startBtn.clicked.connect.assert_has_calls(calls)
+
+    def test_startBtn_clicked_signal_connected_to_stopBtn_enable(self):
+        self.mw._setImageProcessingGroupBox()
+
+        calls = [mock.call(self.mw.stopBtn.enable)]
+        self.mock_startBtn.clicked.connect.assert_has_calls(calls)
+
+    def test_startBtn_clicked_signal_connected_to_autoSelectBtn_disable(self):
+        self.mw._setImageProcessingGroupBox()
+
+        calls = [mock.call(self.mw.autoSelectBtn.disable)]
+        self.mock_startBtn.clicked.connect.assert_has_calls(calls)
+
+    def test_startBtn_clicked_connected_to_menub_disableAutoSelectAction(self):
+        self.mw._setImageProcessingGroupBox()
+
+        calls = [mock.call(self.mw.menubar.disableAutoSelectAction)]
+        self.mock_startBtn.clicked.connect.assert_has_calls(calls)
+
+    def test_startBtn_clicked_signal_connected_to_startProcessing(self):
+        self.mw._setImageProcessingGroupBox()
+
+        calls = [mock.call(self.mw._startProcessing)]
+        self.mock_startBtn.clicked.connect.assert_has_calls(calls)
+
+    def test_stopBtn_clicked_signal_connected_to_2_slots(self):
+        self.mw._setImageProcessingGroupBox()
+
+        self.assertEqual(
+            len(self.mock_stopBtn.clicked.connect.call_args_list), 2
+        )
+
+    def test_stopBtn_clicked_signal_connected_to_stopBtn_disable(self):
+        self.mw._setImageProcessingGroupBox()
+
+        calls = [mock.call(self.mw.stopBtn.disable)]
+        self.mock_stopBtn.clicked.connect.assert_has_calls(calls)
+
+    def test_stopBtn_clicked_connected_to_imageViewWidget_interrupt(self):
+        self.mw._setImageProcessingGroupBox()
+
+        calls = [mock.call(self.mw.imageViewWidget.interrupt)]
+        self.mock_stopBtn.clicked.connect.assert_has_calls(calls)
+
+
+class TestMainWindowMethodSetSensitivityGroupBox(TestMainWindow):
+
+    def setUp(self):
+        self.mw.preferencesWindow = mock.Mock(
+            spec=preferenceswindow.PreferencesWindow
+        )
+
+    def test_pW_setSensitivity_called_with_checkedRadioButton_res(self):
+        mock_btn = mock.Mock(sensitivityradiobutton.SensitivityRadioButton)
+        mock_btn.sensitivity = '69'
+        with mock.patch(MW_MODULE+'checkedRadioButton',
+                        return_value=mock_btn) as mock_checked_call:
+            self.mw._setSensitivityGroupBox()
+
+        mock_checked_call.assert_called_once_with(self.mw)
+        self.mw.preferencesWindow.setSensitivity.assert_called_once_with(
+            mock_btn.sensitivity
+        )
+
+    def test_vHighRbtn_sensitivityChanged_connected_to_pW_setSensitivity(self):
+        mock_btn = mock.Mock(spec=sensitivityradiobutton.VeryHighRadioButton)
+        self.mw.veryHighRbtn = mock_btn
+        self.mw._setSensitivityGroupBox()
+
+        mock_btn.sensitivityChanged.connect.assert_called_once_with(
+            self.mw.preferencesWindow.setSensitivity
+        )
+
+    def test_highRbtn_sensitivityChanged_connected_to_pW_setSensitivity(self):
+        mock_btn = mock.Mock(spec=sensitivityradiobutton.HighRadioButton)
+        self.mw.highRbtn = mock_btn
+        self.mw._setSensitivityGroupBox()
+
+        mock_btn.sensitivityChanged.connect.assert_called_once_with(
+            self.mw.preferencesWindow.setSensitivity
+        )
+
+    def test_medRbtn_sensitivityChanged_connected_to_pW_setSensitivity(self):
+        mock_btn = mock.Mock(spec=sensitivityradiobutton.MediumRadioButton)
+        self.mw.mediumRbtn = mock_btn
+        self.mw._setSensitivityGroupBox()
+
+        mock_btn.sensitivityChanged.connect.assert_called_once_with(
+            self.mw.preferencesWindow.setSensitivity
+        )
+
+    def test_lowRbtn_sensitivityChanged_connected_to_pW_setSensitivity(self):
+        mock_btn = mock.Mock(spec=sensitivityradiobutton.LowRadioButton)
+        self.mw.lowRbtn = mock_btn
+        self.mw._setSensitivityGroupBox()
+
+        mock_btn.sensitivityChanged.connect.assert_called_once_with(
+            self.mw.preferencesWindow.setSensitivity
+        )
+
+    def test_vLowRbtn_sensitivityChanged_connected_to_pW_setSensitivity(self):
+        mock_btn = mock.Mock(spec=sensitivityradiobutton.VeryLowRadioButton)
+        self.mw.veryLowRbtn = mock_btn
+        self.mw._setSensitivityGroupBox()
+
+        mock_btn.sensitivityChanged.connect.assert_called_once_with(
+            self.mw.preferencesWindow.setSensitivity
+        )
+
+
+class TestMainWindowMethodSetActionsGroupBox(TestMainWindow):
+
+    def test_moveBtn_clicked_signal_connected_to_imageViewWidget_move(self):
+        self.mw.moveBtn = mock.Mock(spec=QtWidgets.QPushButton)
+        self.mw._setActionsGroupBox()
+
+        self.mw.moveBtn.clicked.connect.assert_called_once_with(
+            self.mw.imageViewWidget.move
+        )
+
+    def test_deleteBtn_clicked_connected_to_imageViewWidget_delete(self):
+        self.mw.deleteBtn = mock.Mock(spec=QtWidgets.QPushButton)
+        self.mw._setActionsGroupBox()
+
+        self.mw.deleteBtn.clicked.connect.assert_called_once_with(
+            self.mw.imageViewWidget.delete
+        )
+
+    def test_autoSelectBtn_clicked_connected_to_imageViewW_autoSelect(self):
+        self.mw.autoSelectBtn = mock.Mock(spec=pushbutton.PushButton)
+        self.mw._setActionsGroupBox()
+
+        self.mw.autoSelectBtn.clicked.connect.assert_called_once_with(
+            self.mw.imageViewWidget.autoSelect
+        )
+
+    def test_unselectBtn_clicked_connected_to_imageViewWidget_unselect(self):
+        self.mw.unselectBtn = mock.Mock(spec=QtWidgets.QPushButton)
+        self.mw._setActionsGroupBox()
+
+        self.mw.unselectBtn.clicked.connect.assert_called_once_with(
+            self.mw.imageViewWidget.unselect
+        )
+
+
+class TestMainWindowMethodSetMenubar(TestMainWindow):
+
+    def test_addFolderAction_connected_to_pathsList_addPath(self):
+        self.mw.addFolderAction = mock.Mock(spec=QtWidgets.QAction)
+        self.mw._setMenubar()
+
+        self.mw.addFolderAction.triggered.connect.assert_called_once_with(
+            self.mw.pathsList.addPath
+        )
+
+    def test_delFolderAction_connected_to_pathsList_delPath(self):
+        self.mw.delFolderAction = mock.Mock(spec=QtWidgets.QAction)
+        self.mw._setMenubar()
+
+        self.mw.delFolderAction.triggered.connect.assert_called_once_with(
+            self.mw.pathsList.delPath
+        )
+
+    def test_preferencesAction_setData_called_with_QVarian_res(self):
+        self.mw.preferencesAction = mock.Mock(spec=QtWidgets.QAction)
+        mock_var = mock.Mock(spec=QtCore.QVariant)
+        with mock.patch('PyQt5.QtCore.QVariant',
+                        return_value=mock_var) as mock_qvar_call:
+            self.mw._setMenubar()
+
+        calls = [mock.call(self.mw.preferencesWindow)]
+        mock_qvar_call.assert_has_calls(calls)
+
+        self.mw.preferencesAction.setData.assert_called_once_with(mock_var)
+
+    def test_preferencesAction_connected_to_menubar_openWindow(self):
+        self.mw.preferencesAction = mock.Mock(spec=QtWidgets.QAction)
+        self.mw._setMenubar()
+
+        self.mw.preferencesAction.triggered.connect.assert_called_once_with(
+            self.mw.menubar.openWindow
+        )
+
+    def test_exitAction_connected_to_close(self):
+        self.mw.exitAction = mock.Mock(spec=QtWidgets.QAction)
+        self.mw._setMenubar()
+
+        self.mw.exitAction.triggered.connect.assert_called_once_with(
+            self.mw.close
+        )
+
+    def test_moveAction_connected_to_imageViewWidget_move(self):
+        self.mw.moveAction = mock.Mock(spec=QtWidgets.QAction)
+        self.mw._setMenubar()
+
+        self.mw.moveAction.triggered.connect.assert_called_once_with(
+            self.mw.imageViewWidget.move
+        )
+
+    def test_deleteAction_connected_to_imageViewWidget_delete(self):
+        self.mw.deleteAction = mock.Mock(spec=QtWidgets.QAction)
+        self.mw._setMenubar()
+
+        self.mw.deleteAction.triggered.connect.assert_called_once_with(
+            self.mw.imageViewWidget.delete
+        )
+
+    def test_autoSelectAction_connected_to_imageViewWidget_autoSelect(self):
+        self.mw.autoSelectAction = mock.Mock(spec=QtWidgets.QAction)
+        self.mw._setMenubar()
+
+        self.mw.autoSelectAction.triggered.connect.assert_called_once_with(
+            self.mw.imageViewWidget.autoSelect
+        )
+
+    def test_unselectAction_connected_to_imageViewWidget_unselect(self):
+        self.mw.unselectAction = mock.Mock(spec=QtWidgets.QAction)
+        self.mw._setMenubar()
+
+        self.mw.unselectAction.triggered.connect.assert_called_once_with(
+            self.mw.imageViewWidget.unselect
+        )
+
+    def test_docsAction_connected_to_menubar_openDocs(self):
+        self.mw.docsAction = mock.Mock(spec=QtWidgets.QAction)
+        self.mw._setMenubar()
+
+        self.mw.docsAction.triggered.connect.assert_called_once_with(
+            self.mw.menubar.openDocs
+        )
+
+    def test_homePageAction_connected_to_menubar_openDocs(self):
+        self.mw.homePageAction = mock.Mock(spec=QtWidgets.QAction)
+        self.mw._setMenubar()
+
+        self.mw.homePageAction.triggered.connect.assert_called_once_with(
+            self.mw.menubar.openDocs
+        )
+
+    def test_aboutAction_setData_called_with_QVarian_res(self):
+        self.mw.aboutAction = mock.Mock(spec=QtWidgets.QAction)
+        mock_var = mock.Mock(spec=QtCore.QVariant)
+        with mock.patch('PyQt5.QtCore.QVariant',
+                        return_value=mock_var) as mock_qvar_call:
+            self.mw._setMenubar()
+
+        calls = [mock.call(self.mw.aboutWindow)]
+        mock_qvar_call.assert_has_calls(calls)
+
+        self.mw.aboutAction.setData.assert_called_once_with(mock_var)
+
+    def test_aboutAction_connected_to_menubar_openWindow(self):
+        self.mw.aboutAction = mock.Mock(spec=QtWidgets.QAction)
+        self.mw._setMenubar()
+
+        self.mw.aboutAction.triggered.connect.assert_called_once_with(
+            self.mw.menubar.openWindow
+        )
+
+
+class TestMainWindowMethodStartProcessing(TestMainWindow):
+
+    PATCH_PROC = WORKERS_MODULE + 'ImageProcessing'
+    PATCH_WORKERS = WORKERS_MODULE + 'Worker'
+
+    def setUp(self):
+        self.mock_proc = mock.Mock(spec=workers.ImageProcessing)
+
+        self.mock_stopBtn = mock.Mock(spec=pushbutton.PushButton)
+        self.mw.stopBtn = self.mock_stopBtn
+
+        self.mock_threadpool = mock.Mock(spec=QtCore.QThreadPool)
+        self.mw.threadpool = self.mock_threadpool
+
+    def test_args_ImageProcessing_called_with(self):
+        with mock.patch(self.PATCH_PROC,
+                        return_value=self.mock_proc) as mock_proc_call:
+            self.mw._startProcessing()
+
+        mock_proc_call.assert_called_once_with(
+            self.mw.pathsList.paths(),
+            self.mw.preferencesWindow.conf
+        )
+
+    def test_images_loaded_connected_to_loadedPicLbl_updateNumber(self):
+        with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
+            self.mw._startProcessing()
+
+        self.mock_proc.images_loaded.connect.assert_called_once_with(
+            self.mw.loadedPicLbl.updateNumber
+        )
+
+    def test_found_in_cache_connected_to_foundInCacheLbl_updateNumber(self):
+        with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
+            self.mw._startProcessing()
+
+        self.mock_proc.found_in_cache.connect.assert_called_once_with(
+            self.mw.foundInCacheLbl.updateNumber
+        )
+
+    def test_hashes_calculated_connected_to_calculatedLbl_updateNumber(self):
+        with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
+            self.mw._startProcessing()
+
+        self.mock_proc.hashes_calculated.connect.assert_called_once_with(
+            self.mw.calculatedLbl.updateNumber
+        )
+
+    def test_duplicates_found_connected_to_duplicatesLbl_updateNumber(self):
+        with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
+            self.mw._startProcessing()
+
+        self.mock_proc.duplicates_found.connect.assert_called_once_with(
+            self.mw.duplicatesLbl.updateNumber
+        )
+
+    def test_groups_found_connected_to_groupsLbl_updateNumber(self):
+        with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
+            self.mw._startProcessing()
+
+        self.mock_proc.groups_found.connect.assert_called_once_with(
+            self.mw.groupsLbl.updateNumber
+        )
+
+    def test_update_progressbar_connected_to_processProg_setValue(self):
+        with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
+            self.mw._startProcessing()
+
+        self.mock_proc.update_progressbar.connect.assert_called_once_with(
+            self.mw.processProg.setValue
+        )
+
+    def test_finished_connected_to_imageViewWidget_render(self):
+        with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
+            self.mw._startProcessing()
+
+        self.mock_proc.finished.connect.assert_called_once_with(
+            self.mw.imageViewWidget.render
+        )
+
+    def test_error_connected_to_errorMessage(self):
+        with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
+            self.mw._startProcessing()
+
+        self.mock_proc.error.connect.assert_called_once_with(
+            mainwindow.errorMessage
+        )
+
+    def test_interrupted_connected_to_startBtn_finished(self):
+        with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
+            self.mw._startProcessing()
+
+        self.mock_proc.interrupted.connect.assert_called_once_with(
+            self.mw.startBtn.finished
+        )
+
+    def test_stopBtn_clicked_connected_to_ImageProcessing_interrupt(self):
+        with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
+            self.mw._startProcessing()
+
+        self.mock_stopBtn.clicked.connect.assert_called_once_with(
+            self.mock_proc.interrupt
+        )
+
+    def test_worker_obj_called_with_ImageProcessing_run_pushed_to_pool(self):
+        mock_worker = mock.Mock(spec=workers.Worker)
+        with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
+            with mock.patch(self.PATCH_WORKERS,
+                            return_value=mock_worker) as mock_worker_call:
+                self.mw._startProcessing()
+
+        mock_worker_call.assert_called_once_with(self.mock_proc.run)
+        self.mock_threadpool.start.assert_called_once_with(mock_worker)
+
+
+class TestMainWindowMethodCloseEvent(TestMainWindow):
+
+    def setUp(self):
+        self.mock_event = mock.Mock(spec=QtCore.QEvent)
+
+        self.mock_threadpool = mock.Mock(spec=QtCore.QThreadPool)
+        self.mw.threadpool = self.mock_threadpool
+
+        self.spy = QtTest.QSignalSpy(self.mw.stopBtn.clicked)
+
+    def test_event_ignore_not_called_if_no_confirmation(self):
+        self.mw.preferencesWindow.conf['close_confirmation'] = False
+
+        self.mw.closeEvent(self.mock_event)
+
+        self.mock_event.ignore.assert_not_called()
+
+    def test_stopBtn_clicked_not_emitted_if_no_confirmation_and_disabled(self):
+        self.mw.preferencesWindow.conf['close_confirmation'] = False
+        self.mw.stopBtn.setEnabled(False)
+        spy = QtTest.QSignalSpy(self.mw.stopBtn.clicked)
+
+        self.mw.closeEvent(self.mock_event)
+
+        self.assertEqual(len(spy), 0)
+
+    def test_stopBtn_clicked_emitted_if_no_confirmation_and_enabled(self):
+        self.mw.preferencesWindow.conf['close_confirmation'] = False
+        self.mw.stopBtn.setEnabled(True)
+        spy = QtTest.QSignalSpy(self.mw.stopBtn.clicked)
+
+        self.mw.closeEvent(self.mock_event)
+
+        self.assertEqual(len(spy), 1)
+
+    def test_threadpool_funcs_called_if_no_confirmation(self):
+        self.mw.preferencesWindow.conf['close_confirmation'] = False
+
+        self.mw.closeEvent(self.mock_event)
+
+        self.mock_threadpool.clear.assert_called_once_with()
+        self.mock_threadpool.waitForDone.assert_called_once_with()
+
+    def test_event_ignore_called_if_confirmation_and_Cancel(self):
+        self.mw.preferencesWindow.conf['close_confirmation'] = True
         with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
                         return_value=QtWidgets.QMessageBox.Cancel):
-            self.w.closeEvent(self.mock_event)
-
-        self.assertEqual(len(self.spy), 0)
-
-    def test_event_ignored_if_confirmation_Cancel(self):
-        self.w.preferencesWindow.conf['close_confirmation'] = True
-        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
-                        return_value=QtWidgets.QMessageBox.Cancel):
-            self.w.closeEvent(self.mock_event)
+            self.mw.closeEvent(self.mock_event)
 
         self.mock_event.ignore.assert_called_once_with()
 
-
-class TestMainFormMethodOpenWindow(TestMainForm):
-
-    PATCH_SENDER = MAIN_WINDOW + 'MainWindow.sender'
-
-    def setUp(self):
-        super().setUp()
-
-        self.mock_sender = mock.Mock()
-        self.mock_window = mock.Mock()
-        self.mock_sender.data.return_value = self.mock_window
-
-    def test_activate_window_if_it_is_open(self):
-        self.mock_window.isVisible.return_value = True
-        with mock.patch(self.PATCH_SENDER, return_value=self.mock_sender):
-            self.w.openWindow()
-
-        self.mock_window.activateWindow.assert_called_once_with()
-
-    def test_show_window_if_it_is_not_open(self):
-        self.mock_window.isVisible.return_value = False
-        with mock.patch(self.PATCH_SENDER, return_value=self.mock_sender):
-            self.w.openWindow()
-
-        self.mock_window.show.assert_called_once_with()
-
-
-class TestMainFormMethodOpenDocs(TestMainForm):
-
-    def test_webbrowser_open_called(self):
-        URL = 'https://github.com/oratosquilla-oratoria/doppelganger'
-        with mock.patch('webbrowser.open') as mock_open_call:
-            self.w.openDocs()
-
-        mock_open_call.assert_called_once_with(URL)
-
-
-class TestMainFormMethodSwitchImgActionsAndBtns(TestMainForm):
-
-    PATCH_SELECTED = IMAGE_VIEW_WIDGET + 'ImageViewWidget.hasSelectedWidgets'
-    PATCH_ENABLED = ('doppelganger.gui.actionsgroupbox.'
-                     'ActionsGroupBox.setEnabled')
-
-    def test_actions_btns_enabled_if_there_are_selected_widgets(self):
-        with mock.patch(self.PATCH_SELECTED, return_value=True):
-            with mock.patch(self.PATCH_ENABLED) as mock_set_call:
-                self.w.switchImgActionsAndBtns()
-
-        mock_set_call.assert_called_once_with(True)
-
-    def test_move_menu_action_enabled_if_there_are_selected_widgets(self):
-        self.w.moveAction.setEnabled(False)
-        with mock.patch(self.PATCH_SELECTED, return_value=True):
-            self.w.switchImgActionsAndBtns()
-
-        self.assertTrue(self.w.moveAction.isEnabled())
-
-    def test_delete_menu_action_enabled_if_there_are_selected_widgets(self):
-        self.w.deleteAction.setEnabled(False)
-        with mock.patch(self.PATCH_SELECTED, return_value=True):
-            self.w.switchImgActionsAndBtns()
-
-        self.assertTrue(self.w.deleteAction.isEnabled())
-
-    def test_unselect_menu_action_enabled_if_there_are_selected_widgets(self):
-        self.w.unselectAction.setEnabled(False)
-        with mock.patch(self.PATCH_SELECTED, return_value=True):
-            self.w.switchImgActionsAndBtns()
-
-        self.assertTrue(self.w.unselectAction.isEnabled())
-
-    def test_actions_btns_disabled_if_no_selected_widgets(self):
-        with mock.patch(self.PATCH_SELECTED, return_value=False):
-            with mock.patch(self.PATCH_ENABLED) as mock_set_call:
-                self.w.switchImgActionsAndBtns()
-
-        mock_set_call.assert_called_once_with(False)
-
-    def test_move_menu_action_disabled_if_no_selected_widgets(self):
-        self.w.moveAction.setEnabled(True)
-        with mock.patch(self.PATCH_SELECTED, return_value=False):
-            self.w.switchImgActionsAndBtns()
-
-        self.assertFalse(self.w.moveAction.isEnabled())
-
-    def test_delete_menu_action_disabled_if_no_selected_widgets(self):
-        self.w.deleteAction.setEnabled(True)
-        with mock.patch(self.PATCH_SELECTED, return_value=False):
-            self.w.switchImgActionsAndBtns()
-
-        self.assertFalse(self.w.deleteAction.isEnabled())
-
-    def test_unselect_menu_action_disabled_if_no_selected_widgets(self):
-        self.w.unselectAction.setEnabled(True)
-        with mock.patch(self.PATCH_SELECTED, return_value=False):
-            self.w.switchImgActionsAndBtns()
-
-        self.assertFalse(self.w.unselectAction.isEnabled())
-
-
-class TestMainFormMethodDeleteImages(TestMainForm):
-
-    @mock.patch(MAIN_WINDOW+'MainWindow.switchImgActionsAndBtns')
-    @mock.patch(IMAGE_VIEW_WIDGET+'ImageViewWidget.delete')
-    def test_nothing_happens_if_btn_Cancel_chosen(self, mock_del, mock_switch):
+    def test_stopBtn_clicked_not_emitted_if_confirmation__Cancel__disabl(self):
+        self.mw.preferencesWindow.conf['close_confirmation'] = True
+        self.mw.stopBtn.setEnabled(False)
+        spy = QtTest.QSignalSpy(self.mw.stopBtn.clicked)
         with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
                         return_value=QtWidgets.QMessageBox.Cancel):
-            self.w.deleteImages()
+            self.mw.closeEvent(self.mock_event)
 
-        mock_del.assert_not_called()
-        mock_switch.assert_not_called()
+        self.assertEqual(len(spy), 0)
 
-    @mock.patch(MAIN_WINDOW+'MainWindow.switchImgActionsAndBtns')
-    @mock.patch(IMAGE_VIEW_WIDGET+'ImageViewWidget.delete')
-    def test_delete_called_if_btn_Yes_chosen(self, mock_del, mock_switch):
+    def test_stopBtn_clicked_not_emitted_if_confirmation__Cancel__enabl(self):
+        self.mw.preferencesWindow.conf['close_confirmation'] = True
+        self.mw.stopBtn.setEnabled(True)
+        spy = QtTest.QSignalSpy(self.mw.stopBtn.clicked)
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Cancel):
+            self.mw.closeEvent(self.mock_event)
+
+        self.assertEqual(len(spy), 0)
+
+    def test_threadpool_funcs_called_if_confirmation_and_Cancel(self):
+        self.mw.preferencesWindow.conf['close_confirmation'] = True
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Cancel):
+            self.mw.closeEvent(self.mock_event)
+
+        self.mock_threadpool.clear.assert_not_called()
+        self.mock_threadpool.waitForDone.assert_not_called()
+
+    def test_event_ignore_not_called_if_confirmation_and_Yes(self):
+        self.mw.preferencesWindow.conf['close_confirmation'] = True
         with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
                         return_value=QtWidgets.QMessageBox.Yes):
-            self.w.deleteImages()
+            self.mw.closeEvent(self.mock_event)
 
-        mock_del.assert_called_once_with()
+        self.mock_event.ignore.assert_not_called()
 
-    @mock.patch(MAIN_WINDOW+'MainWindow.switchImgActionsAndBtns')
-    @mock.patch(IMAGE_VIEW_WIDGET+'ImageViewWidget.delete')
-    def test_switchImgActionsAndBtns_called_if_btn_Yes_chosen(self, mock_del,
-                                                              mock_switch):
+    def test_stopBtn_clicked_not_emitted_if_confirmation__Yes__disabled(self):
+        self.mw.preferencesWindow.conf['close_confirmation'] = True
+        self.mw.stopBtn.setEnabled(False)
+        spy = QtTest.QSignalSpy(self.mw.stopBtn.clicked)
         with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
                         return_value=QtWidgets.QMessageBox.Yes):
-            self.w.deleteImages()
-
-        mock_switch.assert_called_once_with()
-
-
-class TestMainFormMethodMoveImages(TestMainForm):
-
-    def setUp(self):
-        super().setUp()
-
-        self.new_dst = 'new_folder'
-
-    @mock.patch(MAIN_WINDOW+'MainWindow.switchImgActionsAndBtns')
-    @mock.patch(IMAGE_VIEW_WIDGET+'ImageViewWidget.move')
-    def test_nothing_happens_if_path_not_chosen(self, mock_move, mock_switch):
-        with mock.patch('PyQt5.QtWidgets.QFileDialog.getExistingDirectory',
-                        return_value=''):
-            self.w.moveImages()
-
-        mock_move.assert_not_called()
-        mock_switch.assert_not_called()
-
-    @mock.patch(MAIN_WINDOW+'MainWindow.switchImgActionsAndBtns')
-    @mock.patch(IMAGE_VIEW_WIDGET+'ImageViewWidget.move')
-    def test_delete_called_if_path_chosen(self, mock_move, mock_switch):
-        with mock.patch('PyQt5.QtWidgets.QFileDialog.getExistingDirectory',
-                        return_value=self.new_dst):
-            self.w.moveImages()
-
-        mock_move.assert_called_once_with(self.new_dst)
-
-    @mock.patch(MAIN_WINDOW+'MainWindow.switchImgActionsAndBtns')
-    @mock.patch(IMAGE_VIEW_WIDGET+'ImageViewWidget.move')
-    def test_switchImgActionsAndBtns_called_if_path_chosen(self, mock_move,
-                                                           mock_switch):
-        with mock.patch('PyQt5.QtWidgets.QFileDialog.getExistingDirectory',
-                        return_value=self.new_dst):
-            self.w.moveImages()
-
-        mock_switch.assert_called_once_with()
-
-
-class TestMainFormMethodRender(TestMainForm):
-
-    def setUp(self):
-        super().setUp()
-
-        self.PATCH_RENDER = IMAGE_VIEW_WIDGET + 'ImageViewWidget.render'
-        self.img_group = ['image']
-
-    def test_attr_widgets_processing_set_to_True(self):
-        self.w.widgets_processing = False
-        with mock.patch(self.PATCH_RENDER):
-            self.w.render(self.img_group)
-
-        self.assertTrue(self.w.widgets_processing)
-
-    def test_imageViewWidget_progressBarValue_set_to_current_progbar_val(self):
-        self.w.processingGrp.processProg.setValue(69)
-        with mock.patch(self.PATCH_RENDER):
-            self.w.render(self.img_group)
-
-        self.assertEqual(self.w.imageViewWidget.progressBarValue, 69)
-
-    def test_attr_image_processing_set_to_False(self):
-        self.w.image_processing = True
-        with mock.patch(self.PATCH_RENDER):
-            self.w.render(self.img_group)
-
-        self.assertFalse(self.w.image_processing)
-
-    def test_ImageViewWidget_render_called_if_duplicates_found(self):
-        with mock.patch(self.PATCH_RENDER) as mock_render_call:
-            self.w.render(self.img_group)
-
-        mock_render_call.assert_called_once_with(self.img_group)
-
-    def test_attr_image_processing_set_to_False_if_no_duplicates_found(self):
-        with mock.patch(self.MW+'processingFinished'):
-            with mock.patch('PyQt5.QtWidgets.QMessageBox'):
-                self.w.render([])
-
-        self.assertFalse(self.w.image_processing)
-
-    def test_processingFinished_called_if_no_duplicates_found(self):
-        with mock.patch(self.MW+'processingFinished') as mock_fin_call:
-            with mock.patch('PyQt5.QtWidgets.QMessageBox'):
-                self.w.render([])
-
-        mock_fin_call.assert_called_once_with()
-
-    def test_msg_box_called_if_no_duplicates_found(self):
-        mock_box = mock.Mock()
-        with mock.patch(self.MW+'processingFinished'):
-            with mock.patch('PyQt5.QtWidgets.QMessageBox',
-                            return_value=mock_box):
-                self.w.render([])
-
-        mock_box.exec.assert_called_once_with()
-
-
-class TestMainWindowMethodProcessingFinished(TestMainForm):
-
-    def setUp(self):
-        super().setUp()
-
-        self.w.imageViewWidget.widgets = []
-
-    def test_attr_widgets_processing_set_to_False(self):
-        self.w.widgets_processing = True
-        self.w.processingFinished()
-
-        self.assertFalse(self.w.widgets_processing)
-
-    def test_switchStartBtn_called(self):
-        with mock.patch(MAIN_WINDOW+'MainWindow.switchStartBtn') as mock_btn:
-            self.w.processingFinished()
-
-        mock_btn.assert_called_once_with()
-
-    def test_stopBtn_disabled(self):
-        self.w.processingGrp.stopBtn.setEnabled(True)
-        self.w.processingFinished()
-
-        self.assertFalse(self.w.processingGrp.stopBtn.isEnabled())
-
-    def test_progressBar_set_to_100(self):
-        self.w.processingGrp.processProg.setValue(0)
-        self.w.processingFinished()
-
-        self.assertEqual(self.w.processingGrp.processProg.value(), 100)
-
-    def test_autoSelectBtn_enabled_if_images_rendered(self):
-        self.w.actionsGrp.autoSelectBtn.setEnabled(False)
-        self.w.imageViewWidget.widgets = ['group_widget']
-        with mock.patch(self.MW+'_connectDuplicateWidgetSignals'):
-            self.w.processingFinished()
-
-        self.assertTrue(self.w.actionsGrp.autoSelectBtn.isEnabled())
-
-    def test_autoselect_menu_action_enabled_if_images_rendered(self):
-        self.w.autoSelectAction.setEnabled(False)
-        self.w.imageViewWidget.widgets = ['group_widget']
-        with mock.patch(self.MW+'_connectDuplicateWidgetSignals'):
-            self.w.processingFinished()
-
-        self.assertTrue(self.w.autoSelectAction.isEnabled())
-
-    def test_connectDuplicateWidgetSignals_called_if_images_rendered(self):
-        self.w.imageViewWidget.widgets = ['group_widget']
-        with mock.patch(self.MW+'_connectDuplicateWidgetSignals') as mock_call:
-            self.w.processingFinished()
-
-        mock_call.assert_called_once_with()
-
-    def test_autoSelectBtn_disabled_if_images_not_rendered(self):
-        self.w.actionsGrp.autoSelectBtn.setEnabled(False)
-        self.w.processingFinished()
-
-        self.assertFalse(self.w.actionsGrp.autoSelectBtn.isEnabled())
-
-    def test_autoselect_menu_action_disabled_if_images_not_rendered(self):
-        self.w.autoSelectAction.setEnabled(False)
-        self.w.processingFinished()
-
-        self.assertFalse(self.w.autoSelectAction.isEnabled())
-
-    def test_connectDuplicateWidgetSignals_called_if_images_not_rendered(self):
-        with mock.patch(self.MW+'_connectDuplicateWidgetSignals') as mock_call:
-            self.w.processingFinished()
-
-        mock_call.assert_not_called()
-
-
-class TestMainFormMethodProcessingInterrupted(TestMainForm):
-
-    def test_clearThreadpool_called(self):
-        with mock.patch(self.MW+'_clearThreadpool') as mock_clear_call:
-            with mock.patch(self.MW+'processingFinished'):
-                self.w.processingInterrupted()
-
-        mock_clear_call.assert_called_once_with()
-
-    def test_attr_image_processing_set_to_False(self):
-        self.w.image_processing = True
-        self.w.processingInterrupted()
-
-        self.assertFalse(self.w.image_processing)
-
-    def test_processingFinished_called(self):
-        with mock.patch(self.MW+'_clearThreadpool'):
-            with mock.patch(self.MW
-                            +'processingFinished') as mock_fin_call:
-                self.w.processingInterrupted()
-
-        mock_fin_call.assert_called_once_with()
-
-
-class TestMainFormMethodClearThreadpool(TestMainForm):
-
-    def setUp(self):
-        super().setUp()
-
-        self.w.threadpool = mock.Mock()
-
-    def test_clear_called(self):
-        self.w._clearThreadpool()
-
-        self.w.threadpool.clear.assert_called_once_with()
-
-    def test_waitForDone_called(self):
-        self.w._clearThreadpool()
-
-        self.w.threadpool.waitForDone.assert_called_once_with()
+            self.mw.closeEvent(self.mock_event)
+
+        self.assertEqual(len(spy), 0)
+
+    def test_stopBtn_clicked_emitted_if_confirmation__Yes__enabled(self):
+        self.mw.preferencesWindow.conf['close_confirmation'] = True
+        self.mw.stopBtn.setEnabled(True)
+        spy = QtTest.QSignalSpy(self.mw.stopBtn.clicked)
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Yes):
+            self.mw.closeEvent(self.mock_event)
+
+        self.assertEqual(len(spy), 1)
+
+    def test_threadpool_funcs_called_if_confirmation_and_Yes(self):
+        self.mw.preferencesWindow.conf['close_confirmation'] = True
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Yes):
+            self.mw.closeEvent(self.mock_event)
+
+        self.mock_threadpool.clear.assert_called_once_with()
+        self.mock_threadpool.waitForDone.assert_called_once_with()

@@ -17,19 +17,15 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
-Module implementing window "Main"
+Module implementing the main window
 '''
-
-import webbrowser
-from typing import Collection
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-from doppelganger import core, resources, workers
-from doppelganger.gui import (actionsgroupbox, imageviewwidget, pathsgroupbox,
-                              processinggroupbox, sensitivitygroupbox)
+from doppelganger import resources, workers
 from doppelganger.gui.aboutwindow import AboutWindow
 from doppelganger.gui.preferenceswindow import PreferencesWindow
+from doppelganger.gui.sensitivityradiobutton import checkedRadioButton
 
 
 def errorMessage(msg: str) -> None:
@@ -62,195 +58,148 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.threadpool = QtCore.QThreadPool.globalInstance()
 
-        self.image_processing = False
-        self.widgets_processing = False
+        # If the "centralWidget" layout margins are set in the .ui file,
+        # it does not work for some reason
+        self.verticalLayout.setContentsMargins(9, 9, 9, 9)
 
         self._setImageViewWidget()
-        self._setPathsGroupBox()
-        self._setProcessingGroupBox()
-
-        self.sensitivityActionsWidget = QtWidgets.QWidget(self.bottomWidget)
-        self.verticalLayout_2 = QtWidgets.QVBoxLayout(
-            self.sensitivityActionsWidget
-        )
-        self.verticalLayout_2.setContentsMargins(0, 0, 0, 0)
-        self.horizontalLayout.addWidget(self.sensitivityActionsWidget)
-
+        self._setFolderPathsGroupBox()
+        self._setImageProcessingGroupBox()
         self._setSensitivityGroupBox()
-        self._setActionsGroupWidget()
+        self._setActionsGroupBox()
         self._setMenubar()
 
     def _setImageViewWidget(self) -> None:
-        self.imageViewWidget = imageviewwidget.ImageViewWidget(
-            self.preferencesWindow.conf,
-            self.scrollArea
-        )
-        self.scrollArea.setWidget(self.imageViewWidget)
+        self.imageViewWidget.conf = self.preferencesWindow.conf
 
-        self.imageViewWidget.signals.finished.connect(
-            self.processingFinished
-        )
-        self.imageViewWidget.signals.interrupted.connect(
-            self.processingInterrupted
+        self.imageViewWidget.update_progressbar.connect(
+            self.processProg.setValue
         )
 
-    def _setPathsGroupBox(self) -> None:
-        self.pathsGrp = pathsgroupbox.PathsGroupBox(self.bottomWidget)
-        self.horizontalLayout.addWidget(self.pathsGrp)
-
-        self.pathsGrp.pathsList.itemSelectionChanged.connect(
-            self.switchDelFolderAction
-        )
-        self.pathsGrp.addFolderBtn.clicked.connect(self.switchStartBtn)
-        self.pathsGrp.delFolderBtn.clicked.connect(self.switchStartBtn)
-
-    def _setProcessingGroupBox(self) -> None:
-        self.processingGrp = processinggroupbox.ProcessingGroupBox(
-            self.bottomWidget
-        )
-        self.horizontalLayout.addWidget(self.processingGrp)
-
-        self.processingGrp.startBtn.clicked.connect(self.startProcessing)
-        self.processingGrp.stopBtn.clicked.connect(self.disableStopBtn)
-        self.processingGrp.stopBtn.clicked.connect(
-            self.imageViewWidget.setInterrupted
+        self.imageViewWidget.finished.connect(self.processProg.setMaxValue)
+        self.imageViewWidget.finished.connect(self.stopBtn.disable)
+        self.imageViewWidget.finished.connect(self.startBtn.finished)
+        self.imageViewWidget.finished.connect(self.autoSelectBtn.enable)
+        self.imageViewWidget.finished.connect(
+            self.menubar.enableAutoSelectAction
         )
 
-        self.imageViewWidget.signals.update_progressbar.connect(
-            self.processingGrp.processProg.setValue
+        self.imageViewWidget.interrupted.connect(self.startBtn.finished)
+
+        self.imageViewWidget.hasSelected.connect(self.moveBtn.setEnabled)
+        self.imageViewWidget.hasSelected.connect(self.deleteBtn.setEnabled)
+        self.imageViewWidget.hasSelected.connect(self.unselectBtn.setEnabled)
+        self.imageViewWidget.hasSelected.connect(self.moveAction.setEnabled)
+        self.imageViewWidget.hasSelected.connect(self.deleteAction.setEnabled)
+        self.imageViewWidget.hasSelected.connect(
+            self.unselectAction.setEnabled
         )
+
+    def _setFolderPathsGroupBox(self) -> None:
+        self.pathsList.hasSelection.connect(self.delFolderBtn.setEnabled)
+        self.pathsList.hasSelection.connect(self.delFolderAction.setEnabled)
+
+        self.pathsList.hasItems.connect(self.startBtn.switch)
+
+        self.addFolderBtn.clicked.connect(self.pathsList.addPath)
+        self.delFolderBtn.clicked.connect(self.pathsList.delPath)
+
+    def _setImageProcessingGroupBox(self) -> None:
+        self.startBtn.clicked.connect(self.imageViewWidget.clear)
+
+        self.startBtn.clicked.connect(self.processProg.setMinValue)
+
+        self.startBtn.clicked.connect(self.loadedPicLbl.clear)
+        self.startBtn.clicked.connect(self.foundInCacheLbl.clear)
+        self.startBtn.clicked.connect(self.calculatedLbl.clear)
+        self.startBtn.clicked.connect(self.duplicatesLbl.clear)
+        self.startBtn.clicked.connect(self.groupsLbl.clear)
+
+        self.startBtn.clicked.connect(self.startBtn.started)
+        self.startBtn.clicked.connect(self.stopBtn.enable)
+
+        self.startBtn.clicked.connect(self.autoSelectBtn.disable)
+        self.startBtn.clicked.connect(self.menubar.disableAutoSelectAction)
+
+        self.startBtn.clicked.connect(self._startProcessing)
+
+        self.stopBtn.clicked.connect(self.stopBtn.disable)
+        self.stopBtn.clicked.connect(self.imageViewWidget.interrupt)
 
     def _setSensitivityGroupBox(self) -> None:
-        self.sensitivityGrp = sensitivitygroupbox.SensitivityGroupBox(
-            self.sensitivityActionsWidget
-        )
-        self.verticalLayout_2.addWidget(self.sensitivityGrp)
+        current_sensitivity = checkedRadioButton(self).sensitivity
+        self.preferencesWindow.setSensitivity(current_sensitivity)
 
-    def _setActionsGroupWidget(self) -> None:
-        self.actionsGrp = actionsgroupbox.ActionsGroupBox(
-            self.sensitivityActionsWidget
+        self.veryHighRbtn.sensitivityChanged.connect(
+            self.preferencesWindow.setSensitivity
         )
-        self.verticalLayout_2.addWidget(self.actionsGrp)
+        self.highRbtn.sensitivityChanged.connect(
+            self.preferencesWindow.setSensitivity
+        )
+        self.mediumRbtn.sensitivityChanged.connect(
+            self.preferencesWindow.setSensitivity
+        )
+        self.lowRbtn.sensitivityChanged.connect(
+            self.preferencesWindow.setSensitivity
+        )
+        self.veryLowRbtn.sensitivityChanged.connect(
+            self.preferencesWindow.setSensitivity
+        )
 
-        self.actionsGrp.moveBtn.clicked.connect(self.moveImages)
-        self.actionsGrp.deleteBtn.clicked.connect(self.deleteImages)
-        self.actionsGrp.autoSelectBtn.clicked.connect(
-            self.imageViewWidget.autoSelect
-        )
-        self.actionsGrp.unselectBtn.clicked.connect(
-            self.imageViewWidget.unselect
-        )
+    def _setActionsGroupBox(self) -> None:
+        self.moveBtn.clicked.connect(self.imageViewWidget.move)
+        self.deleteBtn.clicked.connect(self.imageViewWidget.delete)
+
+        self.autoSelectBtn.clicked.connect(self.imageViewWidget.autoSelect)
+        self.unselectBtn.clicked.connect(self.imageViewWidget.unselect)
 
     def _setMenubar(self) -> None:
+        # 'File' menu
+        self.addFolderAction.triggered.connect(self.pathsList.addPath)
+        self.delFolderAction.triggered.connect(self.pathsList.delPath)
+
         preferencesWindow = QtCore.QVariant(self.preferencesWindow)
         self.preferencesAction.setData(preferencesWindow)
+        self.preferencesAction.triggered.connect(self.menubar.openWindow)
 
-        aboutWindow = QtCore.QVariant(self.aboutWindow)
-        self.aboutAction.setData(aboutWindow)
-
-        self.addFolderAction.triggered.connect(self.pathsGrp.addPath)
-        self.addFolderAction.triggered.connect(self.switchStartBtn)
-        self.delFolderAction.triggered.connect(self.pathsGrp.delPath)
-        self.delFolderAction.triggered.connect(self.switchStartBtn)
-        self.preferencesAction.triggered.connect(
-            self.openWindow
-        )
         self.exitAction.triggered.connect(self.close)
-        self.moveAction.triggered.connect(self.moveImages)
-        self.deleteAction.triggered.connect(self.deleteImages)
+
+        # 'Edit' menu
+        self.moveAction.triggered.connect(self.imageViewWidget.move)
+        self.deleteAction.triggered.connect(self.imageViewWidget.delete)
+
         self.autoSelectAction.triggered.connect(
             self.imageViewWidget.autoSelect
         )
         self.unselectAction.triggered.connect(self.imageViewWidget.unselect)
-        self.docsAction.triggered.connect(self.openDocs)
-        self.homePageAction.triggered.connect(self.openDocs)
-        self.aboutAction.triggered.connect(self.openWindow)
 
-    def switchDelFolderAction(self) -> None:
-        if self.pathsGrp.pathsList.selectedItems():
-            self.delFolderAction.setEnabled(True)
-        else:
-            self.delFolderAction.setEnabled(False)
+        # 'Help' menu
+        self.docsAction.triggered.connect(self.menubar.openDocs)
+        self.homePageAction.triggered.connect(self.menubar.openDocs)
 
-    def switchStartBtn(self) -> None:
-        processing_run = self.image_processing or self.widgets_processing
-        if self.pathsGrp.pathsList.count() and not processing_run:
-            self.processingGrp.startBtn.setEnabled(True)
-        else:
-            self.processingGrp.startBtn.setEnabled(False)
+        aboutWindow = QtCore.QVariant(self.aboutWindow)
+        self.aboutAction.setData(aboutWindow)
+        self.aboutAction.triggered.connect(self.menubar.openWindow)
 
-    def switchImgActionsAndBtns(self):
-        if self.imageViewWidget.hasSelectedWidgets():
-            self.actionsGrp.setEnabled(True)
-            self.moveAction.setEnabled(True)
-            self.deleteAction.setEnabled(True)
-            self.unselectAction.setEnabled(True)
-        else:
-            self.actionsGrp.setEnabled(False)
-            self.moveAction.setEnabled(False)
-            self.deleteAction.setEnabled(False)
-            self.unselectAction.setEnabled(False)
+    def _startProcessing(self):
+        conf = self.preferencesWindow.conf
+        p = workers.ImageProcessing(self.pathsList.paths(), conf)
 
-    def _setImageProcessingObj(self) -> workers.ImageProcessing:
-        conf = self.preferencesWindow.conf.copy()
-        conf.update({'sensitivity': self.sensitivityGrp.sensitivity})
+        p.images_loaded.connect(self.loadedPicLbl.updateNumber)
+        p.found_in_cache.connect(self.foundInCacheLbl.updateNumber)
+        p.hashes_calculated.connect(self.calculatedLbl.updateNumber)
+        p.duplicates_found.connect(self.duplicatesLbl.updateNumber)
+        p.groups_found.connect(self.groupsLbl.updateNumber)
 
-        p = workers.ImageProcessing(self.pathsGrp.paths(), conf)
-        p.update_label.connect(self.processingGrp.updateLabel)
-        p.update_progressbar.connect(
-            self.processingGrp.processProg.setValue
-        )
-        p.image_groups.connect(self.render)
+        p.update_progressbar.connect(self.processProg.setValue)
+        p.finished.connect(self.imageViewWidget.render)
         p.error.connect(errorMessage)
-        p.interrupted.connect(self.processingInterrupted)
+        p.interrupted.connect(self.startBtn.finished)
 
-        self.processingGrp.stopBtn.clicked.connect(p.interrupt)
+        self.stopBtn.clicked.connect(p.interrupt)
 
-        return p
-
-    def startProcessing(self) -> None:
-        self.imageViewWidget.clear()
-        self.actionsGrp.autoSelectBtn.setEnabled(False)
-        self.autoSelectAction.setEnabled(False)
-        self.processingGrp.startProcessing()
-
-        self.imageViewWidget.interrupted = False
-        self.image_processing = True
-
-        processing_obj = self._setImageProcessingObj()
-        worker = workers.Worker(processing_obj.run)
+        worker = workers.Worker(p.run)
         self.threadpool.start(worker)
-
-    def disableStopBtn(self) -> None:
-        self.processingGrp.stopBtn.setEnabled(False)
-
-    def _connectDuplicateWidgetSignals(self) -> None:
-        for group_w in self.imageViewWidget.widgets:
-            for dup_w in group_w.widgets:
-                dup_w.signals.clicked.connect(self.switchImgActionsAndBtns)
-
-    def processingFinished(self) -> None:
-        self.widgets_processing = False
-        self.switchStartBtn()
-        self.processingGrp.stopBtn.setEnabled(False)
-        self.processingGrp.processProg.setValue(100)
-
-        if self.imageViewWidget.widgets:
-            self._connectDuplicateWidgetSignals()
-
-            self.actionsGrp.autoSelectBtn.setEnabled(True)
-            self.autoSelectAction.setEnabled(True)
-
-    def processingInterrupted(self) -> None:
-        self._clearThreadpool()
-
-        self.image_processing = False
-
-        self.processingFinished()
-
-    def _clearThreadpool(self) -> None:
-        self.threadpool.clear()
-        self.threadpool.waitForDone()
 
     def closeEvent(self, event) -> None:
         if self.preferencesWindow.conf['close_confirmation']:
@@ -265,69 +214,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 event.ignore()
                 return
 
-        if self.processingGrp.stopBtn.isEnabled():
-            # If the programme is working (button 'Stop' enabled),
-            # run 'normal' interruption process
-            self.processingGrp.stopBtn.clicked.emit()
+        if self.stopBtn.isEnabled():
+            self.stopBtn.clicked.emit()
 
-            while self.image_processing:
-                QtCore.QCoreApplication.processEvents()
-
-        else:
-            # If the programme has finished everything and the 'lazy'
-            # mode is on, the user, before closing it, might have scrolled
-            # and put some thumbnails in the queue to make. So we're making
-            # sure that all the 'thumbnails' threads are cleared
-            self._clearThreadpool()
-
-    def openWindow(self) -> None:
-        window = self.sender().data()
-        if window.isVisible():
-            window.activateWindow()
-        else:
-            window.show()
-
-    def openDocs(self) -> None:
-        docs_url = 'https://github.com/oratosquilla-oratoria/doppelganger'
-        webbrowser.open(docs_url)
-
-    def deleteImages(self) -> None:
-        confirm = QtWidgets.QMessageBox.question(
-            self,
-            'Deletion confirmation',
-            'Do you really want to remove the selected images?',
-            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.Cancel
-        )
-
-        if confirm == QtWidgets.QMessageBox.Yes:
-            self.imageViewWidget.delete()
-            self.switchImgActionsAndBtns()
-
-    def moveImages(self) -> None:
-        new_dst = QtWidgets.QFileDialog.getExistingDirectory(
-            self,
-            'Open Folder',
-            '',
-            QtWidgets.QFileDialog.ShowDirsOnly
-        )
-        if new_dst:
-            self.imageViewWidget.move(new_dst)
-            self.switchImgActionsAndBtns()
-
-    def render(self, image_groups: Collection[core.Group]) -> None:
-        if image_groups:
-            self.widgets_processing = True
-            value = self.processingGrp.processProg.value()
-            self.imageViewWidget.progressBarValue = value
-            self.image_processing = False
-            self.imageViewWidget.render(image_groups)
-        else:
-            self.image_processing = False
-            self.processingFinished()
-
-            msg_box = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Information,
-                'No duplicate images found',
-                'No duplicate images have been found in the selected folders'
-            )
-            msg_box.exec()
+        self.threadpool.clear()
+        self.threadpool.waitForDone()
