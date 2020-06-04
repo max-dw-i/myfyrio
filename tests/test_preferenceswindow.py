@@ -38,161 +38,22 @@ if app is None:
     app = QtWidgets.QApplication([])
 
 
+PW_MODULE = 'doppelganger.gui.preferenceswindow.'
+
+
 # pylint: disable=unused-argument,missing-class-docstring
 
 
-class TestFuncLoadConfig(TestCase):
+class TestPreferencesWindow(TestCase):
 
-    NAME = 'doppelganger.config.Config'
-
-    def setUp(self):
-        self.mock_Config = mock.create_autospec(config.Config)
-        self.mock_Config.data = 'conf'
-
-    def test_Config_called_with_no_arg(self):
-        with mock.patch(self.NAME, return_value=self.mock_Config) as m:
-            preferenceswindow.load_config()
-
-        m.assert_called_once_with()
-
-    def test_load_is_ok(self):
-        with mock.patch(self.NAME, return_value=self.mock_Config):
-            res = preferenceswindow.load_config()
-
-        self.mock_Config.load.assert_called_once_with(
-            resources.Config.CONFIG.abs_path
-        )
-        self.assertEqual(res, self.mock_Config)
-
-    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
-    def test_show_msg_if_load_raise_OSError(self, mock_exec):
-        self.mock_Config.load.side_effect = OSError
-        with mock.patch(self.NAME, return_value=self.mock_Config):
-            preferenceswindow.load_config()
-
-        mock_exec.assert_called_once_with()
-
-    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
-    def test_log_error_if_load_raise_OSError(self, mock_exec):
-        self.mock_Config.load.side_effect = OSError
-        with mock.patch(self.NAME, return_value=self.mock_Config):
-            with self.assertLogs('main.preferences', 'ERROR'):
-                preferenceswindow.load_config()
-
-
-class TestSaveConfigFunc(TestCase):
-
-    CONF = {'test_param': 'test_val'}
-
-    def setUp(self):
-        self.mock_Config = mock.create_autospec(config.Config)
-
-    def test_save_is_ok(self):
-        preferenceswindow.save_config(self.mock_Config)
-
-        self.mock_Config.save.assert_called_once_with(
-            resources.Config.CONFIG.abs_path
-        )
-
-    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
-    def test_show_msg_if_save_raise_OSError(self, mock_exec):
-        self.mock_Config.save.side_effect = OSError
-        preferenceswindow.save_config(self.mock_Config)
-
-        mock_exec.assert_called_once_with()
-
-    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
-    def test_log_error_if_save_raise_OSError(self, mock_exec):
-        self.mock_Config.save.side_effect = OSError
-        with self.assertLogs('main.preferences', 'ERROR'):
-            preferenceswindow.save_config(self.mock_Config)
-
-
-class TestSetValFunc(TestCase):
-
-    def test_QComboBox(self):
-        w = QtWidgets.QComboBox()
-        w.addItems(['0', '1'])
-        w.setCurrentIndex(0)
-        val = 1
-        preferenceswindow.setVal(w, val)
-
-        self.assertEqual(w.currentIndex(), val)
-
-    def test_QSpinBox(self):
-        w = QtWidgets.QSpinBox()
-        val = 66
-        w.setValue(13)
-        preferenceswindow.setVal(w, val)
-
-        self.assertEqual(w.value(), val)
-
-    def test_QCheckBox(self):
-        w = QtWidgets.QCheckBox()
-        w.setChecked(False)
-        val = True
-        preferenceswindow.setVal(w, val)
-
-        self.assertEqual(w.isChecked(), val)
-
-    def test_QGroupBox(self):
-        w = QtWidgets.QGroupBox()
-        w.setCheckable(True)
-        w.setChecked(False)
-        val = True
-        preferenceswindow.setVal(w, val)
-
-        self.assertEqual(w.isChecked(), val)
-
-
-class TestValFunc(TestCase):
-
-    def test_QComboBox(self):
-        w = QtWidgets.QComboBox()
-        w.addItems(['0', '1'])
-        val = 1
-        w.setCurrentIndex(val)
-        res = preferenceswindow.val(w)
-
-        self.assertEqual(res, val)
-
-    def test_QSpinBox(self):
-        w = QtWidgets.QSpinBox()
-        val = 66
-        w.setValue(val)
-        res = preferenceswindow.val(w)
-
-        self.assertEqual(res, val)
-
-    def test_QCheckBox(self):
-        w = QtWidgets.QCheckBox()
-        val = True
-        w.setChecked(val)
-        res = preferenceswindow.val(w)
-
-        self.assertEqual(res, val)
-
-    def test_QGroupBox(self):
-        w = QtWidgets.QGroupBox()
-        w.setCheckable(True)
-        val = True
-        w.setChecked(val)
-        res = preferenceswindow.val(w)
-
-        self.assertEqual(res, val)
-
-
-class TestPreferencesForm(TestCase):
-
-    PATCH_GATHER = ('doppelganger.gui.preferenceswindow.'
-                    'PreferencesWindow.gather_prefs')
+    PW = PW_MODULE + 'PreferencesWindow.'
 
     def setUp(self):
         self.w = preferenceswindow.PreferencesWindow()
         self.clear_widgets()
 
     def clear_widgets(self):
-        for w in self.w.widgets:
+        for w in self.w._widgets:
             if isinstance(w, QtWidgets.QCheckBox):
                 w.setChecked(False)
             if isinstance(w, QtWidgets.QSpinBox):
@@ -202,112 +63,244 @@ class TestPreferencesForm(TestCase):
                 w.setCurrentIndex(0)
 
 
-class TestMethodGatherWidgets(TestPreferencesForm):
+class TestMethodGatherWidgets(TestPreferencesWindow):
 
     def test_all_widgets_of_proper_classes(self):
         classes = (QtWidgets.QComboBox, QtWidgets.QCheckBox,
                    QtWidgets.QSpinBox, QtWidgets.QGroupBox)
+        widgets = self.w._gather_widgets()
 
-        for w in self.w.widgets:
+        for w in widgets:
             self.assertIsInstance(w, classes)
 
     def test_all_widgets_have_property_conf_param(self):
-        for w in self.w.widgets:
+        widgets = self.w._gather_widgets()
+
+        for w in widgets:
             self.assertIsNotNone(w.property('conf_param'))
 
 
-class TestMethodInitWidgets(TestPreferencesForm):
+class TestMethodInitWidgets(TestPreferencesWindow):
 
-    def test_core_spinbox_max_val_equal_number_of_cores(self):
+    def test_cores_spinbox_max_value_equal_number_of_cores_or_1(self):
+        spinbox = QtWidgets.QSpinBox()
+        spinbox.setProperty('conf_param', 'cores')
+        spinbox.setMaximum(5000)
+        self.w._widgets = [spinbox]
         self.w._init_widgets()
 
-        for w in self.w.widgets:
-            if w.property('conf_param') == 'cores':
-                self.assertEqual(w.maximum(), os.cpu_count() or 1)
+        self.assertEqual(spinbox.maximum(), os.cpu_count() or 1)
+
+    def test_not_cores_spinbox_max_value_not_changed(self):
+        spinbox = QtWidgets.QSpinBox()
+        spinbox.setProperty('conf_param', 'not_cores')
+        spinbox.setMaximum(5000)
+        self.w._widgets = [spinbox]
+        self.w._init_widgets()
+
+        self.assertEqual(spinbox.maximum(), 5000)
 
 
-class TestMethodUpdatePrefs(TestPreferencesForm):
+class TestMethodLoadConfig(TestPreferencesWindow):
 
-    def test_update_prefs(self):
-        conf = {
-            'delete_dirs': True,
-            'show_path': True,
-            'show_similarity': True,
-            'show_size': True,
-            'size_format': 2,
-            'size': 150,
-            'sort': 3,
-            'subfolders': True,
-            'close_confirmation': True,
-            'filter_img_size': True,
-            'min_width': 13,
-            'max_width': 66,
-            'min_height': 66,
-            'max_height': 56,
-            'cores': 32,
-            'lazy': True
-        }
-        self.w.update_prefs(conf)
+    PATCH_CONFIG = 'doppelganger.config.Config'
 
-        for w in self.w.widgets:
-            self.assertEqual(preferenceswindow.val(w),
-                             conf[w.property('conf_param')])
+    def setUp(self):
+        super().setUp()
 
+        self.mock_Config = mock.Mock(spec=config.Config)
+        self.mock_Config.data = 'conf'
 
-class TestMethodGatherPrefs(TestPreferencesForm):
+    def test_Config_called_with_no_arg(self):
+        with mock.patch(self.PATCH_CONFIG, return_value=self.mock_Config) as m:
+            self.w._load_config()
 
-    def test_gather_prefs(self):
-        data = {'delete_dirs': False,
-                'show_path': False,
-                'show_similarity': False,
-                'show_size': False,
-                'size': 100,
-                'sort': 0,
-                'size_format': 0,
-                'subfolders': False,
-                'close_confirmation': False,
-                'filter_img_size': False,
-                'min_width': 100,
-                'max_width': 100,
-                'min_height': 100,
-                'max_height': 100,
-                'cores': 100,
-                'lazy': False}
+        m.assert_called_once_with()
 
-        self.w.gather_prefs()
+    def test_load_is_ok(self):
+        with mock.patch(self.PATCH_CONFIG, return_value=self.mock_Config):
+            res = self.w._load_config()
 
-        self.assertDictEqual(self.w.conf.data, data)
+        self.mock_Config.load.assert_called_once_with(
+            resources.Config.CONFIG.abs_path #pylint: disable=no-member
+        )
+        self.assertEqual(res, self.mock_Config)
+
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
+    def test_show_msg_if_load_raise_OSError(self, mock_exec):
+        self.mock_Config.load.side_effect = OSError
+        with mock.patch(self.PATCH_CONFIG, return_value=self.mock_Config):
+            self.w._load_config()
+
+        mock_exec.assert_called_once_with()
+
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
+    def test_log_error_if_load_raise_OSError(self, mock_exec):
+        self.mock_Config.load.side_effect = OSError
+        with mock.patch(self.PATCH_CONFIG, return_value=self.mock_Config):
+            with self.assertLogs('main.preferences', 'ERROR'):
+                self.w._load_config()
 
 
-class TestMethodSaveBtnClick(TestPreferencesForm):
+class TestMethodSaveConfig(TestPreferencesWindow):
 
-    @mock.patch('doppelganger.gui.preferenceswindow.save_config')
-    def test_saveBtn_click_call_gather_prefs(self, mock_save):
-        with mock.patch(self.PATCH_GATHER) as mock_gather:
-            self.w.saveBtn_click()
+    def setUp(self):
+        super().setUp()
+
+        self.mock_Config = mock.Mock(spec=config.Config)
+        self.w.conf = self.mock_Config
+
+    def test_save_is_ok(self):
+        self.w._save_config()
+
+        self.mock_Config.save.assert_called_once_with(
+            resources.Config.CONFIG.abs_path # pylint: disable=no-member
+        )
+
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
+    def test_show_msg_if_save_raise_OSError(self, mock_exec):
+        self.mock_Config.save.side_effect = OSError
+        self.w._save_config()
+
+        mock_exec.assert_called_once_with()
+
+    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
+    def test_log_error_if_save_raise_OSError(self, mock_exec):
+        self.mock_Config.save.side_effect = OSError
+        with self.assertLogs('main.preferences', 'ERROR'):
+            self.w._save_config()
+
+
+class TestMethodSetVal(TestPreferencesWindow):
+
+    def test_QComboBox(self):
+        w = QtWidgets.QComboBox()
+        w.addItems(['0', '1'])
+        w.setCurrentIndex(0)
+        val = 1
+        self.w._setVal(w, val)
+
+        self.assertEqual(w.currentIndex(), val)
+
+    def test_QSpinBox(self):
+        w = QtWidgets.QSpinBox()
+        val = 66
+        w.setValue(13)
+        self.w._setVal(w, val)
+
+        self.assertEqual(w.value(), val)
+
+    def test_QCheckBox(self):
+        w = QtWidgets.QCheckBox()
+        w.setChecked(False)
+        val = True
+        self.w._setVal(w, val)
+
+        self.assertEqual(w.isChecked(), val)
+
+    def test_QGroupBox(self):
+        w = QtWidgets.QGroupBox()
+        w.setCheckable(True)
+        w.setChecked(False)
+        val = True
+        self.w._setVal(w, val)
+
+        self.assertEqual(w.isChecked(), val)
+
+
+class TestMethodVal(TestPreferencesWindow):
+
+    def test_QComboBox(self):
+        w = QtWidgets.QComboBox()
+        w.addItems(['0', '1'])
+        val = 1
+        w.setCurrentIndex(val)
+        res = self.w._val(w)
+
+        self.assertEqual(res, val)
+
+    def test_QSpinBox(self):
+        w = QtWidgets.QSpinBox()
+        val = 66
+        w.setValue(val)
+        res = self.w._val(w)
+
+        self.assertEqual(res, val)
+
+    def test_QCheckBox(self):
+        w = QtWidgets.QCheckBox()
+        val = True
+        w.setChecked(val)
+        res = self.w._val(w)
+
+        self.assertEqual(res, val)
+
+    def test_QGroupBox(self):
+        w = QtWidgets.QGroupBox()
+        w.setCheckable(True)
+        val = True
+        w.setChecked(val)
+        res = self.w._val(w)
+
+        self.assertEqual(res, val)
+
+
+class TestMethodUpdatePrefs(TestPreferencesWindow):
+
+    def test_setVal_called_with_widget_and_config_value_args(self):
+        widget = QtWidgets.QWidget()
+        widget.setProperty('conf_param', 'hair')
+        self.w._widgets = [widget]
+        self.w.conf['hair'] = 'blonde'
+        with mock.patch(self.PW+'_setVal') as mock_setVal_call:
+            self.w._update_prefs()
+
+        mock_setVal_call.assert_called_once_with(widget, 'blonde')
+
+
+class TestMethodGatherPrefs(TestPreferencesWindow):
+
+    def test_config_value_set_to_widget_value(self):
+        widget = QtWidgets.QWidget()
+        widget.setProperty('conf_param', 'hair')
+        self.w._widgets = [widget]
+        with mock.patch(self.PW+'_val',
+                        return_value='blonde') as mock_val_call:
+            self.w._gather_prefs()
+
+        mock_val_call.assert_called_once_with(widget)
+        self.assertEqual(self.w.conf['hair'], 'blonde')
+
+
+class TestMethodSetSensitivity(TestPreferencesWindow):
+
+    def test_passed_arg_assigned_to_config_parameter_sensitivity(self):
+        self.w.conf['sensitivity'] = 5000
+        self.w.setSensitivity(96)
+
+        self.assertEqual(self.w.conf['sensitivity'], 96)
+
+
+class TestMethodSavePreferences(TestPreferencesWindow):
+
+    def test_gather_prefs_called(self):
+        with mock.patch(self.PW+'_gather_prefs') as mock_gather:
+            with mock.patch(self.PW+'_save_config'):
+                self.w._savePreferences()
 
         mock_gather.assert_called_once_with()
 
-    @mock.patch('doppelganger.gui.preferenceswindow.save_config')
-    def test_saveBtn_click_call_save_config(self, mock_save):
-        with mock.patch(self.PATCH_GATHER):
-            self.w.saveBtn_click()
+    def test_save_config_called(self):
+        with mock.patch(self.PW+'_gather_prefs'):
+            with mock.patch(self.PW+'_save_config') as mock_save_call:
+                self.w._savePreferences()
 
-        mock_save.assert_called_once_with(self.w.conf)
-
-    @mock.patch('PyQt5.QtWidgets.QMainWindow.close')
-    @mock.patch('doppelganger.config.Config.save')
-    def test_saveBtn_click_call_close(self, mock_save, mock_close):
-        with mock.patch(self.PATCH_GATHER):
-            self.w.saveBtn_click()
-
-        mock_close.assert_called_once()
-
-
-class TestMethodCancelBtnClick(TestPreferencesForm):
+        mock_save_call.assert_called_once_with()
 
     @mock.patch('PyQt5.QtWidgets.QMainWindow.close')
-    def test_cancelBtn_click(self, mock_close):
-        self.w.cancelBtn_click()
+    def test_close_called(self, mock_close_call):
+        with mock.patch(self.PW+'_gather_prefs'):
+            with mock.patch(self.PW+'_save_config'):
+                self.w._savePreferences()
 
-        mock_close.assert_called_once()
+        mock_close_call.assert_called_once()

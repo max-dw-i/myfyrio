@@ -17,7 +17,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
-Module implementing window "Preferences"
+Module implementing the "Preferences" window
 '''
 
 from __future__ import annotations
@@ -33,84 +33,8 @@ from doppelganger.logger import Logger
 logger = Logger.getLogger('preferences')
 
 
-def load_config() -> config.Config:
-    '''Load and return config with the programme's preferences
-
-    :return: "Config" object
-    '''
-
-    conf = config.Config()
-    try:
-        conf.load(resources.Config.CONFIG.abs_path) # pylint: disable=no-member
-    except OSError as e:
-        logger.error(e)
-
-        log_file = resources.Log.ERROR.value # pylint: disable=no-member
-
-        msg_box = QtWidgets.QMessageBox(
-            QtWidgets.QMessageBox.Warning,
-            'Errors',
-            ('Cannot load preferences from file "config.p". Default '
-             'preferences will be loaded. For more details, '
-             f'see "{log_file}"')
-        )
-        msg_box.exec()
-    return conf
-
-def save_config(conf: config.Config) -> None:
-    '''Save config with the preferences
-
-    :param conf: "Config" object
-    '''
-
-    try:
-        conf.save(resources.Config.CONFIG.abs_path) # pylint: disable=no-member
-    except OSError as e:
-        logger.error(e)
-
-        log_file = resources.Log.ERROR.value # pylint: disable=no-member
-
-        msg_box = QtWidgets.QMessageBox(
-            QtWidgets.QMessageBox.Warning,
-            'Error',
-            ("Cannot save preferences into file 'config.p'. "
-             f"For more details, see '{log_file}'")
-        )
-        msg_box.exec()
-
-def setVal(widget: Widget, val: Value) -> None:
-    '''Set value of widget
-
-    :param widget: widget to set,
-    :param val: value to set
-    '''
-
-    if isinstance(widget, QtWidgets.QSpinBox):
-        widget.setValue(val)
-    if isinstance(widget, QtWidgets.QComboBox):
-        widget.setCurrentIndex(val)
-    if isinstance(widget, (QtWidgets.QCheckBox, QtWidgets.QGroupBox)):
-        widget.setChecked(val)
-
-def val(widget: Widget) -> Value:
-    '''Get value of widget
-
-    :param widget: widget whose value to get,
-    :return: value of widget
-    '''
-
-    if isinstance(widget, QtWidgets.QSpinBox):
-        v = widget.value()
-    if isinstance(widget, QtWidgets.QComboBox):
-        v = widget.currentIndex()
-    if isinstance(widget, (QtWidgets.QCheckBox, QtWidgets.QGroupBox)):
-        v = widget.isChecked()
-
-    return v
-
-
 class PreferencesWindow(QtWidgets.QMainWindow):
-    '''Implementing window "Preferences"'''
+    '''Implementing the "Preferences" window'''
 
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
@@ -118,14 +42,14 @@ class PreferencesWindow(QtWidgets.QMainWindow):
         pref_ui = resources.UI.PREFERENCES.abs_path # pylint: disable=no-member
         uic.loadUi(pref_ui, self)
 
-        self.widgets = self._gather_widgets()
+        self._widgets = self._gather_widgets()
         self._init_widgets()
 
-        self.conf = load_config()
-        self.update_prefs(self.conf)
+        self.conf = self._load_config()
+        self._update_prefs()
 
-        self.saveBtn.clicked.connect(self.saveBtn_click)
-        self.cancelBtn.clicked.connect(self.cancelBtn_click)
+        self.saveBtn.clicked.connect(self._savePreferences)
+        self.cancelBtn.clicked.connect(self.close)
 
         sizeHint = self.sizeHint()
         self.setMaximumSize(sizeHint)
@@ -140,38 +64,92 @@ class PreferencesWindow(QtWidgets.QMainWindow):
 
         for w_type in widget_types:
             for w in self.findChildren(w_type):
+                # Every widget that keeps some preference value
+                # has a 'conf_param' property
                 if w.property('conf_param') is not None:
                     widgets.append(w)
         return widgets
 
     def _init_widgets(self) -> None:
-        for w in self.widgets:
+        for w in self._widgets:
             if w.property('conf_param') == 'cores':
                 w.setMaximum(os.cpu_count() or 1)
 
-    def update_prefs(self, conf: config.Config) -> None:
-        '''Update the form with new preferences
+    @staticmethod
+    def _load_config() -> config.Config:
+        conf = config.Config()
+        try:
+            conf.load(resources.Config.CONFIG.abs_path) # pylint: disable=no-member
 
-        :param conf: "Config" object
-        '''
+        except OSError as e:
+            logger.error(e)
 
-        for w in self.widgets:
-            setVal(w, conf[w.property('conf_param')])
+            log_file = resources.Log.ERROR.value # pylint: disable=no-member
 
-    def gather_prefs(self):
-        '''Gather checked/unchecked/filled by the user options
-        and update the config
-        '''
+            msg_box = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning,
+                'Errors',
+                ('Cannot load preferences from file "config.p". Default '
+                 'preferences will be loaded. For more details, '
+                 f'see "{log_file}"')
+            )
+            msg_box.exec()
 
-        for w in self.widgets:
-            self.conf[w.property('conf_param')] = val(w)
+        return conf
 
-    def saveBtn_click(self) -> None:
-        self.gather_prefs()
-        save_config(self.conf)
-        self.close()
+    def _save_config(self) -> None:
+        try:
+            self.conf.save(resources.Config.CONFIG.abs_path) # pylint: disable=no-member
 
-    def cancelBtn_click(self) -> None:
+        except OSError as e:
+            logger.error(e)
+
+            log_file = resources.Log.ERROR.value # pylint: disable=no-member
+
+            msg_box = QtWidgets.QMessageBox(
+                QtWidgets.QMessageBox.Warning,
+                'Error',
+                ("Cannot save preferences into file 'config.p'. "
+                 f"For more details, see '{log_file}'")
+            )
+            msg_box.exec()
+
+    @staticmethod
+    def _setVal(widget: Widget, val: Value) -> None:
+        if isinstance(widget, QtWidgets.QSpinBox):
+            widget.setValue(val)
+        if isinstance(widget, QtWidgets.QComboBox):
+            widget.setCurrentIndex(val)
+        if isinstance(widget, (QtWidgets.QCheckBox, QtWidgets.QGroupBox)):
+            widget.setChecked(val)
+
+    @staticmethod
+    def _val(widget: Widget) -> Value:
+        if isinstance(widget, QtWidgets.QSpinBox):
+            v = widget.value()
+        if isinstance(widget, QtWidgets.QComboBox):
+            v = widget.currentIndex()
+        if isinstance(widget, (QtWidgets.QCheckBox, QtWidgets.QGroupBox)):
+            v = widget.isChecked()
+
+        return v
+
+    def _update_prefs(self) -> None:
+        for w in self._widgets:
+            conf_param = w.property('conf_param')
+            self._setVal(w, self.conf[conf_param])
+
+    def _gather_prefs(self) -> None:
+        for w in self._widgets:
+            conf_param = w.property('conf_param')
+            self.conf[conf_param] = self._val(w)
+
+    def setSensitivity(self, value: Value) -> None:
+        self.conf['sensitivity'] = value
+
+    def _savePreferences(self) -> None:
+        self._gather_prefs()
+        self._save_config()
         self.close()
 
 
