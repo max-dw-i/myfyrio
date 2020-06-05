@@ -31,7 +31,7 @@ from PyQt5 import QtCore, QtGui
 from doppelganger import core, resources
 from doppelganger.cache import Cache
 from doppelganger.config import Config
-from doppelganger.gui import imageviewwidget
+from doppelganger.gui import thumbnailwidget
 from doppelganger.logger import Logger
 
 logger = Logger.getLogger('workers')
@@ -289,7 +289,7 @@ class ThumbnailProcessing(QtCore.QObject):
     finished = QtCore.pyqtSignal()
 
     def __init__(self, image: core.Image, size: Union[core.Width, core.Height],
-                 widget: imageviewwidget.ThumbnailWidget = None) -> None:
+                 widget: thumbnailwidget.ThumbnailWidget = None) -> None:
         super().__init__(parent=None)
 
         self._image = image
