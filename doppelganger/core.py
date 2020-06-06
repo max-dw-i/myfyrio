@@ -338,7 +338,8 @@ class Image:
         :size: == 200, (100, 200) will be returned
 
         :param size: the biggest size of the scaled image, px,
-        :return: width and height of the scaled image
+        :return: width and height of the scaled image,
+        :raise OSError: image size cannot be read for some reason
         '''
 
         width, height = self.width, self.height
@@ -373,13 +374,17 @@ class Image:
     def _set_dimensions(self) -> None:
         image = QtGui.QImageReader(self.path)
         size = image.size()
+        if not size.isValid():
+            raise OSError('Image size cannot be read')
+
         self._width, self._height = size.width(), size.height()
 
     @property
     def width(self) -> Width:
         '''Return width of the image
 
-        :return: width
+        :return: width,
+        :raise OSError: image size cannot be read for some reason
         '''
 
         if self._width is None:
@@ -390,7 +395,8 @@ class Image:
     def height(self) -> Width:
         '''Return height of the image
 
-        :return: height
+        :return: height,
+        :raise OSError: image size cannot be read for some reason
         '''
 
         if self._height is None:

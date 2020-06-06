@@ -491,6 +491,15 @@ class TestMethodSetDimensions(TestClassImage):
 
         mock_qimg_reader.assert_called_once_with(self.image.path)
 
+    def test_raise_OSError_if_read_size_is_not_valid(self):
+        mock_qimg = mock.Mock(spec=QtGui.QImage)
+        mock_qsize = mock.Mock(spec=QtCore.QSize)
+        mock_qsize.isValid.return_value = False
+        mock_qimg.size.return_value = mock_qsize
+        with mock.patch('PyQt5.QtGui.QImageReader', return_value=mock_qimg):
+            with self.assertRaises(OSError):
+                self.image._set_dimensions()
+
     def test_width_and_height_assigned_to_proper_attrs(self):
         width = 333
         height = 444
