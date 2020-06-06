@@ -40,7 +40,7 @@ class DuplicateWidget(QtWidgets.QWidget):
     '''Widget viewing a duplicate _image and all info
     about it (its similarity rate, size and path)
 
-    :param _image: "Image" object,
+    :param image: "Image" object,
     :param conf: programme's preferences as a "Config" object,
     :param parent: widget's parent (optional),
 
