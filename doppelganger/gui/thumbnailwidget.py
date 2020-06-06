@@ -141,9 +141,7 @@ class ThumbnailWidget(QtWidgets.QLabel):
 
         return not self.visibleRegion().isNull()
 
-    def mark(self) -> None:
-        '''Mark the widget as selected (change colour)'''
-
+    def _mark(self) -> None:
         marked = self._pixmap.copy()
         width, height = marked.width(), marked.height()
 
@@ -154,7 +152,14 @@ class ThumbnailWidget(QtWidgets.QLabel):
         painter.end()
         self.setPixmap(marked)
 
-    def unmark(self) -> None:
-        '''Mark the thumbnail as not selected (change colour back)'''
+    def setMarked(self, mark: bool) -> None:
+        '''Mark the widget as selected/unselected (change colour)
 
-        self.setPixmap(self._pixmap)
+        :param mark: True - mark as selected (make it darker),
+                     False - mark as not selected (set the original image back)
+        '''
+
+        if mark:
+            self._mark()
+        else:
+            self.setPixmap(self._pixmap)

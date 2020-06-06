@@ -632,21 +632,27 @@ class TestThumbnailWidgetMethodMark(TestThumbnailWidget):
     @mock.patch('PyQt5.QtGui.QPainter')
     def test_setPixmap_called_with_darker_thumbnail(self, mock_paint, mock_br):
         self.w._pixmap.copy.return_value = self.copy
-        with mock.patch(VIEW+'ThumbnailWidget.setPixmap') as mock_pixmap_call:
-            self.w.mark()
+        with mock.patch(self.ThW+'setPixmap') as mock_pixmap_call:
+            self.w._mark()
 
         mock_pixmap_call.assert_called_once_with(self.copy)
 
 
-class TestThumbnailWidgetMethodUnmark(TestThumbnailWidget):
+class TestThumbnailWidgetMethodSetMarked(TestThumbnailWidget):
 
     def setUp(self):
         super().setUp()
 
         self.w._pixmap = mock.Mock(spec=QtGui.QPixmap)
 
-    def test_setPixmap_with_pixmap_attr_called(self):
-        with mock.patch(VIEW+'ThumbnailWidget.setPixmap') as mock_pixmap_call:
-            self.w.unmark()
+    def test_mark_called_if_pass_True(self):
+        with mock.patch(self.ThW+'_mark') as mock_mark_call:
+            self.w.setMarked(True)
+
+        mock_mark_call.assert_called_once_with()
+
+    def test_setPixmap_with_pixmap_attr_called_if_pass_False(self):
+        with mock.patch(self.ThW+'setPixmap') as mock_pixmap_call:
+            self.w.setMarked(False)
 
         mock_pixmap_call.assert_called_once_with(self.w._pixmap)
