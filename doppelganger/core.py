@@ -457,17 +457,21 @@ class Image:
         '''Rename the image
 
         :param name: new name of the image,
-        :raise FileExistsError: if a file with name :new_name:
-                                already exists (on Unix replaces
-                                the old file silently)
+        :raise FileExistsError: the file with name :new_name: already exists
+                                (on Unix replaces the old file silently),
+        :raise FileNotFoundError: the file has been removed
         '''
 
         path = Path(self.path)
         new_name = path.parent / name
         try:
             path.rename(new_name)
-        except FileExistsError as e:
-            raise FileExistsError(f'File with name "{name}" already exists')
+        except FileExistsError:
+            err_msg = f'File with the name "{name}" already exists'
+            raise FileExistsError(err_msg)
+        except FileNotFoundError:
+            err_msg = f'File with the name "{path}" has been removed'
+            raise FileNotFoundError(err_msg)
         else:
             self.path = str(new_name)
 

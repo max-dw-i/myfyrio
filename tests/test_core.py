@@ -678,6 +678,12 @@ class TestMethodRename(TestClassImage):
             with self.assertRaises(FileExistsError):
                 self.image.rename(self.new_name)
 
+    def test_raise_FileNotFoundError_if_rename_raise_FileNotFoundError(self):
+        self.mock_path.rename.side_effect = FileNotFoundError
+        with mock.patch(CORE+'Path', return_value=self.mock_path):
+            with self.assertRaises(FileNotFoundError):
+                self.image.rename(self.new_name)
+
 
 class TestMethodDelParentDir(TestClassImage):
 
