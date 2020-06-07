@@ -650,7 +650,6 @@ class TestDuplicateWidgetMethodDelete(TestDuplicateWidget):
 class TestDuplicateWidgetMethodMove(TestDuplicateWidget):
 
     def test_callOnImage_called_with_Image_move_func_and_dst_args(self):
-        dst = 'new_folder'
         with mock.patch(self.DW+'_callOnImage') as mock_call:
             self.w.move('new_folder')
 
