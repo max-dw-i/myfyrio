@@ -21,7 +21,7 @@ Module implementing widget viewing a group of similar (duplicate) images
 '''
 
 
-from typing import Callable, Iterable, List
+from typing import Callable, List
 
 from PyQt5 import QtCore, QtWidgets
 
@@ -38,7 +38,7 @@ class ImageGroupWidget(QtWidgets.QWidget):
     :param parent: widget's parent (optional)
     '''
 
-    def __init__(self, image_group: Iterable[core.Image], conf: config.Config,
+    def __init__(self, image_group: List[core.Image], conf: config.Config,
                  parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
 
@@ -55,8 +55,10 @@ class ImageGroupWidget(QtWidgets.QWidget):
 
         self.setLayout(self._layout)
 
-    def _setDuplicateWidgets(self, image_group: Iterable[core.Image]) -> None:
+    def _setDuplicateWidgets(self, image_group: List[core.Image]) -> None:
         lazy = self._conf['lazy']
+
+        core.Sort(image_group).sort(self._conf['sort'])
 
         for image in image_group:
             dupl_w = DuplicateWidget(image, self._conf)

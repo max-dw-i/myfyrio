@@ -77,9 +77,22 @@ class TestImageGroupWidgetMethodSetDuplicateWidgets(TestImageGroupWidget):
 
         self.conf['lazy'] = True
 
+        self.conf['sort'] = 0
+        self.mock_image.difference = 0
+
         self.w._layout = mock.Mock(spec=QtWidgets.QHBoxLayout)
 
         self.mock_duplW = mock.Mock(spec=duplicatewidget.DuplicateWidget)
+
+    def test_sort_called_on_image_group(self):
+        mock_Sort = mock.Mock(spec=core.Sort)
+        with mock.patch('doppelganger.core.Sort',
+                        return_value=mock_Sort) as mock_Sort_call:
+            with mock.patch(self.DW, return_value=self.mock_duplW):
+                self.w._setDuplicateWidgets(self.image_group)
+
+        mock_Sort_call.assert_called_once_with(self.image_group)
+        mock_Sort.sort.assert_called_once_with(self.conf['sort'])
 
     def test_DuplicateWidget_called_with_image_and_conf_args(self):
         with mock.patch(self.DW,
