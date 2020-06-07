@@ -211,32 +211,35 @@ class DuplicateWidget(QtWidgets.QWidget):
 
         event.ignore()
 
-    def delete(self) -> None:
-        '''Delete the image from the disk and its "DuplicateWidget" instance
-
-        :raise OSError: something went wrong while removing the image
-        '''
-
+    def _callOnImage(self, func, *args, **kwargs) -> None:
         try:
-            self._image.delete()
+            func(self._image, *args, **kwargs)
         except OSError as e:
             raise OSError(e)
         else:
             self.selected = False
-            self.deleteLater()
+            self.hide()
+
+            if self._conf['delete_dirs']:
+                self._image.del_parent_dir()
+
+    def delete(self) -> None:
+        '''Delete the image from the disk, hide its "DuplicateWidget"
+        instance and unselect it. If the preference "Delete folders
+        if they are empty..." is on, also delete empty folders
+
+        :raise OSError: something went wrong while removing the image
+        '''
+
+        self._callOnImage(core.Image.delete)
 
     def move(self, dst: core.FolderPath) -> None:
-        '''Move the image to a new location and delete
-        its "DuplicateWidget" instance
+        '''Move the image to a new location, hide its "DuplicateWidget"
+        instance and unselect it. If the preference "Delete folders
+        if they are empty..." is on, also delete empty folders
 
         :param dst: new location, e.g. "/new/location",
         :raise OSError: something went wrong while moving the image
         '''
 
-        try:
-            self._image.move(dst)
-        except OSError as e:
-            raise OSError(e)
-        else:
-            self.selected = False
-            self.deleteLater()
+        self._callOnImage(core.Image.move, dst)

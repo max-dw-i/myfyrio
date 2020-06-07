@@ -53,7 +53,8 @@ class TestDuplicateWidget(TestCase):
                      'size_format': 1,
                      'show_similarity': False,
                      'show_size': False,
-                     'show_path': False}
+                     'show_path': False,
+                     'delete_dirs': False}
         self.mock_image = mock.Mock(spec=core.Image)
 
         with mock.patch(self.DW+'_setThumbnailWidget'):
@@ -593,54 +594,64 @@ class TestDuplicateWidgetMethodMouseReleaseEvent(TestDuplicateWidget):
         self.mock_event.ignore.assert_called_once_with()
 
 
-class TestDuplicateWidgetMethodDelete(TestDuplicateWidget):
-
-    def test_image_delete_called(self):
-        self.w.delete()
-
-        self.mock_image.delete.assert_called_once_with()
-
-    def test_unselect_widget_if_image_delete_is_ok(self):
-        self.w.delete()
-
-        self.assertFalse(self.w.selected)
-
-    @mock.patch(DW_MODULE+'DuplicateWidget.deleteLater')
-    def test_widget_deleteLater_called_if_image_delete_is_ok(self, mock_del):
-        self.w.delete()
-
-        mock_del.assert_called_once_with()
-
-    def test_raise_OSError_if_image_delete_raise_OSError(self):
-        self.mock_image.delete.side_effect = OSError
-        with self.assertRaises(OSError):
-            self.w.delete()
-
-
-class TestDuplicateWidgetMethodMove(TestDuplicateWidget):
+class TestDuplicateWidgetMethodCallOnImage(TestDuplicateWidget):
 
     def setUp(self):
         super().setUp()
 
-        self.dst = 'new_folder'
+        self.func = mock.Mock()
+        self.arg = 'arg'
+        self.kwarg = 'kwarg'
 
-    def test_image_move_called(self):
-        self.w.move(self.dst)
+    def test_func_called_with_args_kwargs(self):
+        self.w._callOnImage(self.func, self.arg, kwarg=self.kwarg)
 
-        self.mock_image.move.assert_called_once_with(self.dst)
+        self.func.assert_called_once_with(self.mock_image, self.arg,
+                                          kwarg=self.kwarg)
 
-    def test_unselect_widget_if_image_move_is_ok(self):
-        self.w.move(self.dst)
+    def test_attr_selected_set_to_False_if_no_exception(self):
+        self.w.selected = True
+        self.w._callOnImage(self.func, self.arg, kwarg=self.kwarg)
 
         self.assertFalse(self.w.selected)
 
-    @mock.patch(DW_MODULE+'DuplicateWidget.deleteLater')
-    def test_widget_deleteLater_called_if_image_move_is_ok(self, mock_del):
-        self.w.move(self.dst)
+    def test_hide_called_if_no_exception(self):
+        with mock.patch(self.DW+'hide') as mock_hide_call:
+            self.w._callOnImage(self.func, self.arg, kwarg=self.kwarg)
 
-        mock_del.assert_called_once_with()
+        mock_hide_call.assert_called_once_with()
 
-    def test_raise_OSError_if_image_move_raise_OSError(self):
-        self.mock_image.move.side_effect = OSError
+    def test_image_del_parent_dir_not_called_if_conf_param_False(self):
+        self.w._callOnImage(self.func, self.arg, kwarg=self.kwarg)
+
+        self.mock_image.del_parent_dir.assert_not_called()
+
+    def test_image_del_parent_dir_called_if_conf_param_True(self):
+        self.conf['delete_dirs'] = True
+        self.w._callOnImage(self.func, self.arg, kwarg=self.kwarg)
+
+        self.mock_image.del_parent_dir.assert_called_once_with()
+
+    def test_raise_OSError_if_func_raise_OSError(self):
+        self.func.side_effect = OSError
         with self.assertRaises(OSError):
-            self.w.move(self.dst)
+            self.w._callOnImage(self.func, self.arg, kwarg=self.kwarg)
+
+
+class TestDuplicateWidgetMethodDelete(TestDuplicateWidget):
+
+    def test_callOnImage_called_with_Image_delete_func_arg(self):
+        with mock.patch(self.DW+'_callOnImage') as mock_call:
+            self.w.delete()
+
+        mock_call.assert_called_once_with(core.Image.delete)
+
+
+class TestDuplicateWidgetMethodMove(TestDuplicateWidget):
+
+    def test_callOnImage_called_with_Image_move_func_and_dst_args(self):
+        dst = 'new_folder'
+        with mock.patch(self.DW+'_callOnImage') as mock_call:
+            self.w.move('new_folder')
+
+        mock_call.assert_called_once_with(core.Image.move, 'new_folder')
