@@ -71,6 +71,14 @@ class TestMethodInit(TestClassImageProcessing):
         self.assertFalse(self.proc._error)
         self.assertEqual(self.proc._progressbar_value, 0.0)
 
+    def test_attributes(self):
+        self.assertEqual(workers.ImageProcessing.PROG_MIN, 0)
+        self.assertEqual(workers.ImageProcessing.PROG_CHECK_CACHE, 5)
+        self.assertEqual(workers.ImageProcessing.PROG_CALC, 35)
+        self.assertEqual(workers.ImageProcessing.PROG_UPD_CACHE, 40)
+        self.assertEqual(workers.ImageProcessing.PROG_GROUPING, 70)
+        self.assertEqual(workers.ImageProcessing.PROG_MAX, 70)
+
 
 class TestClassImageProcessingMethodRun(TestClassImageProcessing):
 
@@ -379,14 +387,18 @@ class TestMethodCheckCache(TestClassImageProcessing):
         with mock.patch(PATCH_PROGBAR) as mock_bar_call:
             self.proc._check_cache(paths, self.cache)
 
-        mock_bar_call.assert_called_once_with(35)
+        mock_bar_call.assert_called_once_with(
+            workers.ImageProcessing.PROG_CALC
+        )
 
     def test_update_progressbar_called_with_5_if_there_are_not_cached(self):
         PATCH_PROGBAR = PROCESSING+'ImageProcessing._update_progressbar'
         with mock.patch(PATCH_PROGBAR) as mock_bar_call:
             self.proc._check_cache(self.paths, self.cache)
 
-        mock_bar_call.assert_called_once_with(5)
+        mock_bar_call.assert_called_once_with(
+            workers.ImageProcessing.PROG_CHECK_CACHE
+        )
 
 
 class TestClassImageProcessingMethodCalculateHashes(TestClassImageProcessing):
@@ -441,7 +453,7 @@ class TestClassImageProcessingMethodCalculateHashes(TestClassImageProcessing):
                 self.proc._calculate_hashes(self.images)
 
         # step == 30 / len(collection) == 30 in this case
-        calls = [mock.call(32), mock.call(35)]
+        calls = [mock.call(32), mock.call(workers.ImageProcessing.PROG_CALC)]
         mock_bar_call.assert_has_calls(calls)
 
     def test_return_sublist_of_passed_images_if_attr_interrupted_is_True(self):
@@ -506,7 +518,9 @@ class TestClassImageProcessingMethodUpdateCache(TestClassImageProcessing):
     def test_update_progressbar_called_with_40(self, mock_bar):
         self.proc._update_cache(self.mock_cache, self.images)
 
-        mock_bar.assert_called_once_with(40)
+        mock_bar.assert_called_once_with(
+            workers.ImageProcessing.PROG_UPD_CACHE
+        )
 
 
 class TestClassImageProcessingMethodImageGrouping(TestClassImageProcessing):
@@ -576,7 +590,8 @@ class TestClassImageProcessingMethodImageGrouping(TestClassImageProcessing):
                 self.proc._image_grouping(self.images)
 
         # step == 30 / len(images) == 15 in this case
-        calls = [mock.call(45), mock.call(70)]
+        calls = [mock.call(45),
+                 mock.call(workers.ImageProcessing.PROG_GROUPING)]
         mock_bar_call.assert_has_calls(calls)
 
 

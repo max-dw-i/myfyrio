@@ -99,6 +99,14 @@ class ImageProcessing(QtCore.QObject):
     interrupted = QtCore.pyqtSignal()
     error = QtCore.pyqtSignal(str)
 
+    # Progress bar consts
+    PROG_MIN = 0
+    PROG_CHECK_CACHE = 5 # Set when the cache is checked
+    PROG_CALC = 35 # Set when all new hashes are calculated
+    PROG_UPD_CACHE = 40 # Set when the cache is updated with the new hashes
+    PROG_GROUPING = 70 # Set when image grouping is done
+    PROG_MAX = PROG_GROUPING
+
     def __init__(self, folders: Iterable[core.FolderPath],
                  conf: Config) -> None:
         super().__init__(parent=None)
@@ -190,16 +198,16 @@ class ImageProcessing(QtCore.QObject):
 
         self.found_in_cache.emit(len(cached))
         if not_cached:
-            self._update_progressbar(5)
+            self._update_progressbar(self.PROG_CHECK_CACHE)
         else:
-            self._update_progressbar(35)
+            self._update_progressbar(self.PROG_CALC)
 
         return cached, not_cached
 
     def _calculate_hashes(self, images: Collection[core.Image]) \
         -> List[core.Image]:
         calculated: List[core.Image] = []
-        progress_step = 30 / len(images)
+        prog_step = (self.PROG_CALC - self.PROG_CHECK_CACHE) / len(images)
 
         with Pool(processes=self._available_cores()) as p:
             gen = p.imap(core.Image.dhash_parallel, images)
@@ -210,10 +218,10 @@ class ImageProcessing(QtCore.QObject):
                 calculated.append(img)
 
                 self.hashes_calculated.emit(i+1)
-                new_val = self._progressbar_value + progress_step
+                new_val = self._progressbar_value + prog_step
                 self._update_progressbar(new_val)
 
-        self._update_progressbar(35)
+        self._update_progressbar(self.PROG_CALC)
 
         return calculated
 
@@ -234,11 +242,11 @@ class ImageProcessing(QtCore.QObject):
             logger.error('Cache cannot be saved on the disk')
             self._error = True
 
-        self._update_progressbar(40)
+        self._update_progressbar(self.PROG_UPD_CACHE)
 
     def _image_grouping(self, images: Collection[core.Image]) -> None:
         image_groups = []
-        progress_step = 30 / len(images)
+        prog_step = (self.PROG_GROUPING - self.PROG_UPD_CACHE) / len(images)
 
         gen = core.image_grouping(images, self._conf['sensitivity'])
         for image_groups in gen:
@@ -250,10 +258,10 @@ class ImageProcessing(QtCore.QObject):
             duplicates_found = sum(len(g) for g in image_groups)
             self.duplicates_found.emit(duplicates_found)
             self.groups_found.emit(len(image_groups))
-            new_val = self._progressbar_value + progress_step
+            new_val = self._progressbar_value + prog_step
             self._update_progressbar(new_val)
 
-        self._update_progressbar(70)
+        self._update_progressbar(self.PROG_GROUPING)
 
         self.finished.emit(image_groups)
 
