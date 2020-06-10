@@ -68,7 +68,7 @@ class TestDuplicateWidgetMethodInit(TestDuplicateWidget):
     def test_init_values(self):
         self.assertEqual(self.w._image, self.mock_image)
         self.assertEqual(self.w._conf, self.conf)
-        self.assertFalse(self.w.selected)
+        self.assertFalse(self.w._selected)
 
         self.assertEqual(self.w.minimumWidth(), self.conf['size'])
         self.assertEqual(self.w.maximumWidth(), self.conf['size'])
@@ -525,73 +525,46 @@ class TestDuplicateWidgetMethodContextMenuEvent(TestDuplicateWidget):
         mock_rename.assert_called_once_with()
 
 
-class TestDuplicateWidgetMethodSetSelected(TestDuplicateWidget):
+class TestDuplicateWidgetMethodSelected_Setter(TestDuplicateWidget):
 
     def setUp(self):
         super().setUp()
 
-        self.w.thumbnailWidget = mock.Mock(thumbnailwidget.ThumbnailWidget)
+        self.w.thumbnailWidget = mock.Mock(
+            spec=thumbnailwidget.ThumbnailWidget
+        )
 
     def test_select_widget_if_pass_True(self):
-        self.w.setSelected(True)
+        self.w.selected = True
 
-        self.assertTrue(self.w.selected)
+        self.assertTrue(self.w._selected)
 
     def test_thumbnailWidget_mark_called_if_pass_True(self):
-        self.w.setSelected(True)
+        self.w.selected = True
 
         self.w.thumbnailWidget.setMarked.assert_called_once_with(True)
 
     def test_unselect_widget_if_pass_False(self):
-        self.w.setSelected(False)
+        self.w.selected = False
 
-        self.assertFalse(self.w.selected)
+        self.assertFalse(self.w._selected)
 
     def test_thumbnailWidget_unmark_called_if_pass_False(self):
-        self.w.setSelected(False)
+        self.w.selected = False
 
         self.w.thumbnailWidget.setMarked.assert_called_once_with(False)
 
     def test_emit_signal_clicked_if_pass_True(self):
         spy = QtTest.QSignalSpy(self.w.clicked)
-        self.w.setSelected(True)
+        self.w.selected = True
 
         self.assertEqual(len(spy), 1)
 
     def test_emit_signal_clicked_if_pass_False(self):
         spy = QtTest.QSignalSpy(self.w.clicked)
-        self.w.setSelected(False)
+        self.w.selected = False
 
         self.assertEqual(len(spy), 1)
-
-
-class TestDuplicateWidgetMethodMouseReleaseEvent(TestDuplicateWidget):
-
-    PATCH_SETSELECTED = DW_MODULE + 'DuplicateWidget.setSelected'
-
-    def setUp(self):
-        super().setUp()
-
-        self.mock_event = mock.Mock(spec=QtGui.QMouseEvent)
-
-    def test_setSelected_called_with_False_if_widget_already_selected(self):
-        self.w.selected = True
-        with mock.patch(self.PATCH_SETSELECTED) as mock_set_call:
-            self.w.mouseReleaseEvent(self.mock_event)
-
-        mock_set_call.assert_called_once_with(False)
-
-    def test_setSelected_called_with_True_if_widget_already_unselected(self):
-        self.w.selected = False
-        with mock.patch(self.PATCH_SETSELECTED) as mock_set_call:
-            self.w.mouseReleaseEvent(self.mock_event)
-
-        mock_set_call.assert_called_once_with(True)
-
-    def test_event_ignored(self):
-        self.w.mouseReleaseEvent(self.mock_event)
-
-        self.mock_event.ignore.assert_called_once_with()
 
 
 class TestDuplicateWidgetMethodCallOnImage(TestDuplicateWidget):

@@ -87,13 +87,13 @@ class ImageGroupWidget(QtWidgets.QWidget):
         '''Select all "DuplicateWidget"s in the widget except the first one'''
 
         for i in range(1, len(self)):
-            self.widgets[i].setSelected(True)
+            self.widgets[i].selected = True
 
     def unselect(self) -> None:
         '''Unselect all selected "DuplicateWidget"s in the widget'''
 
         for dupl_w in self.widgets:
-            dupl_w.setSelected(False)
+            dupl_w.selected = False
 
     def _callOnSelected(self, func: Callable, *args, **kwargs) -> None:
         try:

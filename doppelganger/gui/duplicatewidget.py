@@ -55,7 +55,7 @@ class DuplicateWidget(QtWidgets.QWidget):
 
         self._image = image
         self._conf = conf
-        self.selected = False
+        self._selected = False
 
         self.setFixedWidth(self._conf['size'])
 
@@ -195,19 +195,24 @@ class DuplicateWidget(QtWidgets.QWidget):
         if action == renameAction:
             self.renameImage()
 
-    def setSelected(self, select: bool) -> None:
+    @property
+    def selected(self) -> bool:
+        return self._selected
+
+    @selected.setter
+    def selected(self, select: bool) -> None:
         '''Select/unselect the widget and emit the "clicked" signal
 
         :param select: True - select the widget, False - unselect it
         '''
 
-        self.selected = select
+        self._selected = select
         self.thumbnailWidget.setMarked(select)
 
         self.clicked.emit()
 
     def mouseReleaseEvent(self, event) -> None:
-        self.setSelected(not self.selected)
+        self.selected = not self.selected
 
         event.ignore()
 

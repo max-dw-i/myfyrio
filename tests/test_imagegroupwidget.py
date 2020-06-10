@@ -184,19 +184,23 @@ class TestImageGroupWidgetMethodAutoSelect(TestImageGroupWidget):
     def setUp(self):
         super().setUp()
 
+        self.mock_duplW0 = mock.Mock(spec=duplicatewidget.DuplicateWidget)
+        self.mock_selected_prop0 = mock.PropertyMock(spec=bool)
+        type(self.mock_duplW0).selected = self.mock_selected_prop0
         self.mock_duplW1 = mock.Mock(spec=duplicatewidget.DuplicateWidget)
-        self.mock_duplW2 = mock.Mock(spec=duplicatewidget.DuplicateWidget)
-        self.w.widgets = [self.mock_duplW1, self.mock_duplW2]
+        self.mock_selected_prop1 = mock.PropertyMock(spec=bool)
+        type(self.mock_duplW1).selected = self.mock_selected_prop1
+        self.w.widgets = [self.mock_duplW0, self.mock_duplW1]
 
     def test_setSelected_called_on_1st_widget(self):
         self.w.autoSelect()
 
-        self.mock_duplW2.setSelected.assert_called_once_with(True)
+        self.mock_selected_prop1.assert_called_once_with(True)
 
     def test_setSelected_not_called_on_0th_widget(self):
         self.w.autoSelect()
 
-        self.mock_duplW1.setSelected.assert_not_called()
+        self.mock_selected_prop0.assert_not_called()
 
 
 class TestImageGroupWidgetMethodUnselect(TestImageGroupWidget):
@@ -204,15 +208,19 @@ class TestImageGroupWidgetMethodUnselect(TestImageGroupWidget):
     def setUp(self):
         super().setUp()
 
+        self.mock_duplW0 = mock.Mock(spec=duplicatewidget.DuplicateWidget)
+        self.mock_selected_prop0 = mock.PropertyMock(spec=bool)
+        type(self.mock_duplW0).selected = self.mock_selected_prop0
         self.mock_duplW1 = mock.Mock(spec=duplicatewidget.DuplicateWidget)
-        self.mock_duplW2 = mock.Mock(spec=duplicatewidget.DuplicateWidget)
-        self.w.widgets = [self.mock_duplW1, self.mock_duplW2]
+        self.mock_selected_prop1 = mock.PropertyMock(spec=bool)
+        type(self.mock_duplW1).selected = self.mock_selected_prop1
+        self.w.widgets = [self.mock_duplW0, self.mock_duplW1]
 
     def test_setSelected_called_with_False_on_all_widgets(self):
         self.w.unselect()
 
-        self.mock_duplW1.setSelected.assert_called_once_with(False)
-        self.mock_duplW2.setSelected.assert_called_once_with(False)
+        self.mock_selected_prop0.assert_called_once_with(False)
+        self.mock_selected_prop1.assert_called_once_with(False)
 
 
 class TestImageGroupWidgetMethodCallOnSelected(TestImageGroupWidget):
