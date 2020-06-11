@@ -107,16 +107,22 @@ class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
         self.mock_IVW = mock.Mock(spec=imageviewwidget.ImageViewWidget)
         self.mw.imageViewWidget = self.mock_IVW
 
+    def test_ImageProcessing_PROG_MAX_assigned_to_attr_PROG_MIN(self):
+        self.mw._setImageViewWidget()
+
+        self.assertEqual(self.mock_IVW.PROG_MIN,
+                         workers.ImageProcessing.PROG_MAX)
+
     def test_preferences_conf_assigned_to_attr_conf(self):
         self.mw._setImageViewWidget()
 
         self.assertEqual(self.mw.imageViewWidget.conf,
                          self.mw.preferencesWindow.conf)
 
-    def test_update_progressbar_signal_connected_to_processProg_setValue(self):
+    def test_updateProgressBar_signal_connected_to_processProg_setValue(self):
         self.mw._setImageViewWidget()
 
-        self.mock_IVW.update_progressbar.connect.assert_called_once_with(
+        self.mock_IVW.updateProgressBar.connect.assert_called_once_with(
             self.mw.processProg.setValue
         )
 
@@ -162,48 +168,48 @@ class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
             self.mw.startBtn.finished
         )
 
-    def test_test_hasSelected_signal_connected_to_6_slots(self):
+    def test_test_selected_signal_connected_to_6_slots(self):
         self.mw._setImageViewWidget()
 
         self.assertEqual(
-            len(self.mock_IVW.hasSelected.connect.call_args_list), 6
+            len(self.mock_IVW.selected.connect.call_args_list), 6
         )
 
-    def test_hasSelected_signal_connected_to_moveBtn_setEnabled(self):
+    def test_selected_signal_connected_to_moveBtn_setEnabled(self):
         self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.moveBtn.setEnabled)]
-        self.mock_IVW.hasSelected.connect.assert_has_calls(calls)
+        self.mock_IVW.selected.connect.assert_has_calls(calls)
 
-    def test_hasSelected_signal_connected_to_deleteBtn_setEnabled(self):
+    def test_selected_signal_connected_to_deleteBtn_setEnabled(self):
         self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.deleteBtn.setEnabled)]
-        self.mock_IVW.hasSelected.connect.assert_has_calls(calls)
+        self.mock_IVW.selected.connect.assert_has_calls(calls)
 
-    def test_hasSelected_signal_connected_to_unselectBtn_setEnabled(self):
+    def test_selected_signal_connected_to_unselectBtn_setEnabled(self):
         self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.unselectBtn.setEnabled)]
-        self.mock_IVW.hasSelected.connect.assert_has_calls(calls)
+        self.mock_IVW.selected.connect.assert_has_calls(calls)
 
-    def test_hasSelected_signal_connected_to_moveAction_setEnabled(self):
+    def test_selected_signal_connected_to_moveAction_setEnabled(self):
         self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.moveAction.setEnabled)]
-        self.mock_IVW.hasSelected.connect.assert_has_calls(calls)
+        self.mock_IVW.selected.connect.assert_has_calls(calls)
 
-    def test_hasSelected_signal_connected_to_deleteAction_setEnabled(self):
+    def test_selected_signal_connected_to_deleteAction_setEnabled(self):
         self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.deleteAction.setEnabled)]
-        self.mock_IVW.hasSelected.connect.assert_has_calls(calls)
+        self.mock_IVW.selected.connect.assert_has_calls(calls)
 
-    def test_hasSelected_signal_connected_to_unselectAction_setEnabled(self):
+    def test_selected_signal_connected_to_unselectAction_setEnabled(self):
         self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.unselectAction.setEnabled)]
-        self.mock_IVW.hasSelected.connect.assert_has_calls(calls)
+        self.mock_IVW.selected.connect.assert_has_calls(calls)
 
 
 class TestMainWindowMethodSetFolderPathsGroupBox(TestMainWindow):
@@ -264,6 +270,18 @@ class TestMainWindowMethodSetImageProcessingGroupBox(TestMainWindow):
 
         self.mw.startBtn = self.mock_startBtn
         self.mw.stopBtn = self.mock_stopBtn
+
+    def test_processProg_minimum_set_to_ImageProcessing_PROG_MIN(self):
+        self.mw._setImageProcessingGroupBox()
+
+        self.assertEqual(self.mw.processProg.minimum(),
+                         workers.ImageProcessing.PROG_MIN)
+
+    def test_processProg_maximum_set_to_ImageViewWidget_PROG_MAX(self):
+        self.mw._setImageProcessingGroupBox()
+
+        self.assertEqual(self.mw.processProg.maximum(),
+                         self.mw.imageViewWidget.PROG_MAX)
 
     def test_startBtn_clicked_signal_connected_to_12_slots(self):
         self.mw._setImageProcessingGroupBox()

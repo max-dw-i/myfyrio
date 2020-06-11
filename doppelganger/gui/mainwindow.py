@@ -72,7 +72,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def _setImageViewWidget(self) -> None:
         self.imageViewWidget.conf = self.preferencesWindow.conf
 
-        self.imageViewWidget.update_progressbar.connect(
+        self.imageViewWidget.PROG_MIN = workers.ImageProcessing.PROG_MAX
+        self.imageViewWidget.updateProgressBar.connect(
             self.processProg.setValue
         )
 
@@ -86,14 +87,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.imageViewWidget.interrupted.connect(self.startBtn.finished)
 
-        self.imageViewWidget.hasSelected.connect(self.moveBtn.setEnabled)
-        self.imageViewWidget.hasSelected.connect(self.deleteBtn.setEnabled)
-        self.imageViewWidget.hasSelected.connect(self.unselectBtn.setEnabled)
-        self.imageViewWidget.hasSelected.connect(self.moveAction.setEnabled)
-        self.imageViewWidget.hasSelected.connect(self.deleteAction.setEnabled)
-        self.imageViewWidget.hasSelected.connect(
-            self.unselectAction.setEnabled
-        )
+        self.imageViewWidget.selected.connect(self.moveBtn.setEnabled)
+        self.imageViewWidget.selected.connect(self.deleteBtn.setEnabled)
+        self.imageViewWidget.selected.connect(self.unselectBtn.setEnabled)
+        self.imageViewWidget.selected.connect(self.moveAction.setEnabled)
+        self.imageViewWidget.selected.connect(self.deleteAction.setEnabled)
+        self.imageViewWidget.selected.connect(self.unselectAction.setEnabled)
 
     def _setFolderPathsGroupBox(self) -> None:
         self.pathsList.hasSelection.connect(self.delFolderBtn.setEnabled)
@@ -105,6 +104,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.delFolderBtn.clicked.connect(self.pathsList.delPath)
 
     def _setImageProcessingGroupBox(self) -> None:
+        self.processProg.setMinimum(workers.ImageProcessing.PROG_MIN)
+        self.processProg.setMaximum(self.imageViewWidget.PROG_MAX)
+
         self.startBtn.clicked.connect(self.imageViewWidget.clear)
 
         self.startBtn.clicked.connect(self.processProg.setMinValue)
