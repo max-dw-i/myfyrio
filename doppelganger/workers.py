@@ -115,7 +115,6 @@ class ImageProcessing(QtCore.QObject):
         self._conf = conf
 
         self._interrupted = False
-        self._error = False
         self._progressbar_value: float = 0.0
 
     def run(self) -> None:
@@ -137,13 +136,9 @@ class ImageProcessing(QtCore.QObject):
 
             self._image_grouping(cached)
 
-        except Exception:
-            logger.error('Unknown error: ', exc_info=True)
-            self._error = True
-
-        finally:
-            if self._error:
-                self.error.emit('Something went wrong while processing images')
+        except Exception as e:
+            logger.exception(e)
+            self.error.emit(str(e))
 
     def interrupt(self) -> None:
         self._interrupted = True
@@ -179,8 +174,9 @@ class ImageProcessing(QtCore.QObject):
             # Make an empty cache (it's empty by default) since there's no one
             pass
         except EOFError:
-            logger.error('Cache file is corrupted and will be rewritten')
-            self._error = True
+            err_msg = 'Cache file is corrupted and will be rewritten'
+            logger.exception(err_msg)
+            self.error.emit(err_msg)
 
         return c
 
@@ -231,16 +227,18 @@ class ImageProcessing(QtCore.QObject):
             dhash = img.dhash
             path = img.path
             if dhash == -1:
-                logger.error(f'Hash of {path} cannot be calculated')
-                self._error = True
+                err_msg = f'Hash of {path} cannot be calculated'
+                logger.error(err_msg)
+                self.error.emit(err_msg)
             else:
                 cache[path] = dhash
 
         try:
             cache.save(resources.Cache.CACHE.abs_path) # pylint: disable=no-member
         except OSError:
-            logger.error('Cache cannot be saved on the disk')
-            self._error = True
+            err_msg = 'Cache cannot be saved on the disk'
+            logger.exception(err_msg)
+            self.error.emit(err_msg)
 
         self._update_progressbar(self.PROG_UPD_CACHE)
 
@@ -311,7 +309,7 @@ class ThumbnailProcessing(QtCore.QObject):
             try:
                 self._image.thumbnail(self._size)
             except OSError as e:
-                logger.error(e)
+                logger.exception(e)
                 self._image.thumb = QtGui.QImage()
 
             self.finished.emit()

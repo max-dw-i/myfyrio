@@ -24,20 +24,9 @@ from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
 from doppelganger import resources, workers
 from doppelganger.gui.aboutwindow import AboutWindow
+from doppelganger.gui.errornotifier import ErrorNotifier
 from doppelganger.gui.preferenceswindow import PreferencesWindow
 from doppelganger.gui.sensitivityradiobutton import checkedRadioButton
-
-
-def errorMessage(msg: str) -> None:
-    '''Show up when there've been some errors while processing
-    images (slot function for signal 'error')
-
-    :param msg: error message
-    '''
-
-    msg_box = QtWidgets.QMessageBox(QtWidgets.QMessageBox.Warning,
-                                    'Errors', msg)
-    msg_box.exec()
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -55,6 +44,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.aboutWindow = AboutWindow(self)
         self.preferencesWindow = PreferencesWindow(self)
+        self.errorNotifier = ErrorNotifier()
 
         self.threadpool = QtCore.QThreadPool.globalInstance()
 
@@ -77,6 +67,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.processProg.setValue
         )
 
+        self.imageViewWidget.finished.connect(self.errorNotifier.errorMessage)
         self.imageViewWidget.finished.connect(self.processProg.setMaxValue)
         self.imageViewWidget.finished.connect(self.stopBtn.disable)
         self.imageViewWidget.finished.connect(self.startBtn.finished)
@@ -106,6 +97,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def _setImageProcessingGroupBox(self) -> None:
         self.processProg.setMinimum(workers.ImageProcessing.PROG_MIN)
         self.processProg.setMaximum(self.imageViewWidget.PROG_MAX)
+
+        self.startBtn.clicked.connect(self.errorNotifier.reset)
 
         self.startBtn.clicked.connect(self.imageViewWidget.clear)
 
@@ -195,7 +188,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         p.update_progressbar.connect(self.processProg.setValue)
         p.finished.connect(self.imageViewWidget.render)
-        p.error.connect(errorMessage)
+        p.error.connect(self.errorNotifier.addError)
         p.interrupted.connect(self.startBtn.finished)
 
         self.stopBtn.clicked.connect(p.interrupt)

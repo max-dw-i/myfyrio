@@ -21,9 +21,9 @@ from unittest import TestCase, mock
 from PyQt5 import QtCore, QtTest, QtWidgets
 
 from doppelganger import workers
-from doppelganger.gui import (aboutwindow, imageviewwidget, mainwindow,
-                              pathslistwidget, preferenceswindow, pushbutton,
-                              sensitivityradiobutton)
+from doppelganger.gui import (aboutwindow, errornotifier, imageviewwidget,
+                              mainwindow, pathslistwidget, preferenceswindow,
+                              pushbutton, sensitivityradiobutton)
 
 # Check if there's QApplication instance already
 app = QtWidgets.QApplication.instance()
@@ -52,6 +52,8 @@ class TestMainWindowMethodInit(TestMainWindow):
         self.assertIsInstance(self.mw.aboutWindow, aboutwindow.AboutWindow)
         self.assertIsInstance(self.mw.preferencesWindow,
                               preferenceswindow.PreferencesWindow)
+        self.assertIsInstance(self.mw.errorNotifier,
+                              errornotifier.ErrorNotifier)
         self.assertIsInstance(self.mw.threadpool, QtCore.QThreadPool)
         self.assertEqual(self.mw.verticalLayout.contentsMargins().top(), 9)
         self.assertEqual(self.mw.verticalLayout.contentsMargins().bottom(), 9)
@@ -126,10 +128,16 @@ class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
             self.mw.processProg.setValue
         )
 
-    def test_finished_signal_connected_to_5_slots(self):
+    def test_finished_signal_connected_to_6_slots(self):
         self.mw._setImageViewWidget()
 
-        self.assertEqual(len(self.mock_IVW.finished.connect.call_args_list), 5)
+        self.assertEqual(len(self.mock_IVW.finished.connect.call_args_list), 6)
+
+    def test_finished_signal_connected_to_errorNotifier_errorMessage(self):
+        self.mw._setImageViewWidget()
+
+        calls = [mock.call(self.mw.errorNotifier.errorMessage)]
+        self.mock_IVW.finished.connect.assert_has_calls(calls)
 
     def test_finished_signal_connected_to_processProg_setMaxValue(self):
         self.mw._setImageViewWidget()
@@ -283,12 +291,18 @@ class TestMainWindowMethodSetImageProcessingGroupBox(TestMainWindow):
         self.assertEqual(self.mw.processProg.maximum(),
                          self.mw.imageViewWidget.PROG_MAX)
 
-    def test_startBtn_clicked_signal_connected_to_12_slots(self):
+    def test_startBtn_clicked_signal_connected_to_13_slots(self):
         self.mw._setImageProcessingGroupBox()
 
         self.assertEqual(
-            len(self.mock_startBtn.clicked.connect.call_args_list), 12
+            len(self.mock_startBtn.clicked.connect.call_args_list), 13
         )
+
+    def test_startBtn_clicked_signal_connected_to_errorNotifier_reset(self):
+        self.mw._setImageProcessingGroupBox()
+
+        calls = [mock.call(self.mw.errorNotifier.reset)]
+        self.mock_startBtn.clicked.connect.assert_has_calls(calls)
 
     def test_startBtn_clicked_signal_connected_to_imageViewWidget_clear(self):
         self.mw._setImageProcessingGroupBox()
@@ -677,12 +691,12 @@ class TestMainWindowMethodStartProcessing(TestMainWindow):
             self.mw.imageViewWidget.render
         )
 
-    def test_error_connected_to_errorMessage(self):
+    def test_error_connected_to_errorNotifier_addError(self):
         with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
             self.mw._startProcessing()
 
         self.mock_proc.error.connect.assert_called_once_with(
-            mainwindow.errorMessage
+            self.mw.errorNotifier.addError
         )
 
     def test_interrupted_connected_to_startBtn_finished(self):

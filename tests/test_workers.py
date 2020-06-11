@@ -68,7 +68,6 @@ class TestMethodInit(TestClassImageProcessing):
         self.assertListEqual(self.proc._folders, [])
         self.assertEqual(self.proc._conf, self.conf)
         self.assertFalse(self.proc._interrupted)
-        self.assertFalse(self.proc._error)
         self.assertEqual(self.proc._progressbar_value, 0.0)
 
     def test_attributes(self):
@@ -96,24 +95,24 @@ class TestClassImageProcessingMethodRun(TestClassImageProcessing):
     # SO WE DO NOT HAVE TO GO THROUGH MAIN BRANCH IN 'TRY'
     # SINCE WE TEST OTHER BLOCKS
 
-    def test_log_error_if_some_func_raise_any_Exception(self):
+    def test_log_error_if_any_func_raise_Exception(self):
         with mock.patch(self.PATCH_FIND, side_effect=Exception):
             with self.assertLogs('main.workers', 'ERROR'):
                 self.proc.run()
 
-    def test_set_attr_error_to_True_if_some_func_raise_any_Exception(self):
+    def test_set_attr_error_to_True_if_any_func_raise_Exception(self):
         with mock.patch(self.PATCH_FIND, side_effect=Exception):
             self.proc.run()
 
         self.assertTrue(self.proc.error)
 
-    def test_emit_signal_error_if_attr_error_is_True(self):
-        self.proc._error = True
+    def test_emit_signal_error_with_err_msg_if_any_func_raise_Exception(self):
         spy = QtTest.QSignalSpy(self.proc.error)
-        with mock.patch(self.PATCH_FIND, side_effect=Exception):
+        with mock.patch(self.PATCH_FIND, side_effect=Exception('Error')):
             self.proc.run()
 
         self.assertEqual(len(spy), 1)
+        self.assertEqual(spy[0][0], 'Error')
 
 
 class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
@@ -343,12 +342,14 @@ class TestClassImageProcessingMethodLoadCache(TestClassImageProcessing):
             with self.assertLogs('main.workers', 'ERROR'):
                 self.proc._load_cache()
 
-    def test_set_attr_error_to_True_if_load_raise_EOFError(self):
-        self.proc._error = False
+    def test_emit_signal_error_with_err_msg_if_load_raise_EOFError(self):
+        spy = QtTest.QSignalSpy(self.proc.error)
         with mock.patch(PROCESSING+'Cache.load', side_effect=EOFError):
             self.proc._load_cache()
 
-        self.assertTrue(self.proc._error)
+        self.assertEqual(len(spy), 1)
+        msg = 'Cache file is corrupted and will be rewritten'
+        self.assertEqual(spy[0][0], msg)
 
 
 class TestMethodCheckCache(TestClassImageProcessing):
@@ -488,12 +489,13 @@ class TestClassImageProcessingMethodUpdateCache(TestClassImageProcessing):
         with self.assertLogs('main.workers', 'ERROR'):
             self.proc._update_cache(self.mock_cache, self.images)
 
-    def test_set_attr_error_to_True_if_hash_is_minus_1(self):
-        self.proc._error = False
+    def test_emit_signal_error_with_err_msg_if_hash_is_minus_1(self):
         self.mock_image.dhash = -1
+        spy = QtTest.QSignalSpy(self.proc.error)
         self.proc._update_cache(self.mock_cache, self.images)
 
-        self.assertTrue(self.proc._error)
+        self.assertEqual(len(spy), 1)
+        self.assertEqual(spy[0][0], 'Hash of path cannot be calculated')
 
     def test_cache_save_called_with_cache_file_path_arg(self):
         self.proc._update_cache(self.mock_cache, self.images)
@@ -507,12 +509,13 @@ class TestClassImageProcessingMethodUpdateCache(TestClassImageProcessing):
         with self.assertLogs('main.workers', 'ERROR'):
             self.proc._update_cache(self.mock_cache, self.images)
 
-    def test_attr_eror_set_to_True_if_cache_save_raise_OSError(self):
-        self.proc._error = False
+    def test_emit_signal_error_with_err_msg_if_cache_save_raise_OSError(self):
         self.mock_cache.save.side_effect = OSError
+        spy = QtTest.QSignalSpy(self.proc.error)
         self.proc._update_cache(self.mock_cache, self.images)
 
-        self.assertTrue(self.proc._error)
+        self.assertEqual(len(spy), 1)
+        self.assertEqual(spy[0][0], 'Cache cannot be saved on the disk')
 
     @mock.patch(PROCESSING+'ImageProcessing._update_progressbar')
     def test_update_progressbar_called_with_40(self, mock_bar):
