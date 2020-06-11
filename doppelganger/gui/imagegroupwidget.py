@@ -33,9 +33,9 @@ class ImageGroupWidget(QtWidgets.QWidget):
     '''Widget rendering a group of similar (duplicate) images
     as "DuplicateWidget"s
 
-    :param image_group: interable with duplicate images as "Image" objects,
-    :param conf: programme's preferences as a "Config" object,
-    :param parent: widget's parent (optional)
+    :param image_group: iterable with duplicate images as "Image" objects,
+    :param conf:        programme's preferences as a "Config" object,
+    :param parent:      widget's parent (optional)
     '''
 
     def __init__(self, image_group: List[core.Image], conf: config.Config,
