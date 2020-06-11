@@ -100,7 +100,9 @@ class ThumbnailWidget(QtWidgets.QLabel):
             self._image.thumb = None
 
     def _errorThumbnail(self) -> QtGui.QPixmap:
-        logger.error('Something happened while converting QImage into QPixmap')
+        err_msg = 'Something went wrong while converting QImage into QPixmap'
+        logger.exception(err_msg)
+
         size = self._size
         err_img = resources.Image.ERR_IMG.abs_path # pylint: disable=no-member
         err_pixmap = QtGui.QPixmap(err_img)
