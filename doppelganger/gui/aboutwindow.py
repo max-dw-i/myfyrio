@@ -17,7 +17,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
-Module implementing window "About"
+Module implementing the "About" window
 '''
 
 from PyQt5 import QtCore, QtWidgets, uic
@@ -26,10 +26,13 @@ from doppelganger import resources
 
 
 class AboutWindow(QtWidgets.QMainWindow):
-    '''Class implementing window "About"'''
+    '''Class implementing the "About" window
+
+    :param parent: widget's parent (optional)
+    '''
 
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
-        super().__init__(parent)
+        super().__init__(parent=parent)
 
         about_ui = resources.UI.ABOUT.abs_path # pylint: disable=no-member
         uic.loadUi(about_ui, self)
