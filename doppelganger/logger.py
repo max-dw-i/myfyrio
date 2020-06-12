@@ -60,8 +60,8 @@ class Logger:
         '''Get the programme's logger with name 'NAME + . + :suffix:'
         (e.g. 'main.processing' if :suffix: == 'processing').
 
-        :param suffix: suffix of the logger name,
-        :return: "Logger" object
+        :param suffix:  suffix of the logger name,
+        :return:        "Logger" object
         '''
 
         logger_name = '.'.join([cls.NAME, suffix])
