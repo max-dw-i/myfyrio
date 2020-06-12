@@ -613,10 +613,21 @@ class TestDuplicateWidgetMethodCallOnImage(TestDuplicateWidget):
 
         self.mock_image.del_parent_dir.assert_called_once_with()
 
-    def test_raise_OSError_if_func_raise_OSError(self):
+    def test_return_None_if_no_OSError(self):
+        res = self.w._callOnImage(self.func, self.arg, kwarg=self.kwarg)
+
+        self.assertIsNone(res)
+
+    def test_logging_if_func_raise_OSError(self):
         self.func.side_effect = OSError
-        with self.assertRaises(OSError):
+        with self.assertLogs('main.duplicatewidget', 'ERROR'):
             self.w._callOnImage(self.func, self.arg, kwarg=self.kwarg)
+
+    def test_return_error_msg_if_func_raise_OSError(self):
+        self.func.side_effect = OSError('Error message')
+        res = self.w._callOnImage(self.func, self.arg, kwarg=self.kwarg)
+
+        self.assertEqual(res, 'Error message')
 
 
 class TestDuplicateWidgetMethodDelete(TestDuplicateWidget):
@@ -627,11 +638,28 @@ class TestDuplicateWidgetMethodDelete(TestDuplicateWidget):
 
         mock_call.assert_called_once_with(core.Image.delete)
 
+    def test_return_callOnImage_result(self):
+        with mock.patch(self.DW+'_callOnImage', return_value='Error or None'):
+            res = self.w.delete()
+
+        self.assertEqual(res, 'Error or None')
+
 
 class TestDuplicateWidgetMethodMove(TestDuplicateWidget):
 
+    def setUp(self):
+        super().setUp()
+
+        self.new_dst = 'new_folder'
+
     def test_callOnImage_called_with_Image_move_func_and_dst_args(self):
         with mock.patch(self.DW+'_callOnImage') as mock_call:
-            self.w.move('new_folder')
+            self.w.move(self.new_dst)
 
-        mock_call.assert_called_once_with(core.Image.move, 'new_folder')
+        mock_call.assert_called_once_with(core.Image.move, self.new_dst)
+
+    def test_return_callOnImage_result(self):
+        with mock.patch(self.DW+'_callOnImage', return_value='Error or None'):
+            res = self.w.move(self.new_dst)
+
+        self.assertEqual(res, 'Error or None')

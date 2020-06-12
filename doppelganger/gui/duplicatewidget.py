@@ -24,6 +24,7 @@ Module implementing widget representing a duplicate image
 import pathlib
 import subprocess
 import sys
+from typing import Callable, Optional
 
 from PyQt5 import QtCore, QtWidgets
 
@@ -35,6 +36,10 @@ from doppelganger.gui.thumbnailwidget import ThumbnailWidget
 from doppelganger.logger import Logger
 
 logger = Logger.getLogger('duplicatewidget')
+
+########################## Types ##################################
+ErrorMessage = str
+###################################################################
 
 
 class DuplicateWidget(QtWidgets.QWidget):
@@ -202,11 +207,15 @@ class DuplicateWidget(QtWidgets.QWidget):
 
         event.ignore()
 
-    def _callOnImage(self, func, *args, **kwargs) -> None:
+    def _callOnImage(self, func: Callable[..., None], *args,
+                     **kwargs) -> Optional[ErrorMessage]:
         try:
             func(self._image, *args, **kwargs)
+
         except OSError as e:
-            raise OSError(e)
+            logger.exception(e)
+            return str(e)
+
         else:
             self.selected = False
             self.hide()
@@ -214,23 +223,27 @@ class DuplicateWidget(QtWidgets.QWidget):
             if self._conf['delete_dirs']:
                 self._image.del_parent_dir()
 
-    def delete(self) -> None:
+        return None
+
+    def delete(self) -> Optional[ErrorMessage]:
         '''Delete the image from the disk, hide its "DuplicateWidget"
         instance and unselect it. If the preference "Delete folders
         if they are empty..." is on, also delete empty folders
 
-        :raise OSError: something went wrong while removing the image
+        :return: error message if something went wrong while removing
+                 the image, None if everything went well
         '''
 
-        self._callOnImage(core.Image.delete)
+        return self._callOnImage(core.Image.delete)
 
-    def move(self, dst: core.FolderPath) -> None:
+    def move(self, dst: core.FolderPath) -> Optional[ErrorMessage]:
         '''Move the image to a new location, hide its "DuplicateWidget"
         instance and unselect it. If the preference "Delete folders
         if they are empty..." is on, also delete empty folders
 
         :param dst: new location, e.g. "/new/location",
-        :raise OSError: something went wrong while moving the image
+        :return: error message if something went wrong while moving
+                 the image, None if everything went well
         '''
 
-        self._callOnImage(core.Image.move, dst)
+        return self._callOnImage(core.Image.move, dst)
