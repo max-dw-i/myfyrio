@@ -35,31 +35,35 @@ class Config(UserDict):
     '''Represent config containing programme's preferences. The config is a
     dictionary with the keys:
 
-        size: int - size (width or height) of image thumbnails,
-        show_similarity: bool - show (or not) the similarity rates
-                                of duplicate images,
-        show_size: bool - show (or not) the sizes of duplicate images,
-        show_path: bool - show (or not) the paths of duplicate images,
-        sort: int - sorting type (duplicate images in every group
-                    can be sorted),
-        delete_dirs: bool - delete (or not) empty directories when
+        size:               int - size (width or height) of image thumbnails,
+        show_similarity:    bool - show (or not) the similarity rates
+                            of duplicate images,
+        show_size:          bool - show (or not) the sizes of duplicate images,
+        show_path:          bool - show (or not) the paths of duplicate images,
+        sort:               int - sorting type (duplicate images in every group
+                            can be sorted),
+        delete_dirs:        bool - delete (or not) empty directories when
                             duplicate images are moved or deleted,
-        size_format: int - duplicate image size format (bytes, kilobytes...),
-        subfolders: bool - search through the directories recursively (or not),
+        size_format:        int - duplicate image size format (bytes,
+                            kilobytes...),
+        subfolders:         bool - search through the directories recursively
+                            (or not),
         close_confirmation: bool - ask the user confirmation when he/she
-                                   closes the programme,
-        filter_img_size: bool - search for duplicate images only among
-                                the images with the specific width and height,
-        min_width: int - if "filter_img_size" is True, the min width of images,
-        max_width: int - if "filter_img_size" is True, the max width of images,
-        min_height: int - if "filter_img_size" is True, the min height
-                          of images,
-        max_height: int - if "filter_img_size" is True, the max height
-                          of images,
-        cores: int - number of CPU cores to use,
-        lazy: bool - use lazy thumbnail loading (or not),
-        sensitivity: int - threshold used when images are compared to find out
-                           whether they are similar or not
+                            closes the programme,
+        filter_img_size:    bool - search for duplicate images only among
+                            the images with the specific width and height,
+        min_width:          int - if "filter_img_size" is True, the min width
+                            of images,
+        max_width:          int - if "filter_img_size" is True, the max width
+                            of images,
+        min_height:         int - if "filter_img_size" is True, the min height
+                            of images,
+        max_height:         int - if "filter_img_size" is True, the max height
+                            of images,
+        cores:              int - number of CPU cores to use,
+        lazy:               bool - use lazy thumbnail loading (or not),
+        sensitivity:        int - threshold used when images are compared to
+                            find out whether they are similar or not
 
     The dictionary is kept in the attribute "data"
     '''
@@ -90,7 +94,7 @@ class Config(UserDict):
     def save(self, file: ConfFile) -> None:
         '''Save data with preferences into the config file
 
-        :param file: path to the config file,
+        :param file:    path to the config file,
         :raise OSError: something went wrong during saving attempt
         '''
 
@@ -104,7 +108,7 @@ class Config(UserDict):
         '''Load the config file. If the file does not exist yet (or any
         other exception is raised), load the default config
 
-        :param file: path to the config file,
+        :param file:    path to the config file,
         :raise OSError: something went wrong during loading attempt
         '''
 
