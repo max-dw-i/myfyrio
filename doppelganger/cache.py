@@ -24,9 +24,7 @@ import pickle
 from collections import UserDict
 
 ########################## Types ##################################
-
 CacheFile = str # Path to the cache file
-
 ###################################################################
 
 
@@ -39,10 +37,10 @@ class Cache(UserDict):
     def load(self, file: CacheFile) -> None:
         '''Load the cache with the earlier calculated hashes
 
-        :param file: path to the cache file,
-        :raise FileNotFoundError: cache file does not exist,
-        :raise EOFError: cache file might be corrupted (or empty),
-        :raise OSError: some problem while opening cache file
+        :param file:                path to the cache file,
+        :raise FileNotFoundError:   cache file does not exist,
+        :raise EOFError:            cache file might be corrupted (or empty),
+        :raise OSError:             some problem while opening cache file
         '''
 
         try:
@@ -51,7 +49,7 @@ class Cache(UserDict):
         except FileNotFoundError:
             raise FileNotFoundError(f'Cache file at {file} does not exist')
         except EOFError:
-            raise EOFError('The cache file might be corrupted (or empty)')
+            raise EOFError('Cache file might be corrupted (or empty)')
         except OSError as e:
             raise OSError(e)
         else:
@@ -60,7 +58,7 @@ class Cache(UserDict):
     def save(self, file: CacheFile) -> None:
         '''Save cache on the disk
 
-        :param file: path to the cache file,
+        :param file:    path to the cache file,
         :raise OSError: some problem while saving cache file
         '''
 
