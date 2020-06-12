@@ -32,13 +32,14 @@ logger = Logger.getLogger('thumbnailwidget')
 class ThumbnailWidget(QtWidgets.QLabel):
     '''Widget renderering an image thumbnail
 
-    :param image: "Image" object,
-    :param thumbnail_size: the biggest dimension (width or height) of
-                           the image thumbnail,
-    :param lazy: True - use the "lazy" mode (thumbnails are made only when
-                 the widget is visible to the user), False - normal mode
-                 (thumbnails are made when the widget is made),
-    :param parent: widget's parent (optional)
+    :param image:           "Image" object,
+    :param thumbnail_size:  the biggest dimension (width or height) of
+                            the image thumbnail,
+    :param lazy:            True - use the "lazy" mode (thumbnails are made
+                            only when the widget is visible to the user),
+                            False - normal mode (thumbnails are made when
+                            the widget is made),
+    :param parent:          widget's parent (optional)
     '''
 
     KEEP_TIME_MSEC = 10000
