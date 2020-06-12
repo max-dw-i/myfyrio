@@ -221,7 +221,7 @@ class SizeFormat(Enum):
     MB = 2    # MegaBytes
 
     def __init__(self, int_index: int) -> None:
-        self.int_index = int_index
+        self._int_index = int_index
 
     @property
     def coefficient(self) -> int:
@@ -229,7 +229,7 @@ class SizeFormat(Enum):
         MegaBytes = 1024**2
         '''
 
-        return 1024**self.int_index
+        return 1024**self._int_index
 
 
 class Image:
@@ -500,7 +500,6 @@ class Image:
 
 
 ########################## Types ##################################
-
 FilePath = str # Path to a file
 FolderPath = FilePath # Path to a folder
 ImagePath = FilePath # Path to an image
@@ -512,5 +511,4 @@ Width = int # Width of a image
 Height = int # Height of a image
 FileSize = Union[int, float] # Size of a file
 Group = List[Image] # Group of similar images
-
 ###################################################################
