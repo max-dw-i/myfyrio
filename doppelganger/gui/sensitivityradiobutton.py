@@ -66,6 +66,8 @@ class SensitivityRadioButton(QtWidgets.QRadioButton):
     between two images are greater than the sensitivity, the images
     are not duplicates (similar), and otherwise
 
+    :param parent:              widget's parent (optional),
+
     :signal sensitivityChanged: return the new sensitivity value: int,
                                 emitted when the widget is activated
                                 (clicked)
