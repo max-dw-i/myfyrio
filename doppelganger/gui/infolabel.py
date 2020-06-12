@@ -30,9 +30,9 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class InfoLabel(QtWidgets.QLabel):
     '''General image info class
 
-    :param text: text to set,
-    :param widget_width: widget width (used in word wrapping),
-    :param parent: widget's parent (optional)
+    :param text:            text to set,
+    :param widget_width:    widget width (used in word wrapping),
+    :param parent:          widget's parent (optional)
     '''
 
     def __init__(self, text: str, widget_width: int,
@@ -74,21 +74,21 @@ class InfoLabel(QtWidgets.QLabel):
 class SimilarityLabel(InfoLabel):
     '''Widget viewing the image similarity rate
 
-    :param text: text to set,
-    :param widget_width: widget width (used in word wrapping),
-    :param parent: widget's parent (optional)
+    :param text:            text to set,
+    :param widget_width:    widget width (used in word wrapping),
+    :param parent:          widget's parent (optional)
     '''
 
 
 class ImageSizeLabel(InfoLabel):
     '''Widget viewing the image size
 
-    :param width: image width,
-    :param height: image height,
-    :param file_size: image file size (on the disk),
-    :param size_format: image file size units (e.g. B, KB, MB),
-    :param widget_width: widget width (used in word wrapping),
-    :param parent: widget's parent (optional)
+    :param width:           image width,
+    :param height:          image height,
+    :param file_size:       image file size (on the disk),
+    :param size_format:     image file size units (e.g. B, KB, MB),
+    :param widget_width:    widget width (used in word wrapping),
+    :param parent:          widget's parent (optional)
     '''
 
     def __init__(self, width: int, height: int, file_size: Union[int, float],
@@ -102,9 +102,9 @@ class ImageSizeLabel(InfoLabel):
 class ImagePathLabel(InfoLabel):
     '''Widget viewing the image path
 
-    :param path: image path,
-    :param widget_width: widget width (used in word wrapping),
-    :param parent: widget's parent (optional)
+    :param path:            image path,
+    :param widget_width:    widget width (used in word wrapping),
+    :param parent:          widget's parent (optional)
     '''
 
     def __init__(self, path: str, widget_width: int,
