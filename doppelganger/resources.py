@@ -24,21 +24,19 @@ import pathlib
 from enum import Enum
 
 ########################## Types #####################################
-
 RelativePath = str  # Path relative to the programme's root directory
 AbsolutePath = str  # Absolute path
-
 ######################################################################
 
 class Resource(Enum):
     '''Enum implementing a convenient way of getting the resource path'''
 
     def __init__(self, rel_path: RelativePath) -> None:
-        self.rel_path = rel_path
+        self._rel_path = rel_path
 
     @property
     def abs_path(self) -> AbsolutePath:
-        return str(pathlib.Path(__file__).parents[1] / self.rel_path)
+        return str(pathlib.Path(__file__).parents[1] / self._rel_path)
 
 
 class UI(Resource):
