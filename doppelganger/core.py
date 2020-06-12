@@ -440,7 +440,7 @@ class Image:
         try:
             os.remove(self.path)
         except OSError:
-            raise OSError(f'{self.path} cannot be removed')
+            raise OSError(f'The image at "{self.path}" cannot be removed')
 
     def move(self, dst: FolderPath) -> None:
         r'''Move the image to a new directory
@@ -455,7 +455,7 @@ class Image:
         try:
             os.rename(self.path, new_path)
         except OSError:
-            raise OSError(f'{self.path} cannot be moved')
+            raise OSError(f'The image at "{self.path}" cannot be moved')
 
     def rename(self, name: str) -> None:
         '''Rename the image
