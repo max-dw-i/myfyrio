@@ -73,6 +73,10 @@ class CtrlPressFilter(QtCore.QObject):
 class MultiSelectionFileDialog(QtWidgets.QFileDialog):
     '''Implement a file dialog with multiple selection. Only folders
     can be chosen. Press and hold "Ctrl" to select more than one folder
+
+    :param parent:      widget's parent (optional),
+    :param caption:     dialog's caption (optional),
+    :param directory:   directory opened by default (optional)
     '''
 
     def __init__(self, parent: QtWidgets.QWidget = None, caption: str = '',
