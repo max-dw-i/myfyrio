@@ -63,10 +63,11 @@ def find_image(folders: Iterable[FolderPath],
     '''Find next image in :folders: and yield its representation
     as "Image" object
 
-    :param folders: paths to the folders,
-    :param recursive: recursive search (include subfolders),
-    :yield: next image as "Image" object,
-    :raise FileNotFoundError: any of the folders does not exist
+    :param folders:             paths to the folders,
+    :param recursive:           recursive search - include subfolders
+                                (optional, "True" by default),
+    :yield:                     next image as "Image" object,
+    :raise FileNotFoundError:   any of the folders does not exist
     '''
 
     IMG_SUFFIXES = {'.png', '.jpg', '.jpeg', '.bmp', '.pbm', '.pgm', '.ppm',
@@ -89,11 +90,11 @@ def image_grouping(images: Collection[Image], sensitivity: Sensitivity) \
     the result. If :images: is empty or no duplicate images are found,
     an empty list is returned
 
-    :param images: images to process,
+    :param images:      images to process,
     :param sensitivity: maximal difference between hashes of 2 images
                         when they are considered similar,
-    :yield: groups of similar images,
-    :raise TypeError: any of the hashes is not integer
+    :yield:             groups of similar images,
+    :raise TypeError:   any of the hashes is not integer
     '''
 
     image_groups: List[Group] = []
@@ -104,7 +105,7 @@ def image_grouping(images: Collection[Image], sensitivity: Sensitivity) \
     try:
         bktree = pybktree.BKTree(Image.hamming, images)
     except TypeError:
-        raise TypeError('The hashes must be integers')
+        raise TypeError('Hashes must be integers')
 
     checked: Dict[Image, int] = {} # {Image: index of the group}
 
@@ -171,7 +172,7 @@ class Sort:
         '''Sort duplicate image group
 
         :param sort_type: 0 - sort by similarity rate
-                              in descending order,
+                              in descending order (default),
                           1 - sort by size of an image file
                               in descending order,
                           2 - sort by width and height of an image
@@ -209,6 +210,10 @@ class Sort:
 class SizeFormat(Enum):
     '''Class representing size formats. Bytes (B), kilobytes (KB),
     megabytes (MB) are implemented
+
+    :param int_index: an instance can be constructed by passing an integer
+                      index to the SizeFormat constructor
+                      (e.g. "SizeFormat(2)" returns "SizeFormat.MB" object)
     '''
 
     B = 0     # Bytes
@@ -295,8 +300,8 @@ class Image:
     def hamming(self, image: Image) -> Distance:
         '''Calculate the Hamming distance between two images
 
-        :param image: the second image,
-        :return: Hamming distance
+        :param image:   the second image,
+        :return:        Hamming distance
         '''
 
         return bin(self.dhash ^ image.dhash).count('1')
@@ -321,9 +326,9 @@ class Image:
         '''Make image thumbnail, assign it to attribute "thumb"
         and return it
 
-        :param size: the biggest dimension (width or height) of
-                     the image after having been scaled,
-        :return: thumbnail as "QImage" object,
+        :param size:    the biggest dimension (width or height) of
+                        the image after having been scaled,
+        :return:        thumbnail as "QImage" object,
         :raise OSError: something went wrong while making thumbnail
         '''
 
@@ -337,8 +342,8 @@ class Image:
         kept where the biggest size is :size:. E.g. for 200x400 image and
         :size: == 200, (100, 200) will be returned
 
-        :param size: the biggest size of the scaled image, px,
-        :return: width and height of the scaled image,
+        :param size:    the biggest size of the scaled image (px),
+        :return:        width and height of the scaled image,
         :raise OSError: image size cannot be read for some reason
         '''
 
@@ -351,10 +356,10 @@ class Image:
     def scaled(self, width: Width, height: Height) -> QtGui.QImage:
         '''Scale image and return it
 
-        :param width: width of the scaled image,
-        :param height: height of the scaled image,
-        :return: scaled image as "QImage" object,
-        :raise OSError: image cannot be read
+        :param width:   width of the scaled image,
+        :param height:  height of the scaled image,
+        :return:        scaled image as "QImage" object,
+        :raise OSError: image cannot be read for some reason
         '''
 
         path = self.path
@@ -383,7 +388,7 @@ class Image:
     def width(self) -> Width:
         '''Return width of the image
 
-        :return: width,
+        :return:        width,
         :raise OSError: image size cannot be read for some reason
         '''
 
@@ -395,7 +400,7 @@ class Image:
     def height(self) -> Width:
         '''Return height of the image
 
-        :return: height,
+        :return:        height,
         :raise OSError: image size cannot be read for some reason
         '''
 
@@ -415,9 +420,9 @@ class Image:
         '''Return the file size of the image
 
         :param size_format: any of enum 'SizeFormat',
-        :return: file size in bytes, kilobytes or megabytes, rounded
-                 to the first decimal place,
-        :raise OSError: any problem with opening the image,
+        :return:            file size in bytes, kilobytes or megabytes, rounded
+                            to the first decimal place,
+        :raise OSError:     any problem with opening the image,
         '''
 
         if self.size is None:
@@ -440,9 +445,8 @@ class Image:
     def move(self, dst: FolderPath) -> None:
         r'''Move the image to a new directory
 
-        :param dst: new location, eg. "/new/location/" or "C:\location",
-        :raise OSError: the file does not exist, is a folder,
-                        :dst: exists, etc.
+        :param dst:     new location, eg. "/new/location/" or "C:\location",
+        :raise OSError: the file does not exist, is a folder, :dst: exists, etc
         '''
 
         file_name = Path(self.path).name
@@ -456,10 +460,11 @@ class Image:
     def rename(self, name: str) -> None:
         '''Rename the image
 
-        :param name: new name of the image,
-        :raise FileExistsError: the file with name :new_name: already exists
-                                (on Unix replaces the old file silently),
-        :raise FileNotFoundError: the file has been removed
+        :param name:                new name of the image,
+        :raise FileExistsError:     the file with name :new_name: already
+                                    exists (on Unix replaces the old file
+                                    silently),
+        :raise FileNotFoundError:   the file has been removed
         '''
 
         path = Path(self.path)
@@ -470,7 +475,7 @@ class Image:
             err_msg = f'File with the name "{name}" already exists'
             raise FileExistsError(err_msg)
         except FileNotFoundError:
-            err_msg = f'File with the name "{path}" has been removed'
+            err_msg = f'File with the name "{path}" does not exist'
             raise FileNotFoundError(err_msg)
         else:
             self.path = str(new_name)
