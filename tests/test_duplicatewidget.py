@@ -18,6 +18,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 import logging
 import sys
+from subprocess import CalledProcessError
 from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtGui, QtTest, QtWidgets
@@ -397,21 +398,34 @@ class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
         )
 
     def test_log_error_if_subprocess_run_raise_FileNotFoundError(self):
-        mock_msg_box = mock.Mock(spec=QtWidgets.QMessageBox)
         with mock.patch('subprocess.run', side_effect=FileNotFoundError):
-            with mock.patch('PyQt5.QtWidgets.QMessageBox',
-                            return_value=mock_msg_box):
+            with mock.patch(DW_MODULE+'errorMessage'):
                 with self.assertLogs('main.duplicatewidget', 'ERROR'):
                     self.w.openImage()
 
-    def test_show_msg_box_if_subprocess_run_raise_FileNotFoundError(self):
-        mock_msg_box = mock.Mock(spec=QtWidgets.QMessageBox)
+    def test_call_errorMessage_if_subprocess_run_raise_FileNotFoundError(self):
         with mock.patch('subprocess.run', side_effect=FileNotFoundError):
-            with mock.patch('PyQt5.QtWidgets.QMessageBox',
-                            return_value=mock_msg_box):
+            with mock.patch(DW_MODULE+'errorMessage') as mock_msg_call:
                 self.w.openImage()
 
-        mock_msg_box.exec.assert_called_once_with()
+        err_msg = ['Something went wrong while opening the image']
+        mock_msg_call.assert_called_once_with(err_msg)
+
+    def test_log_error_if_subprocess_run_raise_CalledProcessError(self):
+        with mock.patch('subprocess.run',
+                        side_effect=CalledProcessError(0, 'cmd')):
+            with mock.patch(DW_MODULE+'errorMessage'):
+                with self.assertLogs('main.duplicatewidget', 'ERROR'):
+                    self.w.openImage()
+
+    def test_call_errorMessage_if_subproc_run_raise_CalledProcessError(self):
+        with mock.patch('subprocess.run',
+                        side_effect=CalledProcessError(0, 'cmd')):
+            with mock.patch(DW_MODULE+'errorMessage') as mock_msg_call:
+                self.w.openImage()
+
+        err_msg = ['Something went wrong while opening the image']
+        mock_msg_call.assert_called_once_with(err_msg)
 
 
 class TestDuplicateWidgetMethodRenameImage(TestDuplicateWidget):
@@ -458,41 +472,35 @@ class TestDuplicateWidgetMethodRenameImage(TestDuplicateWidget):
 
     def test_log_error_if_image_rename_raise_FileExistsError(self):
         self.mock_image.rename.side_effect = FileExistsError
-        mock_msg_box = mock.Mock(spec=QtWidgets.QMessageBox)
         with mock.patch(self.PATCH_INPUT, return_value=('new_name', True)):
-            with mock.patch('PyQt5.QtWidgets.QMessageBox',
-                            return_value=mock_msg_box):
+            with mock.patch(DW_MODULE+'errorMessage'):
                 with self.assertLogs('main.duplicatewidget', 'ERROR'):
                     self.w.renameImage()
 
-    def test_show_msg_box_if_image_rename_raise_FileExistsError(self):
+    def test_call_errorMessage_if_image_rename_raise_FileExistsError(self):
         self.mock_image.rename.side_effect = FileExistsError
-        mock_msg_box = mock.Mock(spec=QtWidgets.QMessageBox)
         with mock.patch(self.PATCH_INPUT, return_value=('new_name', True)):
-            with mock.patch('PyQt5.QtWidgets.QMessageBox',
-                            return_value=mock_msg_box):
+            with mock.patch(DW_MODULE+'errorMessage') as mock_msg_call:
                 self.w.renameImage()
 
-        mock_msg_box.exec.assert_called_once_with()
+        err_msg = ['File with the name "new_name" already exists']
+        mock_msg_call.assert_called_once_with(err_msg)
 
     def test_log_error_if_image_rename_raise_FileNotFoundError(self):
         self.mock_image.rename.side_effect = FileNotFoundError
-        mock_msg_box = mock.Mock(spec=QtWidgets.QMessageBox)
         with mock.patch(self.PATCH_INPUT, return_value=('new_name', True)):
-            with mock.patch('PyQt5.QtWidgets.QMessageBox',
-                            return_value=mock_msg_box):
+            with mock.patch(DW_MODULE+'errorMessage'):
                 with self.assertLogs('main.duplicatewidget', 'ERROR'):
                     self.w.renameImage()
 
-    def test_show_msg_box_if_image_rename_raise_FileNotFoundError(self):
+    def test_call_errorMessage_if_image_rename_raise_FileNotFoundError(self):
         self.mock_image.rename.side_effect = FileNotFoundError
-        mock_msg_box = mock.Mock(spec=QtWidgets.QMessageBox)
         with mock.patch(self.PATCH_INPUT, return_value=('new_name', True)):
-            with mock.patch('PyQt5.QtWidgets.QMessageBox',
-                            return_value=mock_msg_box):
+            with mock.patch(DW_MODULE+'errorMessage') as mock_msg_call:
                 self.w.renameImage()
 
-        mock_msg_box.exec.assert_called_once_with()
+        err_msg = ['File with the name "file" does not exist']
+        mock_msg_call.assert_called_once_with(err_msg)
 
 
 class TestDuplicateWidgetMethodContextMenuEvent(TestDuplicateWidget):

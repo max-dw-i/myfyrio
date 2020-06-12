@@ -17,7 +17,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
-Module implementing widget representing a duplicate _image
+Module implementing widget representing a duplicate image
 '''
 
 
@@ -28,6 +28,7 @@ import sys
 from PyQt5 import QtCore, QtWidgets
 
 from doppelganger import config, core
+from doppelganger.gui.errornotifier import errorMessage
 from doppelganger.gui.infolabel import (ImagePathLabel, ImageSizeLabel,
                                         SimilarityLabel)
 from doppelganger.gui.thumbnailwidget import ThumbnailWidget
@@ -37,14 +38,14 @@ logger = Logger.getLogger('duplicatewidget')
 
 
 class DuplicateWidget(QtWidgets.QWidget):
-    '''Widget viewing a duplicate _image and all info
-    about it (its similarity rate, size and path)
+    '''Widget viewing a duplicate image and all info about it (its similarity
+    rate, size and path)
 
-    :param image: "Image" object,
-    :param conf: programme's preferences as a "Config" object,
-    :param parent: widget's parent (optional),
+    :param image:       "Image" object,
+    :param conf:        programme's preferences as a "Config" object,
+    :param parent:      widget's parent (optional),
 
-    :signal clicked: widget has been clicked
+    :signal clicked:    widget has been clicked
     '''
 
     clicked = QtCore.pyqtSignal()
@@ -95,7 +96,7 @@ class DuplicateWidget(QtWidgets.QWidget):
             width, height = self._image.width, self._image.height
 
         except OSError as e:
-            logger.error(e)
+            logger.exception(e)
             width, height = (0, 0)
 
         size_format = core.SizeFormat(self._conf['size_format'])
@@ -104,7 +105,7 @@ class DuplicateWidget(QtWidgets.QWidget):
             filesize = self._image.filesize(size_format)
 
         except OSError as e:
-            logger.error(e)
+            logger.exception(e)
             filesize = 0
 
         imageSizeLabel = ImageSizeLabel(width, height, filesize,
@@ -136,15 +137,10 @@ class DuplicateWidget(QtWidgets.QWidget):
         try:
             subprocess.run([command, self._image.path], check=True)
 
-        except (FileNotFoundError, subprocess.CalledProcessError) as e:
-            logger.error(e, exc_info=True)
-
-            msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning,
-                'Opening image',
-                'Something went wrong while opening the image'
-            )
-            msgBox.exec()
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            err_msg = 'Something went wrong while opening the image'
+            logger.exception(err_msg)
+            errorMessage([err_msg])
 
     def renameImage(self) -> None:
         '''Rename the image'''
@@ -160,25 +156,15 @@ class DuplicateWidget(QtWidgets.QWidget):
             try:
                 self._image.rename(new_name)
 
-            except FileExistsError as e:
-                logger.error(e)
+            except FileExistsError:
+                err_msg = f'File with the name "{new_name}" already exists'
+                logger.exception(err_msg)
+                errorMessage([err_msg])
 
-                msgBox = QtWidgets.QMessageBox(
-                    QtWidgets.QMessageBox.Warning,
-                    'Renaming image',
-                    f'File with the name "{new_name}" already exists'
-                )
-                msgBox.exec()
-
-            except FileNotFoundError as e:
-                logger.error(e)
-
-                msgBox = QtWidgets.QMessageBox(
-                    QtWidgets.QMessageBox.Warning,
-                    'Renaming image',
-                    f'File with the name "{name}" has been removed'
-                )
-                msgBox.exec()
+            except FileNotFoundError:
+                err_msg = f'File with the name "{name}" does not exist'
+                logger.exception(err_msg)
+                errorMessage([err_msg])
 
             else:
                 self.imagePathLabel.setText(self._image.path)
