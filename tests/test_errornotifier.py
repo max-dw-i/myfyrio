@@ -20,7 +20,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtWidgets
 
-from doppelganger.gui import errornotifier
+from doppelganger.gui.errornotifier import errorMessage
 
 
 ERR_NOTE_MODULE = 'doppelganger.gui.errornotifier.'
@@ -29,38 +29,7 @@ ERR_NOTE_MODULE = 'doppelganger.gui.errornotifier.'
 # pylint: disable=missing-class-docstring
 
 
-class TestErrorNotifier(TestCase):
-
-    EN = ERR_NOTE_MODULE + 'ErrorNotifier.'
-
-    def setUp(self):
-        self.err_note = errornotifier.ErrorNotifier()
-
-
-class TestErrorNotifierMethodInit(TestErrorNotifier):
-
-    def test_init_values(self):
-        self.assertListEqual(self.err_note._errors, [])
-
-
-class TestErrorNotifierMethodAddError(TestErrorNotifier):
-
-    def test_add_passed_error_message_to_attr_errors(self):
-        self.err_note.addError('Error')
-
-        self.assertListEqual(self.err_note._errors, ['Error'])
-
-
-class TestErrorNotifierMethodReset(TestErrorNotifier):
-
-    def test_assign_empty_list_to_attr_errors(self):
-        self.err_note._errors = ['Error']
-        self.err_note.reset()
-
-        self.assertListEqual(self.err_note._errors, [])
-
-
-class TestErrorNotifierMethodErrorMessage(TestErrorNotifier):
+class TestFuncErrorMessage(TestCase):
 
     def setUp(self):
         super().setUp()
@@ -68,17 +37,16 @@ class TestErrorNotifierMethodErrorMessage(TestErrorNotifier):
         self.mock_msgBox = mock.Mock(spec=QtWidgets.QMessageBox)
 
     def test_QMessageBox_exec_not_called_if_no_errors(self):
-        self.err_note._errors = []
         with mock.patch(ERR_NOTE_MODULE+'QMessageBox',
                         return_value=self.mock_msgBox):
-            self.err_note.errorMessage()
+            errorMessage([])
 
         self.mock_msgBox.exec.assert_not_called()
 
     def test_QMessageBox_exec_called_if_errors(self):
-        self.err_note._errors = ['Error']
+        errors = ['Error']
         with mock.patch(ERR_NOTE_MODULE+'QMessageBox',
                         return_value=self.mock_msgBox):
-            self.err_note.errorMessage()
+            errorMessage(errors)
 
         self.mock_msgBox.exec.assert_called_once_with()

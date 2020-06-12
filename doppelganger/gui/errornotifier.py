@@ -27,40 +27,24 @@ from PyQt5.QtWidgets import QMessageBox
 from doppelganger.resources import Log
 
 
-class ErrorNotifier:
-    '''Collect all the errors happened during work of the programme
-    and show them to the user as QMessageBox
+def errorMessage(err_msgs: List[str]) -> None:
+    '''Create QMessageBox (the "Warning" type) with the error message
+    and show it to the user. If more than one error happened, show
+    the general error message. If no errors happened, do nothing
+
+    :param err_msgs: list with the messages of the happened errors
     '''
 
-    def __init__(self) -> None:
-        self._errors: List[str] = []
+    log_file_name = Log.ERROR.value # pylint: disable=no-member
+    SEE_LOGS_MSG = f'For more details, see the "{log_file_name}" file'
 
-    def addError(self, err: str) -> None:
-        '''Add a new error message to the "ErrorNotifier" object'''
+    if err_msgs:
+        if len(err_msgs) == 1:
+            err_msg = err_msgs[0]
+        else:
+            err_msg = ('Some errors happened during the work '
+                       'of the programme')
 
-        self._errors.append(err)
-
-    def reset(self) -> None:
-        '''Clear all the previously added error messages'''
-
-        self._errors = []
-
-    def errorMessage(self) -> None:
-        '''Create QMessageBox (the "Warning" type) with the error message
-        and show it to the user. If more than one error have happened, show
-        the general error message. If no errors have happened, do nothing
-        '''
-
-        log_file_name = Log.ERROR.value # pylint: disable=no-member
-        SEE_LOGS_MSG = f'For more details, see the "{log_file_name}" file'
-
-        if self._errors:
-            if len(self._errors) == 1:
-                err_msg = self._errors[0]
-            else:
-                err_msg = ('Some errors have happened during the work '
-                           'of the programme')
-
-            err_msg = f'{err_msg}. {SEE_LOGS_MSG}'
-            msg_box = QMessageBox(QMessageBox.Warning, 'Error', err_msg)
-            msg_box.exec()
+        err_msg = f'{err_msg}. {SEE_LOGS_MSG}'
+        msg_box = QMessageBox(QMessageBox.Warning, 'Error', err_msg)
+        msg_box.exec()
