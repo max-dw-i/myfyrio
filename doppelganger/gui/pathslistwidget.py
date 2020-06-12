@@ -31,19 +31,21 @@ from doppelganger.gui.multiselectionfiledialog import MultiSelectionFileDialog
 class PathsListWidget(QtWidgets.QListWidget):
     '''Widget viewing the folders to search for images in
 
-    :signal hasSelection: True - any path in the widget is selected,
-                          False - otherwise, emitted when the selection
-                          is changed,
-    :signal hasItems:     True - the widget has items (paths),
-                          False - otherwise, emitted when an item (path)
-                          is added or removed
+    :param parent:          widget's parent (optional),
+
+    :signal hasSelection:   True - any path in the widget is selected,
+                            False - otherwise, emitted when the selection
+                            is changed,
+    :signal hasItems:       True - the widget has items (paths),
+                            False - otherwise, emitted when an item (path)
+                            is added or removed
     '''
 
     hasSelection = QtCore.pyqtSignal(bool)
     hasItems = QtCore.pyqtSignal(bool)
 
     def __init__(self, parent: QtWidgets.QWidget = None):
-        super().__init__(parent)
+        super().__init__(parent=parent)
 
         self._setSignals()
 
