@@ -39,6 +39,8 @@ class PushButton(QtWidgets.QPushButton):
 class StartButton(PushButton):
     '''Special widget for the button "Start" since the button state depends on
     whether there are any paths in the "pathsList" widget or not
+
+    :param parent: widget's parent (optional)
     '''
 
     def __init__(self, parent: QtWidgets.QWidget = None):
