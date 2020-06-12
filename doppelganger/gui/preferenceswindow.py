@@ -20,8 +20,6 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 Module implementing the "Preferences" window
 '''
 
-from __future__ import annotations
-
 import os
 from typing import List, Union
 
@@ -33,8 +31,18 @@ from doppelganger.logger import Logger
 logger = Logger.getLogger('preferences')
 
 
+###################################Types#######################################
+Widget = Union[QtWidgets.QSpinBox, QtWidgets.QComboBox,
+               QtWidgets.QCheckBox, QtWidgets.QGroupBox] # preference widgets
+Value = Union[int, str] # values of preference widgets
+###############################################################################
+
+
 class PreferencesWindow(QtWidgets.QMainWindow):
-    '''Implementing the "Preferences" window'''
+    '''Class representing the "Preferences" window
+
+    :param parent: widget's parent (optional)
+    '''
 
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
@@ -81,19 +89,9 @@ class PreferencesWindow(QtWidgets.QMainWindow):
         try:
             conf.load(resources.Config.CONFIG.abs_path) # pylint: disable=no-member
 
-        except OSError as e:
-            logger.error(e)
-
-            log_file = resources.Log.ERROR.value # pylint: disable=no-member
-
-            msg_box = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning,
-                'Errors',
-                ('Cannot load preferences from file "config.p". Default '
-                 'preferences will be loaded. For more details, '
-                 f'see "{log_file}"')
-            )
-            msg_box.exec()
+        except OSError:
+            err_msg = 'Config file cannot be read from the disk'
+            logger.exception(err_msg)
 
         return conf
 
@@ -101,18 +99,9 @@ class PreferencesWindow(QtWidgets.QMainWindow):
         try:
             self.conf.save(resources.Config.CONFIG.abs_path) # pylint: disable=no-member
 
-        except OSError as e:
-            logger.error(e)
-
-            log_file = resources.Log.ERROR.value # pylint: disable=no-member
-
-            msg_box = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning,
-                'Error',
-                ("Cannot save preferences into file 'config.p'. "
-                 f"For more details, see '{log_file}'")
-            )
-            msg_box.exec()
+        except OSError:
+            err_msg = 'Config cannot be written on the disk'
+            logger.exception(err_msg)
 
     @staticmethod
     def _setVal(widget: Widget, val: Value) -> None:
@@ -151,10 +140,3 @@ class PreferencesWindow(QtWidgets.QMainWindow):
         self._gather_prefs()
         self._save_config()
         self.close()
-
-
-###################################Types#######################################
-Widget = Union[QtWidgets.QSpinBox, QtWidgets.QComboBox,
-               QtWidgets.QCheckBox, QtWidgets.QGroupBox] # preference widgets
-Value = Union[int, str] # values of preference widgets
-###############################################################################

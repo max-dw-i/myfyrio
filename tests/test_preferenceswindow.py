@@ -126,16 +126,7 @@ class TestMethodLoadConfig(TestPreferencesWindow):
         )
         self.assertEqual(res, self.mock_Config)
 
-    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
-    def test_show_msg_if_load_raise_OSError(self, mock_exec):
-        self.mock_Config.load.side_effect = OSError
-        with mock.patch(self.PATCH_CONFIG, return_value=self.mock_Config):
-            self.w._load_config()
-
-        mock_exec.assert_called_once_with()
-
-    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
-    def test_log_error_if_load_raise_OSError(self, mock_exec):
+    def test_log_error_if_load_raise_OSError(self):
         self.mock_Config.load.side_effect = OSError
         with mock.patch(self.PATCH_CONFIG, return_value=self.mock_Config):
             with self.assertLogs('main.preferences', 'ERROR'):
@@ -157,15 +148,7 @@ class TestMethodSaveConfig(TestPreferencesWindow):
             resources.Config.CONFIG.abs_path # pylint: disable=no-member
         )
 
-    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
-    def test_show_msg_if_save_raise_OSError(self, mock_exec):
-        self.mock_Config.save.side_effect = OSError
-        self.w._save_config()
-
-        mock_exec.assert_called_once_with()
-
-    @mock.patch('PyQt5.QtWidgets.QMessageBox.exec')
-    def test_log_error_if_save_raise_OSError(self, mock_exec):
+    def test_log_error_if_save_raise_OSError(self):
         self.mock_Config.save.side_effect = OSError
         with self.assertLogs('main.preferences', 'ERROR'):
             self.w._save_config()
