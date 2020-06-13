@@ -24,7 +24,7 @@ Module implementing widget representing a duplicate image
 import pathlib
 import subprocess
 import sys
-from typing import Callable, Optional
+from typing import Callable
 
 from PyQt5 import QtCore, QtWidgets
 
@@ -37,10 +37,6 @@ from doppelganger.logger import Logger
 
 logger = Logger.getLogger('duplicatewidget')
 
-########################## Types ##################################
-ErrorMessage = str
-###################################################################
-
 
 class DuplicateWidget(QtWidgets.QWidget):
     '''Widget viewing a duplicate image and all info about it (its similarity
@@ -50,10 +46,14 @@ class DuplicateWidget(QtWidgets.QWidget):
     :param conf:        programme's preferences as a "Config" object,
     :param parent:      widget's parent (optional),
 
-    :signal clicked:    widget has been clicked
+    :signal hidden:     widget has been hidden,
+    :signal clicked:    widget has been clicked,
+    :signal error:      error message: str
     '''
 
+    hidden = QtCore.pyqtSignal()
     clicked = QtCore.pyqtSignal()
+    error = QtCore.pyqtSignal(str)
 
     def __init__(self, image: core.Image, conf: config.Config,
                  parent: QtWidgets.QWidget = None) -> None:
@@ -61,6 +61,7 @@ class DuplicateWidget(QtWidgets.QWidget):
 
         self._image = image
         self._conf = conf
+
         self._selected = False
 
         self.setFixedWidth(self._conf['size'])
@@ -207,14 +208,18 @@ class DuplicateWidget(QtWidgets.QWidget):
 
         event.ignore()
 
-    def _callOnImage(self, func: Callable[..., None], *args,
-                     **kwargs) -> Optional[ErrorMessage]:
+    def hideEvent(self, event) -> None:
+        self.hidden.emit()
+
+        event.accept()
+
+    def _callOnImage(self, func: Callable[..., None], *args, **kwargs) -> None:
         try:
             func(self._image, *args, **kwargs)
 
         except OSError as e:
             logger.exception(e)
-            return str(e)
+            self.error.emit(str(e))
 
         else:
             self.selected = False
@@ -223,27 +228,24 @@ class DuplicateWidget(QtWidgets.QWidget):
             if self._conf['delete_dirs']:
                 self._image.del_parent_dir()
 
-        return None
-
-    def delete(self) -> Optional[ErrorMessage]:
+    def delete(self):
         '''Delete the image from the disk, hide its "DuplicateWidget"
         instance and unselect it. If the preference "Delete folders
-        if they are empty..." is on, also delete empty folders
-
-        :return: error message if something went wrong while removing
-                 the image, None if everything went well
+        if they are empty..." is on, also delete empty folders. Emit
+        the "error" signal with the error message, if something went
+        wrong during the process
         '''
 
-        return self._callOnImage(core.Image.delete)
+        self._callOnImage(core.Image.delete)
 
-    def move(self, dst: core.FolderPath) -> Optional[ErrorMessage]:
+    def move(self, dst: core.FolderPath):
         '''Move the image to a new location, hide its "DuplicateWidget"
         instance and unselect it. If the preference "Delete folders
-        if they are empty..." is on, also delete empty folders
+        if they are empty..." is on, also delete empty folders. Emit
+        the "error" signal with the error message, if something went
+        wrong during the process
 
-        :param dst: new location, e.g. "/new/location",
-        :return: error message if something went wrong while moving
-                 the image, None if everything went well
+        :param dst: new location, e.g. "/new/location"
         '''
 
-        return self._callOnImage(core.Image.move, dst)
+        self._callOnImage(core.Image.move, dst)

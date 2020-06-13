@@ -580,6 +580,20 @@ class TestDuplicateWidgetMethodCallOnImage(TestDuplicateWidget):
     def setUp(self):
         super().setUp()
 
+        self.mock_event = mock.Mock(spec=QtGui.QHideEvent)
+
+    def test_hidden_signal_emitted(self):
+        spy = QtTest.QSignalSpy(self.w.hidden)
+        self.w.hideEvent(self.mock_event)
+
+        self.assertEqual(len(spy), 1)
+
+
+class TestDuplicateWidgetMethodCallOnImage(TestDuplicateWidget):
+
+    def setUp(self):
+        super().setUp()
+
         self.func = mock.Mock()
         self.arg = 'arg'
         self.kwarg = 'kwarg'
@@ -613,21 +627,18 @@ class TestDuplicateWidgetMethodCallOnImage(TestDuplicateWidget):
 
         self.mock_image.del_parent_dir.assert_called_once_with()
 
-    def test_return_None_if_no_OSError(self):
-        res = self.w._callOnImage(self.func, self.arg, kwarg=self.kwarg)
-
-        self.assertIsNone(res)
-
     def test_logging_if_func_raise_OSError(self):
         self.func.side_effect = OSError
         with self.assertLogs('main.duplicatewidget', 'ERROR'):
             self.w._callOnImage(self.func, self.arg, kwarg=self.kwarg)
 
-    def test_return_error_msg_if_func_raise_OSError(self):
+    def test_emit_error_signal_with_err_msg_if_func_raise_OSError(self):
         self.func.side_effect = OSError('Error message')
-        res = self.w._callOnImage(self.func, self.arg, kwarg=self.kwarg)
+        spy = QtTest.QSignalSpy(self.w.error)
+        self.w._callOnImage(self.func, self.arg, kwarg=self.kwarg)
 
-        self.assertEqual(res, 'Error message')
+        self.assertEqual(len(spy), 1)
+        self.assertEqual(spy[0][0], 'Error message')
 
 
 class TestDuplicateWidgetMethodDelete(TestDuplicateWidget):
@@ -637,12 +648,6 @@ class TestDuplicateWidgetMethodDelete(TestDuplicateWidget):
             self.w.delete()
 
         mock_call.assert_called_once_with(core.Image.delete)
-
-    def test_return_callOnImage_result(self):
-        with mock.patch(self.DW+'_callOnImage', return_value='Error or None'):
-            res = self.w.delete()
-
-        self.assertEqual(res, 'Error or None')
 
 
 class TestDuplicateWidgetMethodMove(TestDuplicateWidget):
@@ -657,9 +662,3 @@ class TestDuplicateWidgetMethodMove(TestDuplicateWidget):
             self.w.move(self.new_dst)
 
         mock_call.assert_called_once_with(core.Image.move, self.new_dst)
-
-    def test_return_callOnImage_result(self):
-        with mock.patch(self.DW+'_callOnImage', return_value='Error or None'):
-            res = self.w.move(self.new_dst)
-
-        self.assertEqual(res, 'Error or None')
