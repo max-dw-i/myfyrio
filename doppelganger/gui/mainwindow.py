@@ -20,11 +20,13 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 Module implementing the main window
 '''
 
+from typing import List
+
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
 from doppelganger import resources, workers
 from doppelganger.gui.aboutwindow import AboutWindow
-from doppelganger.gui.errornotifier import ErrorNotifier
+from doppelganger.gui.errornotifier import errorMessage
 from doppelganger.gui.preferenceswindow import PreferencesWindow
 from doppelganger.gui.sensitivityradiobutton import checkedRadioButton
 
@@ -44,7 +46,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.aboutWindow = AboutWindow(self)
         self.preferencesWindow = PreferencesWindow(self)
-        self.errorNotifier = ErrorNotifier()
+
+        self._errors: List[str] = []
 
         self.threadpool = QtCore.QThreadPool.globalInstance()
 
@@ -67,7 +70,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.processProg.setValue
         )
 
-        self.imageViewWidget.finished.connect(self.errorNotifier.errorMessage)
         self.imageViewWidget.finished.connect(self.processProg.setMaxValue)
         self.imageViewWidget.finished.connect(self.stopBtn.disable)
         self.imageViewWidget.finished.connect(self.startBtn.finished)
@@ -75,8 +77,17 @@ class MainWindow(QtWidgets.QMainWindow):
         self.imageViewWidget.finished.connect(
             self.menubar.enableAutoSelectAction
         )
+        self.imageViewWidget.finished.connect(
+            lambda: errorMessage(self._errors)
+        )
 
+        self.imageViewWidget.interrupted.connect(self.stopBtn.disable)
         self.imageViewWidget.interrupted.connect(self.startBtn.finished)
+        self.imageViewWidget.interrupted.connect(
+            lambda: errorMessage(self._errors)
+        )
+
+        self.imageViewWidget.error.connect(self._errors.append)
 
         self.imageViewWidget.selected.connect(self.moveBtn.setEnabled)
         self.imageViewWidget.selected.connect(self.deleteBtn.setEnabled)
@@ -98,7 +109,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.processProg.setMinimum(workers.ImageProcessing.PROG_MIN)
         self.processProg.setMaximum(self.imageViewWidget.PROG_MAX)
 
-        self.startBtn.clicked.connect(self.errorNotifier.reset)
+        self.startBtn.clicked.connect(self._errors.clear)
 
         self.startBtn.clicked.connect(self.imageViewWidget.clear)
 
@@ -188,8 +199,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         p.update_progressbar.connect(self.processProg.setValue)
         p.finished.connect(self.imageViewWidget.render)
-        p.error.connect(self.errorNotifier.addError)
+        p.error.connect(self._errors.append)
         p.interrupted.connect(self.startBtn.finished)
+        p.interrupted.connect(self.stopBtn.disable)
+        p.interrupted.connect(lambda: errorMessage(self._errors))
 
         self.stopBtn.clicked.connect(p.interrupt)
 
