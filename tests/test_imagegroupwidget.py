@@ -242,12 +242,17 @@ class TestImageGroupWidgetMethodCallOnSelected(TestImageGroupWidget):
 
         self.func.assert_not_called()
 
-    def test_attr_visible_num_not_decreased_if_duplW_is_not_selected(self):
-        num = self.w._visible_num
+    def test_duplW_error_signal_not_connected_if_duplW_is_not_selected(self):
         self.mock_duplW.selected = False
         self.w._callOnSelected(self.func, self.arg, kwarg=self.kwarg)
 
-        self.assertEqual(self.w._visible_num, num)
+        self.mock_duplW.error.connect.assert_not_called()
+
+    def test_duplW_hidden_signal_not_connected_if_duplW_is_not_selected(self):
+        self.mock_duplW.selected = False
+        self.w._callOnSelected(self.func, self.arg, kwarg=self.kwarg)
+
+        self.mock_duplW.hidden.connect.assert_not_called()
 
     def test_passed_func_called_if_duplicate_widget_is_selected(self):
         self.mock_duplW.selected = True
@@ -257,18 +262,19 @@ class TestImageGroupWidgetMethodCallOnSelected(TestImageGroupWidget):
             self.mock_duplW, self.arg, kwarg=self.kwarg
         )
 
-    def test_attr_visible_num_decreased_if_duplicate_widget_is_selected(self):
-        num = self.w._visible_num
+    def test_duplW_error_signal_connected_if_duplW_is_not_selected(self):
         self.mock_duplW.selected = True
         self.w._callOnSelected(self.func, self.arg, kwarg=self.kwarg)
 
-        self.assertEqual(self.w._visible_num, num-1)
+        self.mock_duplW.error.connect.assert_called_once()
 
-    def test_raise_OSError_if_passed_func_raise_OSError(self):
+    def test_duplW_hidden_signal_connected_if_duplW_is_not_selected(self):
         self.mock_duplW.selected = True
-        self.func.side_effect = OSError
-        with self.assertRaises(OSError):
-            self.w._callOnSelected(self.func, self.arg, kwarg=self.kwarg)
+        self.w._callOnSelected(self.func, self.arg, kwarg=self.kwarg)
+
+        self.mock_duplW.hidden.connect.assert_called_once_with(
+            self.w._duplicateWidgetHidden
+        )
 
     def test_hide_not_called_if_attr_visible_num_more_than_1(self):
         self.mock_duplW.selected = False

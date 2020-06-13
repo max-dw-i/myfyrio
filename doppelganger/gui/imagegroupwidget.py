@@ -35,8 +35,12 @@ class ImageGroupWidget(QtWidgets.QWidget):
 
     :param image_group: iterable with duplicate images as "Image" objects,
     :param conf:        programme's preferences as a "Config" object,
-    :param parent:      widget's parent (optional)
+    :param parent:      widget's parent (optional),
+
+    :signal error:      error message: str
     '''
+
+    error = QtCore.pyqtSignal(str)
 
     def __init__(self, image_group: List[core.Image], conf: config.Config,
                  parent: QtWidgets.QWidget = None) -> None:
@@ -95,26 +99,26 @@ class ImageGroupWidget(QtWidgets.QWidget):
         for dupl_w in self.widgets:
             dupl_w.selected = False
 
-    def _callOnSelected(self, func: Callable, *args, **kwargs) -> None:
-        try:
-            for dupl_w in self.widgets:
-                if dupl_w.selected:
-                    func(dupl_w, *args, **kwargs)
-                    self._visible_num -= 1
+    def _duplicateWidgetHidden(self) -> None:
+        self._visible_num -= 1
 
-            if self._visible_num <= 1:
-                self.hide()
+    def _callOnSelected(self, func: Callable[..., None], *args,
+                        **kwargs) -> None:
+        for dupl_w in self.widgets:
+            if dupl_w.selected:
+                dupl_w.error.connect(self.error)
+                dupl_w.hidden.connect(self._duplicateWidgetHidden)
 
-        except OSError as e:
-            raise OSError(e)
+                func(dupl_w, *args, **kwargs)
+
+        if self._visible_num <= 1:
+            self.hide()
 
     def delete(self) -> None:
         '''Delete the selected images from the disk, hide its "DuplicateWidget"
         instances. Hide the whole group widget if less than 2 images left in
         the group. If the preference "Delete folders if they are empty..." is
         on, also delete empty folders
-
-        :raise OSError: something went wrong while removing the images
         '''
 
         self._callOnSelected(DuplicateWidget.delete)
@@ -125,8 +129,7 @@ class ImageGroupWidget(QtWidgets.QWidget):
         less than 2 images left in the group. If the preference "Delete
         folders if they are empty..." is on, also delete empty folders
 
-        :param dst: folder to move the images into,
-        :raise OSError: something went wrong while removing the images
+        :param dst: folder to move the images into
         '''
 
         self._callOnSelected(DuplicateWidget.move, dst)
