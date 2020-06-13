@@ -71,6 +71,9 @@ class ImageGroupWidget(QtWidgets.QWidget):
             while not lazy and dupl_w.thumbnailWidget.empty:
                 QtCore.QCoreApplication.processEvents()
 
+            dupl_w.error.connect(self.error)
+            dupl_w.hidden.connect(self._duplicateWidgetHidden)
+
             self.widgets.append(dupl_w)
             self._layout.addWidget(dupl_w)
             self.updateGeometry()
@@ -106,9 +109,6 @@ class ImageGroupWidget(QtWidgets.QWidget):
                         **kwargs) -> None:
         for dupl_w in self.widgets:
             if dupl_w.selected:
-                dupl_w.error.connect(self.error)
-                dupl_w.hidden.connect(self._duplicateWidgetHidden)
-
                 func(dupl_w, *args, **kwargs)
 
         if self._visible_num <= 1:

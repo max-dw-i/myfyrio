@@ -137,6 +137,20 @@ class TestImageGroupWidgetMethodSetDuplicateWidgets(TestImageGroupWidget):
 
         mock_evets_call.assert_called_once_with()
 
+    def test_duplW_error_signal_connected_if_duplW_is_not_selected(self):
+        with mock.patch(self.DW, return_value=self.mock_duplW):
+            self.w._setDuplicateWidgets(self.image_group)
+
+        self.mock_duplW.error.connect.assert_called_once()
+
+    def test_duplW_hidden_signal_connected_if_duplW_is_not_selected(self):
+        with mock.patch(self.DW, return_value=self.mock_duplW):
+            self.w._setDuplicateWidgets(self.image_group)
+
+        self.mock_duplW.hidden.connect.assert_called_once_with(
+            self.w._duplicateWidgetHidden
+        )
+
     def test_DuplicateWidget_added_to_attr_widgets(self):
         with mock.patch(self.DW, return_value=self.mock_duplW):
             self.w._setDuplicateWidgets(self.image_group)
@@ -242,38 +256,12 @@ class TestImageGroupWidgetMethodCallOnSelected(TestImageGroupWidget):
 
         self.func.assert_not_called()
 
-    def test_duplW_error_signal_not_connected_if_duplW_is_not_selected(self):
-        self.mock_duplW.selected = False
-        self.w._callOnSelected(self.func, self.arg, kwarg=self.kwarg)
-
-        self.mock_duplW.error.connect.assert_not_called()
-
-    def test_duplW_hidden_signal_not_connected_if_duplW_is_not_selected(self):
-        self.mock_duplW.selected = False
-        self.w._callOnSelected(self.func, self.arg, kwarg=self.kwarg)
-
-        self.mock_duplW.hidden.connect.assert_not_called()
-
     def test_passed_func_called_if_duplicate_widget_is_selected(self):
         self.mock_duplW.selected = True
         self.w._callOnSelected(self.func, self.arg, kwarg=self.kwarg)
 
         self.func.assert_called_once_with(
             self.mock_duplW, self.arg, kwarg=self.kwarg
-        )
-
-    def test_duplW_error_signal_connected_if_duplW_is_not_selected(self):
-        self.mock_duplW.selected = True
-        self.w._callOnSelected(self.func, self.arg, kwarg=self.kwarg)
-
-        self.mock_duplW.error.connect.assert_called_once()
-
-    def test_duplW_hidden_signal_connected_if_duplW_is_not_selected(self):
-        self.mock_duplW.selected = True
-        self.w._callOnSelected(self.func, self.arg, kwarg=self.kwarg)
-
-        self.mock_duplW.hidden.connect.assert_called_once_with(
-            self.w._duplicateWidgetHidden
         )
 
     def test_hide_not_called_if_attr_visible_num_more_than_1(self):
