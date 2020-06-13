@@ -139,6 +139,7 @@ class ImageProcessing(QtCore.QObject):
         except Exception as e:
             logger.exception(e)
             self.error.emit(str(e))
+            self.interrupted.emit()
 
     def interrupt(self) -> None:
         self._interrupted = True
@@ -176,7 +177,6 @@ class ImageProcessing(QtCore.QObject):
         except EOFError:
             err_msg = 'Cache file is corrupted and will be rewritten'
             logger.exception(err_msg)
-            self.error.emit(err_msg)
 
         return c
 
@@ -227,7 +227,7 @@ class ImageProcessing(QtCore.QObject):
             dhash = img.dhash
             path = img.path
             if dhash == -1:
-                err_msg = f'Hash of {path} cannot be calculated'
+                err_msg = f'Hash of "{path}" cannot be calculated'
                 logger.error(err_msg)
                 self.error.emit(err_msg)
             else:
@@ -238,7 +238,6 @@ class ImageProcessing(QtCore.QObject):
         except OSError:
             err_msg = 'Cache cannot be saved on the disk'
             logger.exception(err_msg)
-            self.error.emit(err_msg)
 
         self._update_progressbar(self.PROG_UPD_CACHE)
 
@@ -308,8 +307,10 @@ class ThumbnailProcessing(QtCore.QObject):
         if self._widget is None or self._widget.isVisible():
             try:
                 self._image.thumbnail(self._size)
-            except OSError as e:
-                logger.exception(e)
+            except OSError:
+                path = self._image.path
+                err_msg = f'The thumbnail of "{path}" cannot be made'
+                logger.exception(err_msg)
                 self._image.thumb = QtGui.QImage()
 
             self.finished.emit()

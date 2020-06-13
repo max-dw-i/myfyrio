@@ -114,6 +114,13 @@ class TestClassImageProcessingMethodRun(TestClassImageProcessing):
         self.assertEqual(len(spy), 1)
         self.assertEqual(spy[0][0], 'Error')
 
+    def test_emit_signal_interrupted_if_any_func_raise_Exception(self):
+        spy = QtTest.QSignalSpy(self.proc.interrupted)
+        with mock.patch(self.PATCH_FIND, side_effect=Exception):
+            self.proc.run()
+
+        self.assertEqual(len(spy), 1)
+
 
 class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
 
@@ -342,15 +349,6 @@ class TestClassImageProcessingMethodLoadCache(TestClassImageProcessing):
             with self.assertLogs('main.workers', 'ERROR'):
                 self.proc._load_cache()
 
-    def test_emit_signal_error_with_err_msg_if_load_raise_EOFError(self):
-        spy = QtTest.QSignalSpy(self.proc.error)
-        with mock.patch(PROCESSING+'Cache.load', side_effect=EOFError):
-            self.proc._load_cache()
-
-        self.assertEqual(len(spy), 1)
-        msg = 'Cache file is corrupted and will be rewritten'
-        self.assertEqual(spy[0][0], msg)
-
 
 class TestMethodCheckCache(TestClassImageProcessing):
 
@@ -495,7 +493,7 @@ class TestClassImageProcessingMethodUpdateCache(TestClassImageProcessing):
         self.proc._update_cache(self.mock_cache, self.images)
 
         self.assertEqual(len(spy), 1)
-        self.assertEqual(spy[0][0], 'Hash of path cannot be calculated')
+        self.assertEqual(spy[0][0], 'Hash of "path" cannot be calculated')
 
     def test_cache_save_called_with_cache_file_path_arg(self):
         self.proc._update_cache(self.mock_cache, self.images)
@@ -508,14 +506,6 @@ class TestClassImageProcessingMethodUpdateCache(TestClassImageProcessing):
         self.mock_cache.save.side_effect = OSError
         with self.assertLogs('main.workers', 'ERROR'):
             self.proc._update_cache(self.mock_cache, self.images)
-
-    def test_emit_signal_error_with_err_msg_if_cache_save_raise_OSError(self):
-        self.mock_cache.save.side_effect = OSError
-        spy = QtTest.QSignalSpy(self.proc.error)
-        self.proc._update_cache(self.mock_cache, self.images)
-
-        self.assertEqual(len(spy), 1)
-        self.assertEqual(spy[0][0], 'Cache cannot be saved on the disk')
 
     @mock.patch(PROCESSING+'ImageProcessing._update_progressbar')
     def test_update_progressbar_called_with_40(self, mock_bar):
@@ -653,6 +643,7 @@ class TestClassThumbnailProcessing(TestCase):
     def setUp(self):
         self.mock_image = mock.Mock(spec=core.Image)
         self.mock_image.thumb = None
+        self.mock_image.path = 'path'
         self.size = 200
 
         self.proc = workers.ThumbnailProcessing(self.mock_image, self.size)
