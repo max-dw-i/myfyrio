@@ -20,13 +20,13 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 Module implementing widget rendering found duplicate images
 '''
 
-from typing import Collection, List
+from typing import Callable, Collection, List
 
 from PyQt5 import QtCore, QtWidgets
 
 from doppelganger import config, core
+from doppelganger.gui.errornotifier import errorMessage
 from doppelganger.gui.imagegroupwidget import ImageGroupWidget
-
 from doppelganger.logger import Logger
 
 logger = Logger.getLogger('imageviewwidget')
@@ -35,7 +35,7 @@ logger = Logger.getLogger('imageviewwidget')
 class ImageViewWidget(QtWidgets.QWidget):
     '''Widget rendering found duplicate images
 
-    :param parent: widget's parent (optional),
+    :param parent:              widget's parent (optional),
 
     :signal selected:           True - there are selected "DuplicateWidget"s,
                                 False - otherwise, emitted when any
@@ -63,6 +63,7 @@ class ImageViewWidget(QtWidgets.QWidget):
 
         self._progressBarValue = float(self.PROG_MIN)
         self._interrupted = False
+        self._errors: List[str] = []
 
         self._layout = QtWidgets.QVBoxLayout()
         self._layout.setContentsMargins(0, 0, 0, 0)
@@ -101,13 +102,14 @@ class ImageViewWidget(QtWidgets.QWidget):
                 self.interrupted.emit()
                 return
 
-            widget = ImageGroupWidget(group, self.conf)
+            group_w = ImageGroupWidget(group, self.conf)
+            group_w.error.connect(self._errors.append)
 
-            for dup_w in widget.widgets:
+            for dup_w in group_w.widgets:
                 dup_w.clicked.connect(self._hasSelected)
 
-            self._layout.addWidget(widget)
-            self._widgets.append(widget)
+            self._layout.addWidget(group_w)
+            self._widgets.append(group_w)
             self.updateGeometry()
 
             self._updateProgressBar(self._progressBarValue+prog_step)
@@ -141,9 +143,17 @@ class ImageViewWidget(QtWidgets.QWidget):
         for group_w in self._widgets:
             group_w.deleteLater()
 
-        self._widgets = []
+        self._widgets.clear()
         self._interrupted = False
         self._progressBarValue = float(self.PROG_MIN)
+
+    def _callOnSelected(self, func: Callable[..., None], *args,
+                        **kwargs) -> None:
+        for group_w in self._widgets:
+            func(group_w, *args, **kwargs)
+
+        errorMessage(self._errors)
+        self._errors.clear()
 
     def delete(self) -> None:
         '''Delete the selected images'''
@@ -156,28 +166,12 @@ class ImageViewWidget(QtWidgets.QWidget):
         )
 
         if confirm == QtWidgets.QMessageBox.Yes:
-            self._delete()
-
-    def _delete(self) -> None:
-        try:
-            for group_w in self._widgets:
-                group_w.delete()
-
-        except OSError as e:
-            err_msg = f'Error occured while removing image "{e}"'
-            logger.error(err_msg)
-
-            msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning,
-                'Removing image',
-                err_msg
-            )
-            msgBox.exec()
+            self._callOnSelected(ImageGroupWidget.delete)
 
     def move(self) -> None:
         '''Move the selected images into another folder
 
-        :param dst: folder to move the images into,
+        :param dst: folder to move the images into
         '''
 
         dialog = QtWidgets.QFileDialog(self, 'Open Folder', '')
@@ -186,23 +180,8 @@ class ImageViewWidget(QtWidgets.QWidget):
                           | QtWidgets.QFileDialog.ReadOnly)
 
         if dialog.exec():
-            self._move(dialog.selectedFiles()[0])
-
-    def _move(self, dst: core.FolderPath) -> None:
-        try:
-            for group_w in self._widgets:
-                group_w.move(dst)
-
-        except OSError as e:
-            err_msg = f'Error occured while moving image "{e}"'
-            logger.error(err_msg)
-
-            msgBox = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Warning,
-                'Moving image',
-                err_msg
-            )
-            msgBox.exec()
+            dst = dialog.selectedFiles()[0]
+            self._callOnSelected(ImageGroupWidget.move, dst)
 
     def autoSelect(self) -> None:
         '''Automatic selection of "DuplicateWidget"s'''

@@ -62,6 +62,7 @@ class TestImageViewWidgetMethodInit(TestImageViewWidget):
         self.assertIsNone(self.w.conf)
         self.assertListEqual(self.w._widgets, [])
         self.assertFalse(self.w._interrupted)
+        self.assertListEqual(self.w._errors, [])
         self.assertEqual(self.w._progressBarValue,
                          imageviewwidget.ImageViewWidget.PROG_MIN)
 
@@ -150,6 +151,12 @@ class TestImageViewWidgetMethodPrivateRender(TestImageViewWidget):
             self.w._render(self.image_groups)
 
         mock_widg.assert_called_once_with(self.image_groups[0], self.mock_conf)
+
+    def test_ImageGroupWidget_error_signal_connect_to_attr_errors_append(self):
+        with mock.patch(self.IGW, return_value=self.mock_groupW):
+            self.w._render(self.image_groups)
+
+        self.mock_groupW.error.connect(self.w._errors.append)
 
     def test_duplicate_widgets_connected_to_hasSelected(self):
         mock_duplW = mock.Mock(spec=duplicatewidget.DuplicateWidget)
@@ -291,26 +298,7 @@ class TestImageViewWidgetMethodClear(TestImageViewWidget):
         self.assertEqual(self.w._progressBarValue, self.w.PROG_MIN)
 
 
-class TestImageViewWidgetMethodDelete(TestImageViewWidget):
-
-    def test_delete_called_if_QMessageBox_return_Yes(self):
-        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
-                        return_value=QtWidgets.QMessageBox.Yes):
-            with mock.patch(self.IVW+'_delete') as mock_delete_call:
-                self.w.delete()
-
-        mock_delete_call.assert_called_once_with()
-
-    def test_delete_not_called_if_QMessageBox_return_Cancel(self):
-        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
-                        return_value=QtWidgets.QMessageBox.Cancel):
-            with mock.patch(self.IVW+'_delete') as mock_delete_call:
-                self.w.delete()
-
-        mock_delete_call.assert_not_called()
-
-
-class TestImageViewWidgetMethodPrivateDelete(TestImageViewWidget):
+class TestImageViewWidgetMethodCallOnSelected(TestImageViewWidget):
 
     def setUp(self):
         super().setUp()
@@ -318,27 +306,53 @@ class TestImageViewWidgetMethodPrivateDelete(TestImageViewWidget):
         self.mock_groupW = mock.Mock(spec=imagegroupwidget.ImageGroupWidget)
         self.w._widgets = [self.mock_groupW]
 
-        self.mock_box = mock.Mock(spec=QtWidgets.QMessageBox)
+        self.mock_func = mock.Mock()
+        self.args = 'arg'
+        self.kwargs = 'kwarg'
 
-    def test_imagegroupwidget_delete_called(self):
-        self.w._delete()
+    def test_passed_func_called_with_ImageGroupWidget__args_and_kwargs(self):
+        self.w._callOnSelected(self.mock_func, self.args, kwarg=self.kwargs)
 
-        self.mock_groupW.delete.assert_called_once_with()
+        self.mock_func.assert_called_once_with(
+            self.mock_groupW, self.args, kwarg=self.kwargs
+        )
 
-    @mock.patch('PyQt5.QtWidgets.QMessageBox')
-    def test_logging_if_imagegroupwidget_delete_raise_OSError(self, mock_box):
-        mock_box.return_value = self.mock_box
-        self.mock_groupW.delete.side_effect = OSError
-        with self.assertLogs('main.imageviewwidget', 'ERROR'):
-            self.w._delete()
+    def test_errorMessage_called_with_attr_errors_arg(self):
+        self.w._errors = ['Error']
+        with mock.patch(VIEW_MODULE+'errorMessage') as mock_err_call:
+            self.w._callOnSelected(self.mock_func, self.args,
+                                   kwarg=self.kwargs)
 
-    @mock.patch('PyQt5.QtWidgets.QMessageBox')
-    def test_QMessageBox_exec_called_if_delete_raise_OSError(self, mock_box):
-        mock_box.return_value = self.mock_box
-        self.mock_groupW.delete.side_effect = OSError
-        self.w._delete()
+        mock_err_call.assert_called_once_with(self.w._errors)
 
-        self.mock_box.exec.assert_called_once_with()
+    def test_attr_errors_cleared(self):
+        self.w._errors = ['Error']
+        with mock.patch(VIEW_MODULE+'errorMessage'):
+            self.w._callOnSelected(self.mock_func, self.args,
+                                   kwarg=self.kwargs)
+
+        self.assertListEqual(self.w._errors, [])
+
+
+class TestImageViewWidgetMethodDelete(TestImageViewWidget):
+
+    def test_callOnSelected_called_if_QMessageBox_return_Yes(self):
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Yes):
+            with mock.patch(self.IVW+'_callOnSelected') as mock_call_call:
+                self.w.delete()
+
+        mock_call_call.assert_called_once_with(
+            imagegroupwidget.ImageGroupWidget.delete
+        )
+
+    def test_callOnSelected_not_called_if_QMessageBox_return_Cancel(self):
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Cancel):
+            with mock.patch(self.IVW+'_callOnSelected') as mock_call_call:
+                self.w.delete()
+
+        mock_call_call.assert_not_called()
 
 
 class TestImageViewWidgetMethodMove(TestImageViewWidget):
@@ -348,57 +362,27 @@ class TestImageViewWidgetMethodMove(TestImageViewWidget):
 
         self.mock_dialog = mock.Mock(spec=QtWidgets.QFileDialog)
 
-    def test_move_not_called_if_dialog_not_return_new_folder(self):
+    def test_callOnSelected_not_called_if_dialog_not_return_new_folder(self):
         self.mock_dialog.exec.return_value = False
         with mock.patch('PyQt5.QtWidgets.QFileDialog',
                         return_value=self.mock_dialog):
-            with mock.patch(self.IVW+'_move') as mock_move_call:
+            with mock.patch(self.IVW+'_callOnSelected') as mock_call_call:
                 self.w.move()
 
-        mock_move_call.assert_not_called()
+        mock_call_call.assert_not_called()
 
-    def test_move_called_with_new_folder_arg_if_dialog_return_new_folder(self):
+    def test_callOnSelected_called_with_new_dst_if_dialog_return_new_dst(self):
         self.mock_dialog.exec.return_value = True
         self.mock_dialog.selectedFiles.return_value = ['new_folder']
         with mock.patch('PyQt5.QtWidgets.QFileDialog',
                         return_value=self.mock_dialog):
-            with mock.patch(self.IVW+'_move') as mock_move_call:
+            with mock.patch(self.IVW+'_callOnSelected') as mock_call_call:
                 self.w.move()
 
-        mock_move_call.assert_called_once_with('new_folder')
-
-
-class TestImageViewWidgetMethodPrivateMove(TestImageViewWidget):
-
-    def setUp(self):
-        super().setUp()
-
-        self.mock_groupW = mock.Mock(spec=imagegroupwidget.ImageGroupWidget)
-        self.w._widgets = [self.mock_groupW]
-
-        self.dst = 'new_folder'
-
-        self.mock_box = mock.Mock(spec=QtWidgets.QMessageBox)
-
-    def test_imagegroupwidget_move_called(self):
-        self.w._move(self.dst)
-
-        self.mock_groupW.move.assert_called_once_with(self.dst)
-
-    @mock.patch('PyQt5.QtWidgets.QMessageBox')
-    def test_logging_if_imagegroupwidget_move_raise_OSError(self, mock_box):
-        mock_box.return_value = self.mock_box
-        self.mock_groupW.move.side_effect = OSError
-        with self.assertLogs('main.imageviewwidget', 'ERROR'):
-            self.w._move(self.dst)
-
-    @mock.patch('PyQt5.QtWidgets.QMessageBox')
-    def test_QMessageBox_exec_called_if_move_raise_OSError(self, mock_box):
-        mock_box.return_value = self.mock_box
-        self.mock_groupW.move.side_effect = OSError
-        self.w._move(self.dst)
-
-        self.mock_box.exec.assert_called_once_with()
+        mock_call_call.assert_called_once_with(
+            imagegroupwidget.ImageGroupWidget.move,
+            'new_folder'
+        )
 
 
 class TestImageViewWidgetMethodAutoSelect(TestImageViewWidget):
