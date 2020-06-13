@@ -87,6 +87,29 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
 
         mock_render_call.assert_called_once_with(image_groups)
 
+    def test_logging_if_render_raise_Exception(self):
+        image_groups = [[mock.Mock(spec=core.Image)]]
+        with mock.patch(self.IVW+'_render', side_effect=Exception):
+            with self.assertLogs('main.imageviewwidget', 'ERROR'):
+                self.w.render(image_groups)
+
+    def test_emit_error_signal_with_err_msg_if_render_raise_Exception(self):
+        image_groups = [[mock.Mock(spec=core.Image)]]
+        spy = QtTest.QSignalSpy(self.w.error)
+        with mock.patch(self.IVW+'_render', side_effect=Exception('Error')):
+            self.w.render(image_groups)
+
+        self.assertEqual(len(spy), 1)
+        self.assertEqual(spy[0][0], 'Error')
+
+    def test_emit_interrupted_signal_if_render_raise_Exception(self):
+        image_groups = [[mock.Mock(spec=core.Image)]]
+        spy = QtTest.QSignalSpy(self.w.interrupted)
+        with mock.patch(self.IVW+'_render', side_effect=Exception):
+            self.w.render(image_groups)
+
+        self.assertEqual(len(spy), 1)
+
     @mock.patch('PyQt5.QtWidgets.QMessageBox')
     def test_render_not_called_if_image_groups_not_found(self, mock_box):
         with mock.patch(self.IVW+'_render') as mock_render_call:

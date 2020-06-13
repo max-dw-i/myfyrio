@@ -43,13 +43,15 @@ class ImageViewWidget(QtWidgets.QWidget):
     :signal updateProgressBar:  new value of progress bar: float,
     :signal finished:           widgets rendering has been finished,
     :signal interrupted:        widgets rendering has been interrupted
-                                by the user
+                                by the user,
+    :signal error:              error message: str
     '''
 
     selected = QtCore.pyqtSignal(bool)
     updateProgressBar = QtCore.pyqtSignal(float)
     finished = QtCore.pyqtSignal()
     interrupted = QtCore.pyqtSignal()
+    error = QtCore.pyqtSignal(str)
 
     # Progress bar consts
     PROG_MIN = 70
@@ -78,7 +80,14 @@ class ImageViewWidget(QtWidgets.QWidget):
         '''
 
         if image_groups:
-            self._render(image_groups)
+            try:
+                self._render(image_groups)
+
+            except Exception as e:
+                logger.exception(e)
+                self.error.emit(str(e))
+                self.interrupted.emit()
+
         else:
             self.finished.emit()
 
