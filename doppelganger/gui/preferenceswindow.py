@@ -20,7 +20,6 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 Module implementing the "Preferences" window
 '''
 
-import os
 from typing import List, Union
 
 from PyQt5 import QtCore, QtWidgets, uic
@@ -54,6 +53,7 @@ class PreferencesWindow(QtWidgets.QMainWindow):
         self._init_widgets()
 
         self.conf = self._load_config()
+        self._setMaxCores()
         self._update_prefs()
 
         self.saveBtn.clicked.connect(self._savePreferences)
@@ -81,7 +81,7 @@ class PreferencesWindow(QtWidgets.QMainWindow):
     def _init_widgets(self) -> None:
         for w in self._widgets:
             if w.property('conf_param') == 'cores':
-                w.setMaximum(os.cpu_count() or 1)
+                w.setMaximum(QtCore.QThread.idealThreadCount() or 1)
 
     @staticmethod
     def _load_config() -> config.Config:
@@ -136,7 +136,15 @@ class PreferencesWindow(QtWidgets.QMainWindow):
     def setSensitivity(self, value: Value) -> None:
         self.conf['sensitivity'] = value
 
+    def _setMaxCores(self) -> None:
+        ideal = QtCore.QThread.idealThreadCount()
+        conf_cores = self.conf['cores']
+        if conf_cores <= ideal:
+            pool = QtCore.QThreadPool.globalInstance()
+            pool.setMaxThreadCount(conf_cores)
+
     def _savePreferences(self) -> None:
         self._gather_prefs()
+        self._setMaxCores()
         self._save_config()
         self.close()

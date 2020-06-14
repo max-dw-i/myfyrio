@@ -17,10 +17,9 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 import logging
-import os
 from unittest import TestCase, mock
 
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 from doppelganger import config, resources
 from doppelganger.gui import preferenceswindow
@@ -41,7 +40,7 @@ if app is None:
 PW_MODULE = 'doppelganger.gui.preferenceswindow.'
 
 
-# pylint: disable=unused-argument,missing-class-docstring
+# pylint: disable=missing-class-docstring
 
 
 class TestPreferencesWindow(TestCase):
@@ -89,7 +88,8 @@ class TestMethodInitWidgets(TestPreferencesWindow):
         self.w._widgets = [spinbox]
         self.w._init_widgets()
 
-        self.assertEqual(spinbox.maximum(), os.cpu_count() or 1)
+        self.assertEqual(spinbox.maximum(),
+                         QtCore.QThread.idealThreadCount() or 1)
 
     def test_not_cores_spinbox_max_value_not_changed(self):
         spinbox = QtWidgets.QSpinBox()
@@ -264,6 +264,29 @@ class TestMethodSetSensitivity(TestPreferencesWindow):
         self.assertEqual(self.w.conf['sensitivity'], 96)
 
 
+class TestMethodSetMaxCores(TestPreferencesWindow):
+
+    def setUp(self):
+        super().setUp()
+
+        self.ideal_cores = QtCore.QThread.idealThreadCount()
+        self.threadPool = QtCore.QThreadPool.globalInstance()
+
+    def test_maxThreadCount_not_changed_if_more_cores_set_than_ideal(self):
+        old_max_cores = self.threadPool.maxThreadCount()
+        self.w.conf['cores'] = self.ideal_cores + 1
+        self.w._setMaxCores()
+
+        self.assertEqual(self.threadPool.maxThreadCount(), old_max_cores)
+
+    def test_maxThreadCount_changed_if_less_or_eq_cores_set_than_ideal(self):
+        self.threadPool.setMaxThreadCount(self.ideal_cores + 1)
+        self.w.conf['cores'] = self.ideal_cores
+        self.w._setMaxCores()
+
+        self.assertEqual(self.threadPool.maxThreadCount(), self.ideal_cores)
+
+
 class TestMethodSavePreferences(TestPreferencesWindow):
 
     def test_gather_prefs_called(self):
@@ -279,6 +302,14 @@ class TestMethodSavePreferences(TestPreferencesWindow):
                 self.w._savePreferences()
 
         mock_save_call.assert_called_once_with()
+
+    def test_setMaxCores_called(self):
+        with mock.patch(self.PW+'_gather_prefs'):
+            with mock.patch(self.PW+'_save_config'):
+                with mock.patch(self.PW+'_setMaxCores') as mock_cores_call:
+                    self.w._savePreferences()
+
+        mock_cores_call.assert_called_once_with()
 
     @mock.patch('PyQt5.QtWidgets.QMainWindow.close')
     def test_close_called(self, mock_close_call):
