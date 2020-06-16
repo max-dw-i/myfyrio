@@ -82,7 +82,10 @@ class ImageProcessing(QtCore.QObject):
     :signal groups_found:       number of found duplicate image groups: int,
                                 emitted when a new group is found,
     :signal update_progressbar: new progress bar value: int,
-    :signal finished:           list of duplicate image groups: List[Group],
+    :signal image_group:        tuple with the group index and list of grouped
+                                duplicate images: Tuple[GroupIndex, Group],
+                                emit the empty group ("(0, [])") when
+                                the processing is finished,
     :signal interrupted:        image processing has been interrupted
                                 by the user,
     :signal error:              error text: str
@@ -95,17 +98,16 @@ class ImageProcessing(QtCore.QObject):
     groups_found = QtCore.pyqtSignal(int)
 
     update_progressbar = QtCore.pyqtSignal(float)
-    finished = QtCore.pyqtSignal(list)
+    image_group = QtCore.pyqtSignal(tuple)
     interrupted = QtCore.pyqtSignal()
     error = QtCore.pyqtSignal(str)
 
     # Progress bar consts
     PROG_MIN = 0
-    PROG_CHECK_CACHE = 5 # Set when the cache is checked
-    PROG_CALC = 35 # Set when all new hashes are calculated
-    PROG_UPD_CACHE = 40 # Set when the cache is updated with the new hashes
-    PROG_GROUPING = 70 # Set when image grouping is done
-    PROG_MAX = PROG_GROUPING
+    PROG_CHECK_CACHE = 15 # Set when the cache is checked
+    PROG_CALC = 75 # Set when all new hashes are calculated
+    PROG_UPD_CACHE = 80 # Set when the cache is updated with the new hashes
+    PROG_MAX = 100
 
     def __init__(self, folders: Iterable[core.FolderPath],
                  conf: Config) -> None:
@@ -163,7 +165,7 @@ class ImageProcessing(QtCore.QObject):
                 self.images_loaded.emit(len(images))
 
         if not images:
-            self.finished.emit([])
+            self.image_group.emit((0, []))
 
         return images
 
@@ -196,7 +198,7 @@ class ImageProcessing(QtCore.QObject):
         if not_cached:
             self._update_progressbar(self.PROG_CHECK_CACHE)
         else:
-            self._update_progressbar(self.PROG_CALC)
+            self._update_progressbar(self.PROG_UPD_CACHE)
 
         return cached, not_cached
 
@@ -242,25 +244,33 @@ class ImageProcessing(QtCore.QObject):
         self._update_progressbar(self.PROG_UPD_CACHE)
 
     def _image_grouping(self, images: Collection[core.Image]) -> None:
-        image_groups = []
-        prog_step = (self.PROG_GROUPING - self.PROG_UPD_CACHE) / len(images)
-
         gen = core.image_grouping(images, self._conf['sensitivity'])
-        for image_groups in gen:
+        duplicates_found = 0
+        groups_num = 0
+        for group in gen:
             if self._interrupted:
                 self.interrupted.emit()
                 return
 
-            # Slower than showing the result number
-            duplicates_found = sum(len(g) for g in image_groups)
+            group_index, image_group = group
+
+            if groups_num == group_index: # new group
+                duplicates_found += len(image_group)
+                groups_num += 1
+            else:
+                # if it's an existing group, a new image was added to the group
+                duplicates_found += 1
+
             self.duplicates_found.emit(duplicates_found)
-            self.groups_found.emit(len(image_groups))
-            new_val = self._progressbar_value + prog_step
-            self._update_progressbar(new_val)
+            self.groups_found.emit(groups_num)
 
-        self._update_progressbar(self.PROG_GROUPING)
+            # shallow copy of an image group
+            # cause don't want to mess with mutexes
+            self.image_group.emit((group_index, image_group.copy()))
 
-        self.finished.emit(image_groups)
+        self._update_progressbar(self.PROG_MAX)
+
+        self.image_group.emit((0, []))
 
     def _available_cores(self) -> int:
         cores = self._conf['cores']

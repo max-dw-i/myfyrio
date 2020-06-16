@@ -72,11 +72,10 @@ class TestMethodInit(TestClassImageProcessing):
 
     def test_attributes(self):
         self.assertEqual(workers.ImageProcessing.PROG_MIN, 0)
-        self.assertEqual(workers.ImageProcessing.PROG_CHECK_CACHE, 5)
-        self.assertEqual(workers.ImageProcessing.PROG_CALC, 35)
-        self.assertEqual(workers.ImageProcessing.PROG_UPD_CACHE, 40)
-        self.assertEqual(workers.ImageProcessing.PROG_GROUPING, 70)
-        self.assertEqual(workers.ImageProcessing.PROG_MAX, 70)
+        self.assertEqual(workers.ImageProcessing.PROG_CHECK_CACHE, 15)
+        self.assertEqual(workers.ImageProcessing.PROG_CALC, 75)
+        self.assertEqual(workers.ImageProcessing.PROG_UPD_CACHE, 80)
+        self.assertEqual(workers.ImageProcessing.PROG_MAX, 100)
 
 
 class TestClassImageProcessingMethodRun(TestClassImageProcessing):
@@ -190,15 +189,15 @@ class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
 
         self.assertEqual(len(spy), 0)
 
-    def test_emit_empty_finished_if_size_filter_and_too_small_width(self):
+    def test_emit_stop_image_group_if_size_filter_and_too_small_width(self):
         self.conf['filter_img_size'] = True
         self.mock_image.width = 4
-        spy = QtTest.QSignalSpy(self.proc.finished)
+        spy = QtTest.QSignalSpy(self.proc.image_group)
         with mock.patch(CORE+'find_image', return_value=self.found_images):
             self.proc._find_images()
 
         self.assertEqual(len(spy), 1)
-        self.assertListEqual(spy[0][0], [])
+        self.assertTupleEqual(spy[0][0], (0, []))
 
     def test_return_empty_set_if_size_filter_and_too_big_width(self):
         self.conf['filter_img_size'] = True
@@ -217,15 +216,15 @@ class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
 
         self.assertEqual(len(spy), 0)
 
-    def test_emit_empty_finished_if_size_filter_and_too_big_width(self):
+    def test_emit_stop_image_group_if_size_filter_and_too_big_width(self):
         self.conf['filter_img_size'] = True
         self.mock_image.width = 11
-        spy = QtTest.QSignalSpy(self.proc.finished)
+        spy = QtTest.QSignalSpy(self.proc.image_group)
         with mock.patch(CORE+'find_image', return_value=self.found_images):
             self.proc._find_images()
 
         self.assertEqual(len(spy), 1)
-        self.assertListEqual(spy[0][0], [])
+        self.assertTupleEqual(spy[0][0], (0, []))
 
     def test_return_empty_set_if_size_filter_and_too_small_height(self):
         self.conf['filter_img_size'] = True
@@ -244,15 +243,15 @@ class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
 
         self.assertEqual(len(spy), 0)
 
-    def test_emit_empty_finished_if_size_filter_and_too_small_height(self):
+    def test_emit_stop_image_group_if_size_filter_and_too_small_height(self):
         self.conf['filter_img_size'] = True
         self.mock_image.height = 4
-        spy = QtTest.QSignalSpy(self.proc.finished)
+        spy = QtTest.QSignalSpy(self.proc.image_group)
         with mock.patch(CORE+'find_image', return_value=self.found_images):
             self.proc._find_images()
 
         self.assertEqual(len(spy), 1)
-        self.assertListEqual(spy[0][0], [])
+        self.assertTupleEqual(spy[0][0], (0, []))
 
     def test_return_empty_set_if_size_filter_and_too_big_height(self):
         self.conf['filter_img_size'] = True
@@ -271,15 +270,15 @@ class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
 
         self.assertEqual(len(spy), 0)
 
-    def test_emit_empty_finished_if_size_filter_and_too_big_height(self):
+    def test_emit_stop_image_group_if_size_filter_and_too_big_height(self):
         self.conf['filter_img_size'] = True
         self.mock_image.height = 11
-        spy = QtTest.QSignalSpy(self.proc.finished)
+        spy = QtTest.QSignalSpy(self.proc.image_group)
         with mock.patch(CORE+'find_image', return_value=self.found_images):
             self.proc._find_images()
 
         self.assertEqual(len(spy), 1)
-        self.assertListEqual(spy[0][0], [])
+        self.assertTupleEqual(spy[0][0], (0, []))
 
     def test_emit_interrupted_signal_if_attr_interrupt_True(self):
         self.proc._interrupted = True
@@ -296,14 +295,14 @@ class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
 
         self.assertSetEqual(res, set())
 
-    def test_emit_empty_finished_signal_if_images_not_found(self):
+    def test_emit_image_group_signal_with_empty_list_if_images_not_found(self):
         found_images = (img for img in [])
-        spy = QtTest.QSignalSpy(self.proc.finished)
+        spy = QtTest.QSignalSpy(self.proc.image_group)
         with mock.patch(CORE+'find_image', return_value=found_images):
             self.proc._find_images()
 
         self.assertEqual(len(spy), 1)
-        self.assertListEqual(spy[0][0], [])
+        self.assertTupleEqual(spy[0][0], (0, []))
 
     def test_return_empty_set_if_images_not_found(self):
         found_images = (img for img in [])
@@ -387,7 +386,7 @@ class TestMethodCheckCache(TestClassImageProcessing):
             self.proc._check_cache(paths, self.cache)
 
         mock_bar_call.assert_called_once_with(
-            workers.ImageProcessing.PROG_CALC
+            workers.ImageProcessing.PROG_UPD_CACHE
         )
 
     def test_update_progressbar_called_with_5_if_there_are_not_cached(self):
@@ -452,7 +451,7 @@ class TestClassImageProcessingMethodCalculateHashes(TestClassImageProcessing):
                 self.proc._calculate_hashes(self.images)
 
         # step == 30 / len(collection) == 30 in this case
-        calls = [mock.call(32), mock.call(workers.ImageProcessing.PROG_CALC)]
+        calls = [mock.call(62), mock.call(workers.ImageProcessing.PROG_CALC)]
         mock_bar_call.assert_has_calls(calls)
 
     def test_return_sublist_of_passed_images_if_attr_interrupted_is_True(self):
@@ -522,7 +521,6 @@ class TestClassImageProcessingMethodImageGrouping(TestClassImageProcessing):
         super().setUp()
 
         self.images = ['image1', 'image2']
-        self.groups = [self.images]
 
     def test_core_image_grouping_called_with_images_and_sensitivity_args(self):
         with mock.patch(CORE+'image_grouping') as mock_group_call:
@@ -531,35 +529,36 @@ class TestClassImageProcessingMethodImageGrouping(TestClassImageProcessing):
         mock_group_call.assert_called_once_with(self.images,
                                                 self.conf['sensitivity'])
 
-    def test_emit_finished_signal_with_found_groups_arg(self):
-        gen = (gs for gs in [self.groups])
-        spy = QtTest.QSignalSpy(self.proc.finished)
+    def test_emit_image_group_signal_with_found_group_and_stop_group(self):
+        gen = (g for g in [(0, self.images)])
+        spy = QtTest.QSignalSpy(self.proc.image_group)
         with mock.patch(CORE+'image_grouping', return_value=gen):
             self.proc._image_grouping(self.images)
 
-        self.assertEqual(len(spy), 1)
-        self.assertListEqual(spy[0][0], self.groups)
+        self.assertEqual(len(spy), 2)
+        self.assertTupleEqual(spy[0][0], (0, self.images))
+        self.assertTupleEqual(spy[1][0], (0, []))
 
     def test_emit_interrupted_signal_if_attr_interrupted_is_True(self):
         self.proc._interrupted = True
-        gen = (gs for gs in [self.groups])
+        gen = (g for g in [(0, self.images)])
         spy = QtTest.QSignalSpy(self.proc.interrupted)
         with mock.patch(CORE+'image_grouping', return_value=gen):
             self.proc._image_grouping(self.images)
 
         self.assertEqual(len(spy), 1)
 
-    def test_not_emit_finished_signal_if_attr_interrupted_is_True(self):
+    def test_not_emit_image_group_signal_if_attr_interrupted_is_True(self):
         self.proc._interrupted = True
-        gen = (gs for gs in [self.groups])
-        spy = QtTest.QSignalSpy(self.proc.finished)
+        gen = (g for g in [(0, self.images)])
+        spy = QtTest.QSignalSpy(self.proc.image_group)
         with mock.patch(CORE+'image_grouping', return_value=gen):
             self.proc._image_grouping(self.images)
 
         self.assertEqual(len(spy), 0)
 
     def test_emit_duplicates_found_signal_with_duplicates_found_num_arg(self):
-        gen = (gs for gs in [self.groups])
+        gen = (g for g in [(0, self.images)])
         spy = QtTest.QSignalSpy(self.proc.duplicates_found)
         with mock.patch(CORE+'image_grouping', return_value=gen):
             self.proc._image_grouping(self.images)
@@ -567,25 +566,21 @@ class TestClassImageProcessingMethodImageGrouping(TestClassImageProcessing):
         self.assertEqual(spy[0][0], 2)
 
     def test_emit_groups_found_signal_with_duplicate_groups_found_arg(self):
-        gen = (gs for gs in [self.groups])
+        gen = (g for g in [(0, self.images)])
         spy = QtTest.QSignalSpy(self.proc.groups_found)
         with mock.patch(CORE+'image_grouping', return_value=gen):
             self.proc._image_grouping(self.images)
 
         self.assertEqual(spy[0][0], 1)
 
-    def test_update_progress_bar_called_with_65(self):
-        self.proc._progressbar_value = 30
-        gen = (gs for gs in [self.groups])
+    def test_update_progress_bar_called_with_class_attr_PROG_MAX(self):
+        gen = (g for g in [(0, self.images)])
+        PATCH_UPD = PROCESSING + 'ImageProcessing._update_progressbar'
         with mock.patch(CORE+'image_grouping', return_value=gen):
-            PATCH_PROGBAR = PROCESSING + 'ImageProcessing._update_progressbar'
-            with mock.patch(PATCH_PROGBAR) as mock_bar_call:
+            with mock.patch(PATCH_UPD) as mock_upd_call:
                 self.proc._image_grouping(self.images)
 
-        # step == 30 / len(images) == 15 in this case
-        calls = [mock.call(45),
-                 mock.call(workers.ImageProcessing.PROG_GROUPING)]
-        mock_bar_call.assert_has_calls(calls)
+        mock_upd_call.assert_called_once_with(self.proc.PROG_MAX)
 
 
 class TestClassImageProcessingMethodAvailableCores(TestClassImageProcessing):
