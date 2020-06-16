@@ -84,48 +84,50 @@ def find_image(folders: Iterable[FolderPath],
                 yield Image(str(filename))
 
 def image_grouping(images: Collection[Image], sensitivity: Sensitivity) \
-    -> Generator[List[Group], None, None]:
-    '''Find similar images and group them. Yield an intermediate result
-    after checking every image in :images:. The last yielded value is
-    the result. If :images: is empty or no duplicate images are found,
-    an empty list is returned
+    -> Generator[Tuple[GroupIndex, Group], None, None]:
+    '''Find similar images and group them. Yield a tuple with the group
+    index and image group when a new group has been added or existing one
+    has been modified (a new image has been added to the group). If no image
+    group has been found, return a tuple with the 0 index and empty
+    list ("(0, [])").
 
     :param images:      images to process,
     :param sensitivity: maximal difference between hashes of 2 images
                         when they are considered similar,
-    :yield:             groups of similar images,
+    :yield:             tuple with the group index and list with grouped
+                        similar images,
     :raise TypeError:   any of the hashes is not integer
     '''
 
     image_groups: List[Group] = []
-
-    if not images:
-        yield image_groups
 
     try:
         bktree = pybktree.BKTree(Image.hamming, images)
     except TypeError:
         raise TypeError('Hashes must be integers')
 
-    checked: Dict[Image, int] = {} # {Image: index of the group}
+    checked: Dict[Image, GroupIndex] = dict()
 
     for image in images:
         distance, closest = _closest(bktree, image, sensitivity)
         if closest is None:
-            yield image_groups
             continue
 
         # 'closest' goes to the same group as 'image'
         if image in checked and closest not in checked:
-            _add_img_to_existing_group(image, closest, checked, image_groups)
+            yield _add_img_to_existing_group(image, closest, checked,
+                                             image_groups)
         # and vice versa
         if image not in checked and closest in checked:
-            _add_img_to_existing_group(closest, image, checked, image_groups)
+            yield _add_img_to_existing_group(closest, image, checked,
+                                             image_groups)
         # create a new group with 'image' and 'closest' it it
         if image not in checked and closest not in checked:
-            _add_new_group(image, closest, checked, image_groups, distance)
+            yield _add_new_group(image, closest, checked, image_groups,
+                                 distance)
 
-        yield image_groups
+    if not image_groups:
+        yield (0, [])
 
 def _closest(bktree: pybktree.BKTree, image: Image, sensitivity: Sensitivity) \
     -> Tuple[Optional[Distance], Optional[Image]]:
@@ -143,19 +145,26 @@ def _closest(bktree: pybktree.BKTree, image: Image, sensitivity: Sensitivity) \
 
 def _add_img_to_existing_group(img_in_group: Image, img_not_in_group: Image,
                                checked: Dict[Image, int],
-                               image_groups: List[Group]):
+                               image_groups: List[Group]) \
+    -> Tuple[GroupIndex, Group]:
     group_num = checked[img_in_group]
     first_img = image_groups[group_num][0]
     img_not_in_group.difference = first_img.hamming(img_not_in_group)
     image_groups[group_num].append(img_not_in_group)
     checked[img_not_in_group] = group_num
 
+    return (group_num, image_groups[group_num])
+
 def _add_new_group(img1: Image, img2: Image, checked: Dict[Image, int],
-                   image_groups: List[Group], distance: Distance):
+                   image_groups: List[Group], distance: Distance) \
+    -> Tuple[GroupIndex, Group]:
     img2.difference = distance
     image_groups.append([img1, img2])
     checked[img1] = len(image_groups) - 1
     checked[img2] = len(image_groups) - 1
+
+    group_num = len(image_groups) - 1
+    return (group_num, image_groups[group_num])
 
 
 class Sort:
@@ -511,4 +520,5 @@ Width = int # Width of a image
 Height = int # Height of a image
 FileSize = Union[int, float] # Size of a file
 Group = List[Image] # Group of similar images
+GroupIndex = int # Index of a group
 ###################################################################
