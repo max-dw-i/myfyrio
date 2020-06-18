@@ -42,8 +42,8 @@ class ImageViewWidget(QtWidgets.QWidget):
                                 "DuplicateWidget" is clicked,
     :signal updateProgressBar:  new value of progress bar: float,
     :signal finished:           widgets rendering has been finished,
-    :signal interrupted:        widgets rendering has been interrupted
-                                by the user,
+    :signal interrupted:        widgets rendering has been interrupted because
+                                of an error,
     :signal error:              error message: str
     '''
 
