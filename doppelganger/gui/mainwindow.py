@@ -86,12 +86,6 @@ class MainWindow(QtWidgets.QMainWindow):
             lambda: errorMessage(self._errors)
         )
 
-        self.imageViewWidget.interrupted.connect(self.stopBtn.disable)
-        self.imageViewWidget.interrupted.connect(self.startBtn.finished)
-        self.imageViewWidget.interrupted.connect(
-            lambda: errorMessage(self._errors)
-        )
-
         self.imageViewWidget.error.connect(self._errors.append)
 
         self.imageViewWidget.selected.connect(self.moveBtn.setEnabled)
@@ -209,6 +203,7 @@ class MainWindow(QtWidgets.QMainWindow):
         p.interrupted.connect(self.stopBtn.disable)
         p.interrupted.connect(lambda: errorMessage(self._errors))
 
+        self.imageViewWidget.interrupted.connect(p.interrupt)
         self.stopBtn.clicked.connect(p.interrupt)
 
         worker = workers.Worker(p.run)

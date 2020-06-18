@@ -144,24 +144,60 @@ class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
         calls = [mock.call(self.mw.startBtn.finished)]
         self.mock_IVW.finished.connect.assert_has_calls(calls)
 
-    def test_interrupted_signal_connected_to_3_slots(self):
+    def test_finished_signal_connected_to_autoSelectBtn_enable(self):
+        self.mw.imageViewWidget.widgets = ['widget']
+        self.mw.autoSelectBtn.setEnabled(False)
         self.mw._setImageViewWidget()
 
-        self.assertEqual(
-            len(self.mock_IVW.interrupted.connect.call_args_list), 3
-        )
+        call_args_list = self.mock_IVW.finished.connect.call_args_list
+        f = call_args_list[3][0][0]
+        f()
 
-    def test_interrupted_signal_connected_to_stopBtn_disable(self):
+        self.assertTrue(self.mw.autoSelectBtn.isEnabled())
+
+    def test_finished_signal_connected_to_autoSelectBtn_disable(self):
+        self.mw.imageViewWidget.widgets = []
+        self.mw.autoSelectBtn.setEnabled(True)
         self.mw._setImageViewWidget()
 
-        calls = [mock.call(self.mw.stopBtn.disable)]
-        self.mock_IVW.interrupted.connect.assert_has_calls(calls)
+        call_args_list = self.mock_IVW.finished.connect.call_args_list
+        f = call_args_list[3][0][0]
+        f()
 
-    def test_interrupted_signal_connected_to_startBtn_finished(self):
+        self.assertFalse(self.mw.autoSelectBtn.isEnabled())
+
+    def test_finished_connected_to_menubar_disableAutoSelectAction(self):
+        self.mw.imageViewWidget.widgets = ['widget']
+        self.mw.autoSelectAction.setEnabled(False)
         self.mw._setImageViewWidget()
 
-        calls = [mock.call(self.mw.startBtn.finished)]
-        self.mock_IVW.interrupted.connect.assert_has_calls(calls)
+        call_args_list = self.mock_IVW.finished.connect.call_args_list
+        f = call_args_list[4][0][0]
+        f()
+
+        self.assertTrue(self.mw.autoSelectAction.isEnabled())
+
+    def test_finished_signal_connected_to_menubar_enableAutoSelectAction(self):
+        self.mw.imageViewWidget.widgets = []
+        self.mw.autoSelectAction.setEnabled(True)
+        self.mw._setImageViewWidget()
+
+        call_args_list = self.mock_IVW.finished.connect.call_args_list
+        f = call_args_list[4][0][0]
+        f()
+
+        self.assertFalse(self.mw.autoSelectAction.isEnabled())
+
+    def test_finished_signal_connected_to_errorMessage(self):
+        self.mw._errors = ['error']
+        self.mw._setImageViewWidget()
+
+        call_args_list = self.mock_IVW.finished.connect.call_args_list
+        f = call_args_list[5][0][0]
+        with mock.patch(MW_MODULE+'errorMessage') as mock_err_call:
+            f()
+
+        mock_err_call.assert_called_once_with(['error'])
 
     def test_error_signal_connected_to_attr_errors_append_method(self):
         self.mw._setImageViewWidget()
@@ -708,6 +744,28 @@ class TestMainWindowMethodStartProcessing(TestMainWindow):
 
         calls = [mock.call(self.mw.stopBtn.disable)]
         self.mock_proc.interrupted.connect.assert_has_calls(calls)
+
+    def test_interrupted_signal_connected_to_errorMessage(self):
+        self.mw._errors = ['error']
+        with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
+            self.mw._startProcessing()
+
+        call_args_list = self.mock_proc.interrupted.connect.call_args_list
+        f = call_args_list[2][0][0]
+        with mock.patch(MW_MODULE+'errorMessage') as mock_err_call:
+            f()
+
+        mock_err_call.assert_called_once_with(['error'])
+
+    def test_imageViewWidget_interrupted__to_ImageProcessing_interrupt(self):
+        mock_IVW = mock.Mock(spec=imageviewwidget.ImageViewWidget)
+        self.mw.imageViewWidget = mock_IVW
+        with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
+            self.mw._startProcessing()
+
+        self.mw.imageViewWidget.interrupted.connect.assert_called_once_with(
+            self.mock_proc.interrupt
+        )
 
     def test_stopBtn_clicked_connected_to_ImageProcessing_interrupt(self):
         with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
