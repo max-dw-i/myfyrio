@@ -20,7 +20,7 @@ along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
 Module implementing widget rendering found duplicate images
 '''
 
-from typing import Callable, Collection, List
+from typing import Callable, List, Tuple
 
 from PyQt5 import QtCore, QtWidgets
 
@@ -53,18 +53,12 @@ class ImageViewWidget(QtWidgets.QWidget):
     interrupted = QtCore.pyqtSignal()
     error = QtCore.pyqtSignal(str)
 
-    # Progress bar consts
-    PROG_MIN = 70
-    PROG_MAX = 100
-
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent=parent)
 
         self.conf: config.Config = None
-        self._widgets: List[ImageGroupWidget] = []
+        self.widgets: List[ImageGroupWidget] = []
 
-        self._progressBarValue = float(self.PROG_MIN)
-        self._interrupted = False
         self._errors: List[str] = []
 
         self._layout = QtWidgets.QVBoxLayout()
@@ -73,15 +67,16 @@ class ImageViewWidget(QtWidgets.QWidget):
         self._layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
         self.setLayout(self._layout)
 
-    def render(self, image_groups: Collection[core.Group]) -> None:
-        '''Render "ImageGroupWidget"s with duplicate image groups
+    def render(self, image_group: Tuple[core.GroupIndex, core.Group]) -> None:
+        '''Render "ImageGroupWidget" with grouped duplicate images
 
-        :param image_groups: duplicate image groups
+        :param image_group: tuple with the group index and list of grouped
+                            duplicate images
         '''
 
-        if image_groups:
+        if image_group[1]:
             try:
-                self._render(image_groups)
+                self._render(image_group)
 
             except Exception as e:
                 logger.exception(e)
@@ -91,51 +86,40 @@ class ImageViewWidget(QtWidgets.QWidget):
         else:
             self.finished.emit()
 
-            msg_box = QtWidgets.QMessageBox(
-                QtWidgets.QMessageBox.Information,
-                'No duplicate images found',
-                'No duplicate images have been found in the selected folders'
-            )
-            msg_box.exec()
+            if not self.widgets:
+                msg_box = QtWidgets.QMessageBox(
+                    QtWidgets.QMessageBox.Information,
+                    'No duplicate images found',
+                    ('No duplicate images have been found '
+                     'in the selected folders')
+                )
+                msg_box.exec()
 
-    def _render(self, image_groups) -> None:
+    def _render(self, image_group: Tuple[core.GroupIndex, core.Group]) -> None:
         if self.conf is None:
             err_msg = ('"Config" object must be assigned to the attribute '
                        '"conf" before continuing')
             raise ValueError(err_msg)
 
-        prog_step = (self.PROG_MAX - self.PROG_MIN) / len(image_groups)
-
-        for group in image_groups:
-            if self._interrupted:
-                self.interrupted.emit()
-                return
-
-            group_w = ImageGroupWidget(group, self.conf)
+        if len(self.widgets) == image_group[0]:
+            group_w = ImageGroupWidget(image_group[1], self.conf)
             group_w.error.connect(self._errors.append)
 
             for dup_w in group_w.widgets:
                 dup_w.clicked.connect(self._hasSelected)
 
             self._layout.addWidget(group_w)
-            self._widgets.append(group_w)
+            self.widgets.append(group_w)
             self.updateGeometry()
 
-            self._updateProgressBar(self._progressBarValue+prog_step)
-
-            QtCore.QCoreApplication.processEvents()
-
-        self.finished.emit()
-
-    def _updateProgressBar(self, value: float) -> None:
-        old_val = self._progressBarValue
-        self._progressBarValue = value
-        emit_val = int(value)
-        if emit_val > old_val:
-            self.updateProgressBar.emit(emit_val)
+        else:
+            dupl_w = self.widgets[image_group[0]].addDuplicateWidget(
+                image_group[1][-1]
+            )
+            dupl_w.clicked.connect(self._hasSelected)
 
     def _hasSelected(self) -> None:
-        for group_w in self._widgets:
+        for group_w in self.widgets:
             if group_w.hasSelected():
                 self.selected.emit(True)
                 return
@@ -149,16 +133,14 @@ class ImageViewWidget(QtWidgets.QWidget):
         threadpool.clear()
         threadpool.waitForDone()
 
-        for group_w in self._widgets:
+        for group_w in self.widgets:
             group_w.deleteLater()
 
-        self._widgets.clear()
-        self._interrupted = False
-        self._progressBarValue = float(self.PROG_MIN)
+        self.widgets.clear()
 
     def _callOnSelected(self, func: Callable[..., None], *args,
                         **kwargs) -> None:
-        for group_w in self._widgets:
+        for group_w in self.widgets:
             func(group_w, *args, **kwargs)
 
         errorMessage(self._errors)
@@ -195,14 +177,11 @@ class ImageViewWidget(QtWidgets.QWidget):
     def autoSelect(self) -> None:
         '''Automatic selection of "DuplicateWidget"s'''
 
-        for group_w in self._widgets:
+        for group_w in self.widgets:
             group_w.autoSelect()
 
     def unselect(self) -> None:
         '''Unselect all selected "DuplicateWidget"s'''
 
-        for group_w in self._widgets:
+        for group_w in self.widgets:
             group_w.unselect()
-
-    def interrupt(self) -> None:
-        self._interrupted = True

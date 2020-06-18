@@ -65,7 +65,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def _setImageViewWidget(self) -> None:
         self.imageViewWidget.conf = self.preferencesWindow.conf
 
-        self.imageViewWidget.PROG_MIN = workers.ImageProcessing.PROG_MAX
         self.imageViewWidget.updateProgressBar.connect(
             self.processProg.setValue
         )
@@ -73,9 +72,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.imageViewWidget.finished.connect(self.processProg.setMaxValue)
         self.imageViewWidget.finished.connect(self.stopBtn.disable)
         self.imageViewWidget.finished.connect(self.startBtn.finished)
-        self.imageViewWidget.finished.connect(self.autoSelectBtn.enable)
         self.imageViewWidget.finished.connect(
-            self.menubar.enableAutoSelectAction
+            lambda: (self.autoSelectBtn.enable()
+                     if self.imageViewWidget.widgets
+                     else self.autoSelectBtn.disable())
+        )
+        self.imageViewWidget.finished.connect(
+            lambda: (self.menubar.enableAutoSelectAction()
+                     if self.imageViewWidget.widgets
+                     else self.menubar.disableAutoSelectAction())
         )
         self.imageViewWidget.finished.connect(
             lambda: errorMessage(self._errors)
@@ -107,7 +112,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _setImageProcessingGroupBox(self) -> None:
         self.processProg.setMinimum(workers.ImageProcessing.PROG_MIN)
-        self.processProg.setMaximum(self.imageViewWidget.PROG_MAX)
+        self.processProg.setMaximum(workers.ImageProcessing.PROG_MAX)
 
         self.startBtn.clicked.connect(self._errors.clear)
 
@@ -130,7 +135,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.startBtn.clicked.connect(self._startProcessing)
 
         self.stopBtn.clicked.connect(self.stopBtn.disable)
-        self.stopBtn.clicked.connect(self.imageViewWidget.interrupt)
 
     def _setSensitivityGroupBox(self) -> None:
         current_sensitivity = checkedRadioButton(self).sensitivity
@@ -198,7 +202,8 @@ class MainWindow(QtWidgets.QMainWindow):
         p.groups_found.connect(self.groupsLbl.updateNumber)
 
         p.update_progressbar.connect(self.processProg.setValue)
-        p.finished.connect(self.imageViewWidget.render)
+        p.image_group.connect(self.imageViewWidget.render,
+                              QtCore.Qt.BlockingQueuedConnection)
         p.error.connect(self._errors.append)
         p.interrupted.connect(self.startBtn.finished)
         p.interrupted.connect(self.stopBtn.disable)

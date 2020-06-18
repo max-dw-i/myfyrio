@@ -108,12 +108,6 @@ class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
         self.mock_IVW = mock.Mock(spec=imageviewwidget.ImageViewWidget)
         self.mw.imageViewWidget = self.mock_IVW
 
-    def test_ImageProcessing_PROG_MAX_assigned_to_attr_PROG_MIN(self):
-        self.mw._setImageViewWidget()
-
-        self.assertEqual(self.mock_IVW.PROG_MIN,
-                         workers.ImageProcessing.PROG_MAX)
-
     def test_preferences_conf_assigned_to_attr_conf(self):
         self.mw._setImageViewWidget()
 
@@ -148,18 +142,6 @@ class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
         self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.startBtn.finished)]
-        self.mock_IVW.finished.connect.assert_has_calls(calls)
-
-    def test_finished_signal_connected_to_autoSelectBtn_enable(self):
-        self.mw._setImageViewWidget()
-
-        calls = [mock.call(self.mw.autoSelectBtn.enable)]
-        self.mock_IVW.finished.connect.assert_has_calls(calls)
-
-    def test_finished_signal_connected_to_menubar_enableAutoSelectAction(self):
-        self.mw._setImageViewWidget()
-
-        calls = [mock.call(self.mw.menubar.enableAutoSelectAction)]
         self.mock_IVW.finished.connect.assert_has_calls(calls)
 
     def test_interrupted_signal_connected_to_3_slots(self):
@@ -297,11 +279,11 @@ class TestMainWindowMethodSetImageProcessingGroupBox(TestMainWindow):
         self.assertEqual(self.mw.processProg.minimum(),
                          workers.ImageProcessing.PROG_MIN)
 
-    def test_processProg_maximum_set_to_ImageViewWidget_PROG_MAX(self):
+    def test_processProg_maximum_set_to_ImageProcessing_PROG_MAX(self):
         self.mw._setImageProcessingGroupBox()
 
         self.assertEqual(self.mw.processProg.maximum(),
-                         self.mw.imageViewWidget.PROG_MAX)
+                         workers.ImageProcessing.PROG_MAX)
 
     def test_startBtn_clicked_signal_connected_to_13_slots(self):
         self.mw._setImageProcessingGroupBox()
@@ -388,23 +370,17 @@ class TestMainWindowMethodSetImageProcessingGroupBox(TestMainWindow):
         calls = [mock.call(self.mw._startProcessing)]
         self.mock_startBtn.clicked.connect.assert_has_calls(calls)
 
-    def test_stopBtn_clicked_signal_connected_to_2_slots(self):
+    def test_stopBtn_clicked_signal_connected_to_1_slots(self):
         self.mw._setImageProcessingGroupBox()
 
         self.assertEqual(
-            len(self.mock_stopBtn.clicked.connect.call_args_list), 2
+            len(self.mock_stopBtn.clicked.connect.call_args_list), 1
         )
 
     def test_stopBtn_clicked_signal_connected_to_stopBtn_disable(self):
         self.mw._setImageProcessingGroupBox()
 
         calls = [mock.call(self.mw.stopBtn.disable)]
-        self.mock_stopBtn.clicked.connect.assert_has_calls(calls)
-
-    def test_stopBtn_clicked_connected_to_imageViewWidget_interrupt(self):
-        self.mw._setImageProcessingGroupBox()
-
-        calls = [mock.call(self.mw.imageViewWidget.interrupt)]
         self.mock_stopBtn.clicked.connect.assert_has_calls(calls)
 
 
@@ -695,12 +671,12 @@ class TestMainWindowMethodStartProcessing(TestMainWindow):
             self.mw.processProg.setValue
         )
 
-    def test_finished_connected_to_imageViewWidget_render(self):
+    def test_image_group_connected_to_imageViewWidget_render(self):
         with mock.patch(self.PATCH_PROC, return_value=self.mock_proc):
             self.mw._startProcessing()
 
-        self.mock_proc.finished.connect.assert_called_once_with(
-            self.mw.imageViewWidget.render
+        self.mock_proc.image_group.connect.assert_called_once_with(
+            self.mw.imageViewWidget.render, QtCore.Qt.BlockingQueuedConnection
         )
 
     def test_error_connected_to_attr_errors_append_method(self):

@@ -41,7 +41,7 @@ if app is None:
 VIEW_MODULE = 'doppelganger.gui.imageviewwidget.'
 
 
-# pylint: disable=unused-argument,missing-class-docstring
+# pylint: disable=missing-class-docstring
 
 
 class TestImageViewWidget(TestCase):
@@ -54,17 +54,10 @@ class TestImageViewWidget(TestCase):
 
 class TestImageViewWidgetMethodInit(TestImageViewWidget):
 
-    def test_class_constants(self):
-        self.assertEqual(imageviewwidget.ImageViewWidget.PROG_MIN, 70)
-        self.assertEqual(imageviewwidget.ImageViewWidget.PROG_MAX, 100)
-
     def test_default_values(self):
         self.assertIsNone(self.w.conf)
-        self.assertListEqual(self.w._widgets, [])
-        self.assertFalse(self.w._interrupted)
+        self.assertListEqual(self.w.widgets, [])
         self.assertListEqual(self.w._errors, [])
-        self.assertEqual(self.w._progressBarValue,
-                         imageviewwidget.ImageViewWidget.PROG_MIN)
 
     def test_layout(self):
         margins = self.w._layout.contentsMargins()
@@ -80,55 +73,67 @@ class TestImageViewWidgetMethodInit(TestImageViewWidget):
 
 class TestImageViewWidgetMethodRender(TestImageViewWidget):
 
-    def test_render_called_if_image_groups_found(self):
-        image_groups = [[mock.Mock(spec=core.Image)]]
-        with mock.patch(self.IVW+'_render') as mock_render_call:
-            self.w.render(image_groups)
+    def setUp(self):
+        super().setUp()
 
-        mock_render_call.assert_called_once_with(image_groups)
+        self.w.widgets = ['image_group']
+
+        self.image_group = (0, ['image'])
+        self.empty_image_group = (0, [])
+
+    def test_render_called_if_image_groups_found(self):
+        with mock.patch(self.IVW+'_render') as mock_render_call:
+            self.w.render(self.image_group)
+
+        mock_render_call.assert_called_once_with(self.image_group)
 
     def test_logging_if_render_raise_Exception(self):
-        image_groups = [[mock.Mock(spec=core.Image)]]
         with mock.patch(self.IVW+'_render', side_effect=Exception):
             with self.assertLogs('main.imageviewwidget', 'ERROR'):
-                self.w.render(image_groups)
+                self.w.render(self.image_group)
 
     def test_emit_error_signal_with_err_msg_if_render_raise_Exception(self):
-        image_groups = [[mock.Mock(spec=core.Image)]]
         spy = QtTest.QSignalSpy(self.w.error)
         with mock.patch(self.IVW+'_render', side_effect=Exception('Error')):
-            self.w.render(image_groups)
+            self.w.render(self.image_group)
 
         self.assertEqual(len(spy), 1)
         self.assertEqual(spy[0][0], 'Error')
 
     def test_emit_interrupted_signal_if_render_raise_Exception(self):
-        image_groups = [[mock.Mock(spec=core.Image)]]
         spy = QtTest.QSignalSpy(self.w.interrupted)
         with mock.patch(self.IVW+'_render', side_effect=Exception):
-            self.w.render(image_groups)
+            self.w.render(self.image_group)
 
         self.assertEqual(len(spy), 1)
 
-    @mock.patch('PyQt5.QtWidgets.QMessageBox')
-    def test_render_not_called_if_image_groups_not_found(self, mock_box):
+    def test_render_not_called_if_empty_image_groups(self):
         with mock.patch(self.IVW+'_render') as mock_render_call:
-            self.w.render([])
+            self.w.render(self.empty_image_group)
 
         mock_render_call.assert_not_called()
 
-    @mock.patch('PyQt5.QtWidgets.QMessageBox')
-    def test_finished_signal_emitted_if_image_group_not_found(self, mock_box):
+    def test_finished_signal_emitted_ifempty__image_group(self):
         spy = QtTest.QSignalSpy(self.w.finished)
-        self.w.render([])
+        self.w.render(self.empty_image_group)
 
         self.assertEqual(len(spy), 1)
 
     @mock.patch('PyQt5.QtWidgets.QMessageBox')
-    def test_QMessageBox_called(self, mock_box):
-        self.w.render([])
+    def test_QMessageBox_not_called_if_empty_image_group__no_widgets(self,
+                                                                     mock_box):
+        self.w.widgets = []
+        self.w.render(self.empty_image_group)
 
         mock_box.assert_called_once()
+
+    @mock.patch('PyQt5.QtWidgets.QMessageBox')
+    def test_QMessageBox_called_if_empty_image_group__widgets_found(self,
+                                                                    mock_box):
+
+        self.w.render(self.empty_image_group)
+
+        mock_box.assert_not_called()
 
 
 class TestImageViewWidgetMethodPrivateRender(TestImageViewWidget):
@@ -144,111 +149,74 @@ class TestImageViewWidgetMethodPrivateRender(TestImageViewWidget):
         self.w._layout = mock.Mock(spec=QtWidgets.QVBoxLayout)
 
         mock_image = mock.Mock(spec=core.Image)
-        self.image_groups = [[mock_image]]
+        self.image_group = (0, [mock_image])
         self.mock_groupW = mock.Mock(spec=imagegroupwidget.ImageGroupWidget)
         self.mock_groupW.widgets = []
 
     def test_raise_ValueError_if_attr_conf_is_None(self):
         self.w.conf = None
         with self.assertRaises(ValueError):
-            self.w._render(self.image_groups)
+            self.w._render(self.image_group)
 
-    def test_nothing_called_if_attr_interrupted_True(self):
-        self.w._interrupted = True
-        spy = QtTest.QSignalSpy(self.w.finished)
-
-        self.w._render(self.image_groups)
-
-        self.assertEqual(len(spy), 0)
-
-    def test_interrupted_signal_emitted_if_attr_interrupted_True(self):
-        self.w._interrupted = True
-        spy = QtTest.QSignalSpy(self.w.interrupted)
-
-        self.w._render(self.image_groups)
-
-        self.assertEqual(len(spy), 1)
-
-    def test_ImageGroupWidget_called_with_image_group_and_conf_args(self):
+    def test_call_ImageGroupWidget_with_image_group_and_conf_args_if_new(self):
         with mock.patch(self.IGW, return_value=self.mock_groupW) as mock_widg:
-            self.w._render(self.image_groups)
+            self.w._render(self.image_group)
 
-        mock_widg.assert_called_once_with(self.image_groups[0], self.mock_conf)
+        mock_widg.assert_called_once_with(self.image_group[1], self.mock_conf)
 
-    def test_ImageGroupWidget_error_signal_connect_to_attr_errors_append(self):
+    def test_ImageGroupWidget_error_connect_to_attr_errors_append_if_new(self):
         with mock.patch(self.IGW, return_value=self.mock_groupW):
-            self.w._render(self.image_groups)
+            self.w._render(self.image_group)
 
         self.mock_groupW.error.connect(self.w._errors.append)
 
-    def test_duplicate_widgets_connected_to_hasSelected(self):
+    def test_duplicate_widgets_connected_to_hasSelected_if_new_group(self):
         mock_duplW = mock.Mock(spec=duplicatewidget.DuplicateWidget)
         self.mock_groupW.widgets = [mock_duplW]
         with mock.patch(self.IGW, return_value=self.mock_groupW):
-            self.w._render(self.image_groups)
+            self.w._render(self.image_group)
 
         mock_duplW.clicked.connect.assert_called_once_with(self.w._hasSelected)
 
-    def test_ImageGroupWidget_added_to_layout(self):
+    def test_ImageGroupWidget_added_to_layout_if_new_group(self):
         with mock.patch(self.IGW, return_value=self.mock_groupW):
-            self.w._render(self.image_groups)
+            self.w._render(self.image_group)
 
         self.w._layout.addWidget.assert_called_once_with(self.mock_groupW)
 
-    def test_ImageGroupWidget_added_to_attr_widgets(self):
+    def test_ImageGroupWidget_added_to_attr_widgets_if_new_group(self):
         with mock.patch(self.IGW, return_value=self.mock_groupW):
-            self.w._render(self.image_groups)
+            self.w._render(self.image_group)
 
-        self.assertListEqual(self.w._widgets, [self.mock_groupW])
+        self.assertListEqual(self.w.widgets, [self.mock_groupW])
 
-    def test_updateGeometry_called(self):
+    def test_updateGeometry_called_if_new_group(self):
         updateGem = 'PyQt5.QtWidgets.QWidget.updateGeometry'
         with mock.patch(self.IGW, return_value=self.mock_groupW):
             with mock.patch(updateGem) as mock_upd_call:
-                self.w._render(self.image_groups)
+                self.w._render(self.image_group)
 
         mock_upd_call.assert_called_once_with()
 
-    def test_updateProgressBar_called_with_proper_args(self):
-        self.w._progressBarValue = 11
+    def test_new_DuplicateWidget_added_to_existing_group(self):
+        mock_groupW = mock.Mock(spec=imagegroupwidget.ImageGroupWidget)
+        self.w.widgets = [mock_groupW]
         with mock.patch(self.IGW, return_value=self.mock_groupW):
-            with mock.patch(self.IVW+'_updateProgressBar') as mock_upd_call:
-                self.w._render(self.image_groups)
+            self.w._render((0, ['image1', 'image2']))
 
-        mock_upd_call.assert_called_once_with(11+30)
+        mock_groupW.addDuplicateWidget.assert_called_once_with('image2')
 
-    def test_processEvents_called(self):
-        proc_events = 'PyQt5.QtCore.QCoreApplication.processEvents'
+    def test_new_DuplicateWidget_connected_to_method_hasSelected(self):
+        mock_groupW = mock.Mock(spec=imagegroupwidget.ImageGroupWidget)
+        self.w.widgets = [mock_groupW]
+
+        mock_duplW = mock.Mock(spec=duplicatewidget.DuplicateWidget)
+        mock_groupW.addDuplicateWidget.return_value = mock_duplW
+
         with mock.patch(self.IGW, return_value=self.mock_groupW):
-            with mock.patch(proc_events) as mock_proc_call:
-                self.w._render(self.image_groups)
+            self.w._render((0, ['image1', 'image2']))
 
-        mock_proc_call.assert_called_once_with()
-
-    def test_finished_signal_emitted(self):
-        spy = QtTest.QSignalSpy(self.w.finished)
-        with mock.patch(self.IGW, return_value=self.mock_groupW):
-            self.w._render(self.image_groups)
-
-        self.assertEqual(len(spy), 1)
-
-
-class TestImageViewWidgetMethodUpdateProgressBar(TestImageViewWidget):
-
-    def test_emit_updateProgressBar_signal_if_whole_part_changed(self):
-        self.w._progressBarValue = 10.5
-        spy = QtTest.QSignalSpy(self.w.updateProgressBar)
-        self.w._updateProgressBar(11.2)
-
-        self.assertEqual(len(spy), 1)
-        self.assertEqual(spy[0][0], 11)
-
-    def test_not_emit_updateProgressBar_if_whole_part_not_changed(self):
-        self.w._progressBarValue = 10.5
-        spy = QtTest.QSignalSpy(self.w.updateProgressBar)
-        self.w._updateProgressBar(10.7)
-
-        self.assertEqual(len(spy), 0)
+        mock_duplW.clicked.connect.assert_called_once_with(self.w._hasSelected)
 
 
 class TestImageViewWidgetMethodHasSelected(TestImageViewWidget):
@@ -257,7 +225,7 @@ class TestImageViewWidgetMethodHasSelected(TestImageViewWidget):
         super().setUp()
 
         self.mock_groupW = mock.Mock(spec=imagegroupwidget.ImageGroupWidget)
-        self.w._widgets = [self.mock_groupW]
+        self.w.widgets = [self.mock_groupW]
 
     def test_selected_signal_with_True_emitted_if_there_are_selected(self):
         self.mock_groupW.hasSelected.return_value = True
@@ -282,7 +250,7 @@ class TestImageViewWidgetMethodClear(TestImageViewWidget):
         super().setUp()
 
         self.mock_groupW = mock.Mock()
-        self.w._widgets = [self.mock_groupW]
+        self.w.widgets = [self.mock_groupW]
 
     def test_threadpool_clear_called(self):
         threadpool = mock.Mock(spec=QtCore.QThreadPool)
@@ -308,17 +276,7 @@ class TestImageViewWidgetMethodClear(TestImageViewWidget):
     def test_clear_widgets_attr(self):
         self.w.clear()
 
-        self.assertListEqual(self.w._widgets, [])
-
-    def test_assign_False_to_attr_interrupted(self):
-        self.w.clear()
-
-        self.assertFalse(self.w._interrupted)
-
-    def test_attr_progressBarValue_set_to_attr_PROG_MIN(self):
-        self.w.clear()
-
-        self.assertEqual(self.w._progressBarValue, self.w.PROG_MIN)
+        self.assertListEqual(self.w.widgets, [])
 
 
 class TestImageViewWidgetMethodCallOnSelected(TestImageViewWidget):
@@ -327,7 +285,7 @@ class TestImageViewWidgetMethodCallOnSelected(TestImageViewWidget):
         super().setUp()
 
         self.mock_groupW = mock.Mock(spec=imagegroupwidget.ImageGroupWidget)
-        self.w._widgets = [self.mock_groupW]
+        self.w.widgets = [self.mock_groupW]
 
         self.mock_func = mock.Mock()
         self.args = 'arg'
@@ -414,7 +372,7 @@ class TestImageViewWidgetMethodAutoSelect(TestImageViewWidget):
         super().setUp()
 
         self.mock_groupW = mock.Mock(spec=imagegroupwidget.ImageGroupWidget)
-        self.w._widgets = [self.mock_groupW]
+        self.w.widgets = [self.mock_groupW]
 
     def test_ImageGroupWidget_autoSelect_called(self):
         self.w.autoSelect()
@@ -428,7 +386,7 @@ class TestImageViewWidgetMethodUnselect(TestImageViewWidget):
         super().setUp()
 
         self.mock_groupW = mock.Mock(spec=imagegroupwidget.ImageGroupWidget)
-        self.w._widgets = [self.mock_groupW]
+        self.w.widgets = [self.mock_groupW]
 
     def test_ImageGroupWidget_unselect_called(self):
         self.w.unselect()
