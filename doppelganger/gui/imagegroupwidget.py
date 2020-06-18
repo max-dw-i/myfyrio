@@ -49,34 +49,51 @@ class ImageGroupWidget(QtWidgets.QWidget):
         self._conf = conf
         self.widgets: List[DuplicateWidget] = []
 
-        self._visible_num = len(image_group)
+        self._visible_num = 0
 
         self._layout = QtWidgets.QHBoxLayout(self)
         self._layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
         self._layout.setSpacing(10)
 
-        self._setDuplicateWidgets(image_group)
+        for image in image_group:
+            self.addDuplicateWidget(image)
 
         self.setLayout(self._layout)
 
-    def _setDuplicateWidgets(self, image_group: List[core.Image]) -> None:
-        lazy = self._conf['lazy']
+    def addDuplicateWidget(self, image: core.Image) -> DuplicateWidget:
+        dupl_w = DuplicateWidget(image, self._conf)
+        # If not 'lazy' mode, wait till the thumbnail is made
+        # before rendering widgets
+        while not self._conf['lazy'] and dupl_w.thumbnailWidget.empty:
+            QtCore.QCoreApplication.processEvents()
 
-        core.Sort(image_group).sort(self._conf['sort'])
+        dupl_w.error.connect(self.error)
+        dupl_w.hidden.connect(self._duplicateWidgetHidden)
 
-        for image in image_group:
-            dupl_w = DuplicateWidget(image, self._conf)
-            # If not 'lazy' mode, wait till the thumbnail is made
-            # before rendering widgets
-            while not lazy and dupl_w.thumbnailWidget.empty:
-                QtCore.QCoreApplication.processEvents()
+        self._visible_num += 1
 
-            dupl_w.error.connect(self.error)
-            dupl_w.hidden.connect(self._duplicateWidgetHidden)
+        i = self._insertIndex(dupl_w)
+        self.widgets.insert(i, dupl_w)
+        self._layout.insertWidget(i, dupl_w)
+        self.updateGeometry()
 
-            self.widgets.append(dupl_w)
-            self._layout.addWidget(dupl_w)
-            self.updateGeometry()
+        return dupl_w
+
+    def _insertIndex(self, new_w: DuplicateWidget) -> int:
+        key = core.Sort(self._conf['sort']).key()
+
+        left, right = 0, len(self.widgets) - 1
+        new_w_key = key(new_w._image)
+
+        while left <= right:
+            middle = (right + left) // 2
+
+            if new_w_key < key(self.widgets[middle]._image):
+                right = middle - 1
+            else:
+                left = middle + 1
+
+        return left
 
     def hasSelected(self) -> bool:
         '''Check if there are any selected "DuplicateWidget"s in the widget

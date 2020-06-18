@@ -44,7 +44,7 @@ class TestImageGroupWidget(TestCase):
         self.conf = {}
         self.mock_image = mock.Mock(spec=core.Image)
         self.image_group = [self.mock_image]
-        with mock.patch(self.IGW+'_setDuplicateWidgets'):
+        with mock.patch(self.IGW+'addDuplicateWidget'):
             self.w = imagegroupwidget.ImageGroupWidget(self.image_group,
                                                        self.conf)
 
@@ -54,6 +54,7 @@ class TestImageGroupWidgetMethodInit(TestImageGroupWidget):
     def test_initial_value(self):
         self.assertDictEqual(self.w._conf, self.conf)
         self.assertListEqual(self.w.widgets, [])
+        self.assertEqual(self.w._visible_num, 0)
 
     def test_widget_layout(self):
         self.assertEqual(self.w._layout.spacing(), 10)
@@ -61,14 +62,14 @@ class TestImageGroupWidgetMethodInit(TestImageGroupWidget):
         self.assertEqual(self.w._layout.alignment(),
                          QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
 
-    def test_setDuplicateWidgets_called_with_image_group_arg(self):
-        with mock.patch(self.IGW+'_setDuplicateWidgets') as mock_dupl_call:
+    def test_addDuplicateWidget_called_with_image_group_arg(self):
+        with mock.patch(self.IGW+'addDuplicateWidget') as mock_dupl_call:
             imagegroupwidget.ImageGroupWidget(self.image_group, self.conf)
 
-        mock_dupl_call.assert_called_once_with(self.image_group)
+        mock_dupl_call.assert_called_once_with(self.mock_image)
 
 
-class TestImageGroupWidgetMethodSetDuplicateWidgets(TestImageGroupWidget):
+class TestImageGroupWidgetMethodAddDuplicateWidget(TestImageGroupWidget):
 
     DW = IGW_MODULE+'DuplicateWidget'
 
@@ -77,35 +78,24 @@ class TestImageGroupWidgetMethodSetDuplicateWidgets(TestImageGroupWidget):
 
         self.conf['lazy'] = True
 
-        self.conf['sort'] = 0
-        self.mock_image.difference = 0
-
         self.w._layout = mock.Mock(spec=QtWidgets.QHBoxLayout)
 
         self.mock_duplW = mock.Mock(spec=duplicatewidget.DuplicateWidget)
 
-    def test_sort_called_on_image_group(self):
-        mock_Sort = mock.Mock(spec=core.Sort)
-        with mock.patch('doppelganger.core.Sort',
-                        return_value=mock_Sort) as mock_Sort_call:
-            with mock.patch(self.DW, return_value=self.mock_duplW):
-                self.w._setDuplicateWidgets(self.image_group)
-
-        mock_Sort_call.assert_called_once_with(self.image_group)
-        mock_Sort.sort.assert_called_once_with(self.conf['sort'])
-
     def test_DuplicateWidget_called_with_image_and_conf_args(self):
         with mock.patch(self.DW,
-                        return_value=self.mock_duplW) as mock_widg_call:
-            self.w._setDuplicateWidgets(self.image_group)
+                        return_value=self.mock_duplW) as mock_duplW_call:
+            with mock.patch(self.IGW+'_insertIndex', return_value=0):
+                self.w.addDuplicateWidget(self.mock_image)
 
-        mock_widg_call.assert_called_once_with(self.mock_image, self.conf)
+        mock_duplW_call.assert_called_once_with(self.mock_image, self.conf)
 
     def test_processEvents_not_called_if_lazy_mode(self):
         PATCH_EVENTS = 'PyQt5.QtCore.QCoreApplication.processEvents'
         with mock.patch(self.DW, return_value=self.mock_duplW):
-            with mock.patch(PATCH_EVENTS) as mock_evets_call:
-                self.w._setDuplicateWidgets(self.image_group)
+            with mock.patch(self.IGW+'_insertIndex', return_value=0):
+                with mock.patch(PATCH_EVENTS) as mock_evets_call:
+                    self.w.addDuplicateWidget(self.mock_image)
 
         mock_evets_call.assert_not_called()
 
@@ -117,8 +107,9 @@ class TestImageGroupWidgetMethodSetDuplicateWidgets(TestImageGroupWidget):
         )
         self.mock_duplW.thumbnailWidget.empty = False
         with mock.patch(self.DW, return_value=self.mock_duplW):
-            with mock.patch(PATCH_EVENTS) as mock_evets_call:
-                self.w._setDuplicateWidgets(self.image_group)
+            with mock.patch(self.IGW+'_insertIndex', return_value=0):
+                with mock.patch(PATCH_EVENTS) as mock_evets_call:
+                    self.w.addDuplicateWidget(self.mock_image)
 
         mock_evets_call.assert_not_called()
 
@@ -132,20 +123,23 @@ class TestImageGroupWidgetMethodSetDuplicateWidgets(TestImageGroupWidget):
             side_effect=[True, False]
         )
         with mock.patch(self.DW, return_value=self.mock_duplW):
-            with mock.patch(PATCH_EVENTS) as mock_evets_call:
-                self.w._setDuplicateWidgets(self.image_group)
+            with mock.patch(self.IGW+'_insertIndex', return_value=0):
+                with mock.patch(PATCH_EVENTS) as mock_evets_call:
+                    self.w.addDuplicateWidget(self.mock_image)
 
         mock_evets_call.assert_called_once_with()
 
     def test_duplW_error_signal_connected_if_duplW_is_not_selected(self):
         with mock.patch(self.DW, return_value=self.mock_duplW):
-            self.w._setDuplicateWidgets(self.image_group)
+            with mock.patch(self.IGW+'_insertIndex', return_value=0):
+                self.w.addDuplicateWidget(self.mock_image)
 
         self.mock_duplW.error.connect.assert_called_once()
 
     def test_duplW_hidden_signal_connected_if_duplW_is_not_selected(self):
         with mock.patch(self.DW, return_value=self.mock_duplW):
-            self.w._setDuplicateWidgets(self.image_group)
+            with mock.patch(self.IGW+'_insertIndex', return_value=0):
+                self.w.addDuplicateWidget(self.mock_image)
 
         self.mock_duplW.hidden.connect.assert_called_once_with(
             self.w._duplicateWidgetHidden
@@ -153,23 +147,90 @@ class TestImageGroupWidgetMethodSetDuplicateWidgets(TestImageGroupWidget):
 
     def test_DuplicateWidget_added_to_attr_widgets(self):
         with mock.patch(self.DW, return_value=self.mock_duplW):
-            self.w._setDuplicateWidgets(self.image_group)
+            with mock.patch(self.IGW+'_insertIndex', return_value=0):
+                self.w.addDuplicateWidget(self.mock_image)
 
         self.assertListEqual(self.w.widgets, [self.mock_duplW])
 
-    def test_DuplicateWidget_added_to_layout(self):
+    def test_insertIndex_called_with_new_DuplicateWidget(self):
         with mock.patch(self.DW, return_value=self.mock_duplW):
-            self.w._setDuplicateWidgets(self.image_group)
+            with mock.patch(self.IGW+'_insertIndex',
+                            return_value=0) as mock_insert_call:
+                self.w.addDuplicateWidget(self.mock_image)
 
-        self.w._layout.addWidget.assert_called_once_with(self.mock_duplW)
+        mock_insert_call.assert_called_once_with(self.mock_duplW)
+
+    def test_DuplicateWidget_inserted_to_layout(self):
+        with mock.patch(self.DW, return_value=self.mock_duplW):
+            with mock.patch(self.IGW+'_insertIndex', return_value=0):
+                self.w.addDuplicateWidget(self.mock_image)
+
+        self.w._layout.insertWidget.assert_called_once_with(0, self.mock_duplW)
 
     def test_updateGeometry_called(self):
         updateGem = 'PyQt5.QtWidgets.QWidget.updateGeometry'
         with mock.patch(self.DW, return_value=self.mock_duplW):
-            with mock.patch(updateGem) as mock_upd_call:
-                self.w._setDuplicateWidgets(self.image_group)
+            with mock.patch(self.IGW+'_insertIndex', return_value=0):
+                with mock.patch(updateGem) as mock_upd_call:
+                    self.w.addDuplicateWidget(self.mock_image)
 
         mock_upd_call.assert_called_once_with()
+
+    def test_added_DuplicateWidget_returned(self):
+        with mock.patch(self.DW, return_value=self.mock_duplW):
+            with mock.patch(self.IGW+'_insertIndex', return_value=0):
+                res = self.w.addDuplicateWidget(self.mock_image)
+
+        self.assertEqual(res, self.mock_duplW)
+
+
+class TestImageGroupWidgetMethodInsertIndex(TestImageGroupWidget):
+
+    def setUp(self):
+        super().setUp()
+
+        self.conf['sort'] = 0
+        self.mock_Sort = mock.Mock(spec=core.Sort)
+        self.mock_Sort.key.return_value = lambda x: x
+
+        self.mock_new_duplW = mock.Mock()
+        self.mock_new_duplW._image = 888
+
+        self.mock_duplW1 = mock.Mock()
+        self.mock_duplW1._image = 1
+        self.mock_duplW2 = mock.Mock()
+        self.mock_duplW2._image = 2
+
+        self.w.widgets = [self.mock_duplW1, self.mock_duplW2]
+
+    def test_Sort_key_called_with_proper_sort_type_from_conf(self):
+        with mock.patch('doppelganger.core.Sort',
+                        return_value=self.mock_Sort) as mock_Sort_call:
+            self.w._insertIndex(self.mock_new_duplW)
+
+        mock_Sort_call.assert_called_once_with(0)
+        self.mock_Sort.key.assert_called_once_with()
+
+    def test_new_widget_inserted_in_beginning(self):
+        self.mock_new_duplW._image = 0
+        with mock.patch('doppelganger.core.Sort', return_value=self.mock_Sort):
+            res = self.w._insertIndex(self.mock_new_duplW)
+
+        self.assertEqual(res, 0)
+
+    def test_new_widget_inserted_in_middle(self):
+        self.mock_new_duplW._image = 1.5
+        with mock.patch('doppelganger.core.Sort', return_value=self.mock_Sort):
+            res = self.w._insertIndex(self.mock_new_duplW)
+
+        self.assertEqual(res, 1)
+
+    def test_new_widget_inserted_in_end(self):
+        self.mock_new_duplW._image = 3
+        with mock.patch('doppelganger.core.Sort', return_value=self.mock_Sort):
+            res = self.w._insertIndex(self.mock_new_duplW)
+
+        self.assertEqual(res, 2)
 
 
 class TestImageGroupWidgetMethodHasSelected(TestImageGroupWidget):

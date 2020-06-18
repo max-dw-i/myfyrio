@@ -51,8 +51,8 @@ from __future__ import annotations
 import os
 from enum import Enum
 from pathlib import Path
-from typing import (Collection, Dict, Generator, Iterable, List, Optional,
-                    Tuple, Union)
+from typing import (Callable, Collection, Dict, Generator, Iterable, List,
+                    Optional, Tuple, TypeVar, Union)
 
 import pybktree
 from PyQt5 import QtCore, QtGui
@@ -168,52 +168,49 @@ def _add_new_group(img1: Image, img2: Image, checked: Dict[Image, int],
 
 
 class Sort:
-    '''Custom sort for duplicate images (already grouped if the sort
-    by similarity will be used)
+    '''Custom sort for images (already grouped if the sort by similarity
+    will be used)
 
-    :param images: duplicate images to sort
+    :param sort_type:   0 - sort by similarity rate
+                            in descending order (default),
+                        1 - sort by size of an image file
+                            in descending order,
+                        2 - sort by width and height of an image
+                            in descending order,
+                        3 - sort by path of an image file
+                            in ascending order
     '''
 
-    def __init__(self, images: Group) -> None:
-        self.images = images
+    def __init__(self, sort_type: int = 0) -> None:
+        self._sort_type = sort_type
+        if sort_type not in (0, 1, 2, 3):
+            raise ValueError('Such sort type does not exist')
 
-    def sort(self, sort_type: int = 0) -> None:
-        '''Sort duplicate image group
+    def sort(self, images: List[Image]) -> None:
+        '''Sort image using the chosen sort type (in place)
 
-        :param sort_type: 0 - sort by similarity rate
-                              in descending order (default),
-                          1 - sort by size of an image file
-                              in descending order,
-                          2 - sort by width and height of an image
-                              in descending order,
-                          3 - sort by path of an image file
-                              in ascending order
+        :param images: images to sort
         '''
 
-        sort_funcs = {
-            0: self._similarity_sort,
-            1: self._filesize_sort,
-            2: self._dimensions_sort,
-            3: self._path_sort
-        }
+        images.sort(key=self.key())
 
-        sort_funcs[sort_type]()
+    def key(self) -> KeyFunc:
+        '''Return the key function (function that used to get keys for
+        comparing the elements we want to sort) for the chosen sort type
+        '''
 
-    def _similarity_sort(self) -> None:
-        self.images.sort(key=lambda x: x.difference)
+        if self._sort_type == 0:
+            key_func = lambda image: image.difference
+        if self._sort_type == 1:
+            # "-" cause we want descending order
+            key_func = lambda image: -image.size
+        if self._sort_type == 2:
+            # "-" cause we want descending order
+            key_func = lambda image: -image.width * image.height
+        if self._sort_type == 3:
+            key_func = lambda image: image.path
 
-    def _filesize_sort(self) -> None:
-        self.images.sort(key=Image.filesize, reverse=True)
-
-    def _dimensions_sort(self) -> None:
-        self.images.sort(key=self._dimensions_product, reverse=True)
-
-    def _path_sort(self) -> None:
-        self.images.sort(key=lambda img: img.path)
-
-    @staticmethod
-    def _dimensions_product(image: Image) -> int:
-        return image.width * image.height
+        return key_func
 
 
 class SizeFormat(Enum):
@@ -252,7 +249,7 @@ class Image:
         self.dhash: Hash = None
         # Difference between the hash of the image
         # and the hash of the 1st image in the group
-        self.difference = 0
+        self.difference: Distance = 0
         self.thumb: QtGui.QImage = None
         self.size: FileSize = None
         self._width: Width = None
@@ -521,4 +518,7 @@ Height = int # Height of a image
 FileSize = Union[int, float] # Size of a file
 Group = List[Image] # Group of similar images
 GroupIndex = int # Index of a group
+KeyFunc = TypeVar('KeyFunc', Callable[[Image], Distance],
+                  Callable[[Image], FileSize], Callable[[Image], int],
+                  Callable[[Image], ImagePath])
 ###################################################################

@@ -742,49 +742,68 @@ class TestMethodDelParentDir(TestClassImage):
 
 
 class TestSort(TestCase):
+    pass
 
-    def setUp(self):
-        self.img1 = core.Image('test3')
-        self.img1.difference = 5
-        self.img1.size = 3
-        self.img1._width = 4
-        self.img1._height = 6
-        self.img2 = core.Image('test1')
-        self.img2.difference = 0
-        self.img2.size = 1
-        self.img2._width = 1
-        self.img2._height = 1
-        self.img3 = core.Image('test2')
-        self.img3.difference = 3
-        self.img3.size = 2
-        self.img3._width = 5
-        self.img3._height = 3
-        self.img_group = [self.img1, self.img2, self.img3]
 
-    def test_similarity_sort(self):
-        s = core.Sort(self.img_group)
-        s.sort(0)
+class TestSortMethodInit(TestSort):
 
-        self.assertListEqual(self.img_group,
-                             [self.img2, self.img3, self.img1])
+    def test_default_sort_type(self):
+        s = core.Sort()
 
-    def test_size_sort(self):
-        s = core.Sort(self.img_group)
-        s.sort(1)
+        self.assertEqual(s._sort_type, 0)
 
-        self.assertListEqual(self.img_group,
-                             [self.img1, self.img3, self.img2])
+    def test_passed_sort_type_assigned_to_attr_sort_type(self):
+        s = core.Sort(2)
 
-    def test_dimensions_sort(self):
-        s = core.Sort(self.img_group)
-        s.sort(2)
+        self.assertEqual(s._sort_type, 2)
 
-        self.assertListEqual(self.img_group,
-                             [self.img1, self.img3, self.img2])
+    def test_raise_ValueError_if_pass_not_implemented_sort_type(self):
+        with self.assertRaises(ValueError):
+            core.Sort(10)
 
-    def test_path_sort(self):
-        s = core.Sort(self.img_group)
-        s.sort(3)
 
-        self.assertListEqual(self.img_group,
-                             [self.img2, self.img3, self.img1])
+class TestSortMethodSort(TestSort):
+
+    def test_sort_called_with_Sort_key_func_return_as_arg(self):
+        mock_images = mock.Mock(spec=list)
+        s = core.Sort(2)
+        with mock.patch(CORE+'Sort.key', return_value='key_func'):
+            s.sort(mock_images)
+
+        mock_images.sort.assert_called_once_with(key='key_func')
+
+
+class TestSortMethodKey(TestSort):
+
+    def test_lambda_returning_Image_difference_returned_if_sort_type_0(self):
+        s = core.Sort(0)
+        mock_image = mock.Mock(spec=core.Image)
+        mock_image.difference = 32
+        res = s.key()
+
+        self.assertEqual(res(mock_image), 32)
+
+    def test_lambda_returning_neg_Image_size_returned_if_sort_type_1(self):
+        s = core.Sort(1)
+        mock_image = mock.Mock(spec=core.Image)
+        mock_image.size = 23
+        res = s.key()
+
+        self.assertEqual(res(mock_image), -23)
+
+    def test_lambda_returning_neg_Image_w_h_prod_returned_if_sort_type_2(self):
+        s = core.Sort(2)
+        mock_image = mock.Mock(spec=core.Image)
+        mock_image.width = 10
+        mock_image.height = 13
+        res = s.key()
+
+        self.assertEqual(res(mock_image), -130)
+
+    def test_lambda_returning_Image_path_returned_if_sort_type_3(self):
+        s = core.Sort(3)
+        mock_image = mock.Mock(spec=core.Image)
+        mock_image.path = 'path'
+        res = s.key()
+
+        self.assertEqual(res(mock_image), 'path')
