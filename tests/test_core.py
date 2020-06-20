@@ -106,10 +106,10 @@ class TestFuncImageGrouping(TestCase):
         self.mock_image2.dhash = 1
         self.images = [self.mock_image1, self.mock_image2]
 
-    def test_return_tuple_with_index_0_and_empty_list_if_no_image_groups(self):
+    def test_return_nothing_if_no_image_groups(self):
         res = list(core.image_grouping([], 0))
 
-        self.assertTupleEqual(res[-1], (0, []))
+        self.assertListEqual(res, [])
 
     def test_BKTree_called_with_hamming_dist_and_images_args(self):
         with mock.patch('pybktree.BKTree') as mock_tree_call:
@@ -152,9 +152,7 @@ class TestFuncImageGrouping(TestCase):
         mock_add_call.assert_called_once_with(
             self.mock_image1, self.mock_image2, checked, [], 1
         )
-        # '_add_new_group' modifies the 'image_groups' list but we mock it
-        # so '(0, [])' is yield also which we don't want to test
-        self.assertListEqual(res[:-1], ['new_group'])
+        self.assertListEqual(res, ['new_group'])
 
     def test_res_if_image_in_checked_and_closest_not_in_checked(self):
         checked = {self.mock_image1: 0}
@@ -168,9 +166,7 @@ class TestFuncImageGrouping(TestCase):
         mock_add_call.assert_called_once_with(
             self.mock_image1, self.mock_image2, checked, []
         )
-        # '_add_new_group' modifies the 'image_groups' list but we mock it
-        # so '(0, [])' is yield also which we don't want to test
-        self.assertListEqual(res[:-1], ['exist_group'])
+        self.assertListEqual(res, ['exist_group'])
 
     def test_return_if_image_not_in_checked_and_closest_in_checked(self):
         checked = {self.mock_image2: 0}
@@ -184,9 +180,7 @@ class TestFuncImageGrouping(TestCase):
         mock_add_call.assert_called_once_with(
             self.mock_image2, self.mock_image1, checked, []
         )
-        # '_add_new_group' modifies the 'image_groups' list but we mock it
-        # so '(0, [])' is yield also which we don't want to test
-        self.assertListEqual(res[:-1], ['exist_group'])
+        self.assertListEqual(res, ['exist_group'])
 
 
 class TestFuncClosest(TestCase):

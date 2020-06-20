@@ -87,9 +87,7 @@ def image_grouping(images: Collection[Image], sensitivity: Sensitivity) \
     -> Generator[Tuple[GroupIndex, Group], None, None]:
     '''Find similar images and group them. Yield a tuple with the group
     index and image group when a new group has been added or existing one
-    has been modified (a new image has been added to the group). If no image
-    group has been found, return a tuple with the 0 index and empty
-    list ("(0, [])").
+    has been modified (a new image has been added to the group)
 
     :param images:      images to process,
     :param sensitivity: maximal difference between hashes of 2 images
@@ -125,9 +123,6 @@ def image_grouping(images: Collection[Image], sensitivity: Sensitivity) \
         if image not in checked and closest not in checked:
             yield _add_new_group(image, closest, checked, image_groups,
                                  distance)
-
-    if not image_groups:
-        yield (0, [])
 
 def _closest(bktree: pybktree.BKTree, image: Image, sensitivity: Sensitivity) \
     -> Tuple[Optional[Distance], Optional[Image]]:
