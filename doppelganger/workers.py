@@ -229,7 +229,7 @@ class ImageProcessing(QtCore.QObject):
             dhash = img.dhash
             path = img.path
             if dhash == -1:
-                err_msg = f'Hash of "{path}" cannot be calculated'
+                err_msg = f'Hash of the "{path}" image cannot be calculated'
                 logger.error(err_msg)
                 self.error.emit(err_msg)
             else:
@@ -319,7 +319,7 @@ class ThumbnailProcessing(QtCore.QObject):
                 self._image.thumbnail(self._size)
             except OSError:
                 path = self._image.path
-                err_msg = f'The thumbnail of "{path}" cannot be made'
+                err_msg = f'The thumbnail of the "{path}" image cannot be made'
                 logger.exception(err_msg)
                 self._image.thumb = QtGui.QImage()
 

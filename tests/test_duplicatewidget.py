@@ -359,7 +359,7 @@ class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
     def setUp(self):
         super().setUp()
 
-        self.mock_image.path = 'image_path'
+        self.mock_image.path = 'path'
 
     def test_subprocess_run_called_with_linux_img_viewer_cmd(self):
         sys.platform = 'linux'
@@ -408,7 +408,7 @@ class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
             with mock.patch(DW_MODULE+'errorMessage') as mock_msg_call:
                 self.w.openImage()
 
-        err_msg = ['Something went wrong while opening the image']
+        err_msg = ['Something went wrong while opening the "path" image']
         mock_msg_call.assert_called_once_with(err_msg)
 
     def test_log_error_if_subprocess_run_raise_CalledProcessError(self):
@@ -424,7 +424,7 @@ class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
             with mock.patch(DW_MODULE+'errorMessage') as mock_msg_call:
                 self.w.openImage()
 
-        err_msg = ['Something went wrong while opening the image']
+        err_msg = ['Something went wrong while opening the "path" image']
         mock_msg_call.assert_called_once_with(err_msg)
 
 
@@ -575,7 +575,7 @@ class TestDuplicateWidgetMethodSelected_Setter(TestDuplicateWidget):
         self.assertEqual(len(spy), 1)
 
 
-class TestDuplicateWidgetMethodCallOnImage(TestDuplicateWidget):
+class TestDuplicateWidgetMethodHideEvent(TestDuplicateWidget):
 
     def setUp(self):
         super().setUp()

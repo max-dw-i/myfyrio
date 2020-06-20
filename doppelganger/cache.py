@@ -47,7 +47,7 @@ class Cache(UserDict):
             with open(file, 'rb') as f:
                 cache = pickle.load(f)
         except FileNotFoundError:
-            raise FileNotFoundError(f'Cache file at {file} does not exist')
+            raise FileNotFoundError(f'Cache file does not exist')
         except EOFError:
             raise EOFError('Cache file might be corrupted (or empty)')
         except OSError as e:

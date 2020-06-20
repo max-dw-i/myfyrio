@@ -492,7 +492,8 @@ class TestClassImageProcessingMethodUpdateCache(TestClassImageProcessing):
         self.proc._update_cache(self.mock_cache, self.images)
 
         self.assertEqual(len(spy), 1)
-        self.assertEqual(spy[0][0], 'Hash of "path" cannot be calculated')
+        err_msg = 'Hash of the "path" image cannot be calculated'
+        self.assertEqual(spy[0][0], err_msg)
 
     def test_cache_save_called_with_cache_file_path_arg(self):
         self.proc._update_cache(self.mock_cache, self.images)

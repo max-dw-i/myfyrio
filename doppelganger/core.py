@@ -77,7 +77,7 @@ def find_image(folders: Iterable[FolderPath],
     for path in folders:
         p = Path(path)
         if not p.exists():
-            raise FileNotFoundError(f'{path} does not exist')
+            raise FileNotFoundError(f'File at "{path}" does not exist')
 
         for filename in p.glob(pattern):
             if filename.is_file() and filename.suffix in IMG_SUFFIXES:
@@ -368,7 +368,7 @@ class Image:
         reader.setScaledSize(QtCore.QSize(width, height))
 
         if not reader.canRead():
-            raise OSError(f'{path} cannot be read')
+            raise OSError(f'The image at "{path}" cannot be read')
 
         img = reader.read()
 
@@ -381,7 +381,7 @@ class Image:
         image = QtGui.QImageReader(self.path)
         size = image.size()
         if not size.isValid():
-            raise OSError('Image size cannot be read')
+            raise OSError(f'Size of the "{self.path}" image cannot be read')
 
         self._width, self._height = size.width(), size.height()
 
@@ -413,7 +413,7 @@ class Image:
         try:
             image_size = os.path.getsize(self.path)
         except OSError:
-            raise OSError(f'Cannot get the file size of {self.path}')
+            raise OSError(f'Cannot get the file size of "{self.path}"')
         else:
             self.size = image_size
 

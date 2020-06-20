@@ -52,6 +52,7 @@ class TestThumbnailWidget(TestCase):
     def setUp(self):
         self.mock_image = mock.Mock(spec=core.Image)
         self.mock_image.thumb = None
+        self.mock_image.path = 'path'
         self.size = 333
         self.lazy = True
 

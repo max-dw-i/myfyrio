@@ -140,11 +140,13 @@ class DuplicateWidget(QtWidgets.QWidget):
         else:
             command = 'Unknown platform'
 
+        path = self._image.path
+
         try:
-            subprocess.run([command, self._image.path], check=True)
+            subprocess.run([command, path], check=True)
 
         except (FileNotFoundError, subprocess.CalledProcessError):
-            err_msg = 'Something went wrong while opening the image'
+            err_msg = f'Something went wrong while opening the "{path}" image'
             logger.exception(err_msg)
             errorMessage([err_msg])
 
