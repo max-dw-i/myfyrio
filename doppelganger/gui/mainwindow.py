@@ -225,5 +225,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.stopBtn.isEnabled():
             self.stopBtn.clicked.emit()
 
+        QtCore.QCoreApplication.processEvents()
         self.threadpool.clear()
         self.threadpool.waitForDone()

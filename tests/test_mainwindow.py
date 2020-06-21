@@ -821,6 +821,14 @@ class TestMainWindowMethodCloseEvent(TestMainWindow):
 
         self.assertEqual(len(spy), 1)
 
+    def test_processEvents_called_if_no_confirmation(self):
+        self.mw.preferencesWindow.conf['close_confirmation'] = False
+        PATCH_EVENTS = 'PyQt5.QtCore.QCoreApplication.processEvents'
+        with mock.patch(PATCH_EVENTS) as mock_proc_call:
+            self.mw.closeEvent(self.mock_event)
+
+        mock_proc_call.assert_called_once_with()
+
     def test_threadpool_funcs_called_if_no_confirmation(self):
         self.mw.preferencesWindow.conf['close_confirmation'] = False
 
@@ -857,7 +865,17 @@ class TestMainWindowMethodCloseEvent(TestMainWindow):
 
         self.assertEqual(len(spy), 0)
 
-    def test_threadpool_funcs_called_if_confirmation_and_Cancel(self):
+    def test_processEvents_not_called_if_confirmation_and_Cancel(self):
+        self.mw.preferencesWindow.conf['close_confirmation'] = True
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Cancel):
+            PATCH_EVENTS = 'PyQt5.QtCore.QCoreApplication.processEvents'
+            with mock.patch(PATCH_EVENTS) as mock_proc_call:
+                self.mw.closeEvent(self.mock_event)
+
+        mock_proc_call.assert_not_called()
+
+    def test_threadpool_funcs_not_called_if_confirmation_and_Cancel(self):
         self.mw.preferencesWindow.conf['close_confirmation'] = True
         with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
                         return_value=QtWidgets.QMessageBox.Cancel):
@@ -893,6 +911,16 @@ class TestMainWindowMethodCloseEvent(TestMainWindow):
             self.mw.closeEvent(self.mock_event)
 
         self.assertEqual(len(spy), 1)
+
+    def test_processEvents_called_if_confirmation_and_Yes(self):
+        self.mw.preferencesWindow.conf['close_confirmation'] = True
+        with mock.patch('PyQt5.QtWidgets.QMessageBox.question',
+                        return_value=QtWidgets.QMessageBox.Yes):
+            PATCH_EVENTS = 'PyQt5.QtCore.QCoreApplication.processEvents'
+            with mock.patch(PATCH_EVENTS) as mock_proc_call:
+                self.mw.closeEvent(self.mock_event)
+
+        mock_proc_call.assert_called_once_with()
 
     def test_threadpool_funcs_called_if_confirmation_and_Yes(self):
         self.mw.preferencesWindow.conf['close_confirmation'] = True
