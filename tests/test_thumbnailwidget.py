@@ -111,10 +111,20 @@ class TestThumbnailWidgetMethodInit(TestThumbnailWidget):
     def test_makeThumbnail_called_if_not_lazy(self):
         with mock.patch(self.ThW+'_setEmptyPixmap'):
             with mock.patch(self.ThW+'_makeThumbnail') as mock_make_call:
-                thumbnailwidget.ThumbnailWidget(self.mock_image, self.size,
-                                                False)
+                with mock.patch(self.ThW+'_setThumbnail'):
+                    thumbnailwidget.ThumbnailWidget(self.mock_image, self.size,
+                                                    False)
 
         mock_make_call.assert_called_once_with()
+
+    def test_setThumbnail_called_if_not_lazy(self):
+        with mock.patch(self.ThW+'_setEmptyPixmap'):
+            with mock.patch(self.ThW+'_makeThumbnail'):
+                with mock.patch(self.ThW+'_setThumbnail') as mock_set_call:
+                    thumbnailwidget.ThumbnailWidget(self.mock_image, self.size,
+                                                    False)
+
+        mock_set_call.assert_called_once_with()
 
 
 class TestThumbnailWidgetMethodSetSize(TestThumbnailWidget):
@@ -428,15 +438,7 @@ class TestThumbnailWidgetMethodMakeThumbnail(TestThumbnailWidget):
         mock_proc_call.assert_called_once_with(self.w._image, self.w._size,
                                                self.w)
 
-    def test_args_ThumbnailProcessing_called_with_if_not_lazy(self):
-        self.w._lazy = False
-        with mock.patch(self.PROC+'ThumbnailProcessing') as mock_proc_call:
-            with mock.patch('PyQt5.QtCore.QThreadPool.globalInstance'):
-                self.w._makeThumbnail()
-
-        mock_proc_call.assert_called_once_with(self.w._image, self.w._size)
-
-    def test_ThumbnailProcessing_finished_connected_to_setThumbnail(self):
+    def test_ThumbnailProcessing_finished_connected_to_setThumbnail_if_l(self):
         mock_proc = mock.Mock(spec=workers.ThumbnailProcessing)
         with mock.patch(self.PROC+'ThumbnailProcessing',
                         return_value=mock_proc):
@@ -447,7 +449,7 @@ class TestThumbnailWidgetMethodMakeThumbnail(TestThumbnailWidget):
             self.w._setThumbnail
         )
 
-    def test_worker_created(self):
+    def test_worker_created_if_lazy(self):
         mock_processing_obj = mock.Mock(spec=workers.ThumbnailProcessing)
         with mock.patch(self.PROC+'ThumbnailProcessing',
                         return_value=mock_processing_obj):
@@ -457,7 +459,7 @@ class TestThumbnailWidgetMethodMakeThumbnail(TestThumbnailWidget):
 
         mock_worker_call.assert_called_once_with(mock_processing_obj.run)
 
-    def test_worker_pushed_to_thread(self):
+    def test_worker_pushed_to_thread_if_lazy(self):
         mock_threadpool = mock.Mock(spec=QtCore.QThreadPool)
         mock_worker = mock.Mock(spec=workers.Worker)
         with mock.patch(self.PROC+'ThumbnailProcessing'):
@@ -467,6 +469,22 @@ class TestThumbnailWidgetMethodMakeThumbnail(TestThumbnailWidget):
                     self.w._makeThumbnail()
 
         mock_threadpool.start.assert_called_once_with(mock_worker)
+
+    def test_ThumbnailProcessing_called_with_image_and_size_if_not_lazy(self):
+        self.w._lazy = False
+        with mock.patch(self.PROC+'ThumbnailProcessing') as mock_proc_call:
+            self.w._makeThumbnail()
+
+        mock_proc_call.assert_called_once_with(self.w._image, self.w._size)
+
+    def test_ThumbnailProcessing_run_called_if_not_lazy(self):
+        self.w._lazy = False
+        mock_th_proc = mock.Mock(spec=workers.ThumbnailProcessing)
+        with mock.patch(self.PROC+'ThumbnailProcessing',
+                        return_value=mock_th_proc):
+            self.w._makeThumbnail()
+
+        mock_th_proc.run.assert_called_once_with()
 
 
 class TestThumbnailWidgetMethodPaintEvent(TestThumbnailWidget):

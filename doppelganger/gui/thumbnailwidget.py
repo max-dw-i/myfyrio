@@ -68,6 +68,7 @@ class ThumbnailWidget(QtWidgets.QLabel):
             self._qtimer.timeout.connect(self._clear)
         else:
             self._makeThumbnail()
+            self._setThumbnail()
 
     def _setSize(self) -> None:
         width, height = self._image.scaling_dimensions(self._size)
@@ -113,14 +114,14 @@ class ThumbnailWidget(QtWidgets.QLabel):
     def _makeThumbnail(self) -> None:
         if self._lazy:
             p = workers.ThumbnailProcessing(self._image, self._size, self)
+            p.finished.connect(self._setThumbnail)
+
+            worker = workers.Worker(p.run)
+            threadpool = QtCore.QThreadPool.globalInstance()
+            threadpool.start(worker)
         else:
             p = workers.ThumbnailProcessing(self._image, self._size)
-
-        p.finished.connect(self._setThumbnail)
-
-        worker = workers.Worker(p.run)
-        threadpool = QtCore.QThreadPool.globalInstance()
-        threadpool.start(worker)
+            p.run()
 
     def paintEvent(self, event) -> None:
         if self._lazy and self.empty:

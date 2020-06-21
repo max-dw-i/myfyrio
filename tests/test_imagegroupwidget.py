@@ -22,7 +22,7 @@ from unittest import TestCase, mock
 from PyQt5 import QtCore, QtWidgets
 
 from doppelganger import core
-from doppelganger.gui import duplicatewidget, imagegroupwidget, thumbnailwidget
+from doppelganger.gui import duplicatewidget, imagegroupwidget
 
 # Check if there's QApplication instance already
 app = QtWidgets.QApplication.instance()
@@ -89,45 +89,6 @@ class TestImageGroupWidgetMethodAddDuplicateWidget(TestImageGroupWidget):
                 self.w.addDuplicateWidget(self.mock_image)
 
         mock_duplW_call.assert_called_once_with(self.mock_image, self.conf)
-
-    def test_processEvents_not_called_if_lazy_mode(self):
-        PATCH_EVENTS = 'PyQt5.QtCore.QCoreApplication.processEvents'
-        with mock.patch(self.DW, return_value=self.mock_duplW):
-            with mock.patch(self.IGW+'_insertIndex', return_value=0):
-                with mock.patch(PATCH_EVENTS) as mock_evets_call:
-                    self.w.addDuplicateWidget(self.mock_image)
-
-        mock_evets_call.assert_not_called()
-
-    def test_processEvents_not_called_if_normal_mode_and_thumbnail_made(self):
-        self.conf['lazy'] = False
-        PATCH_EVENTS = 'PyQt5.QtCore.QCoreApplication.processEvents'
-        self.mock_duplW.thumbnailWidget = mock.Mock(
-            spec=thumbnailwidget.ThumbnailWidget
-        )
-        self.mock_duplW.thumbnailWidget.empty = False
-        with mock.patch(self.DW, return_value=self.mock_duplW):
-            with mock.patch(self.IGW+'_insertIndex', return_value=0):
-                with mock.patch(PATCH_EVENTS) as mock_evets_call:
-                    self.w.addDuplicateWidget(self.mock_image)
-
-        mock_evets_call.assert_not_called()
-
-    def test_processEvents_called_if_normal_mode_and_thumbnail_not_made(self):
-        self.conf['lazy'] = False
-        PATCH_EVENTS = 'PyQt5.QtCore.QCoreApplication.processEvents'
-        self.mock_duplW.thumbnailWidget = mock.Mock(
-            spec=thumbnailwidget.ThumbnailWidget
-        )
-        type(self.mock_duplW.thumbnailWidget).empty = mock.PropertyMock(
-            side_effect=[True, False]
-        )
-        with mock.patch(self.DW, return_value=self.mock_duplW):
-            with mock.patch(self.IGW+'_insertIndex', return_value=0):
-                with mock.patch(PATCH_EVENTS) as mock_evets_call:
-                    self.w.addDuplicateWidget(self.mock_image)
-
-        mock_evets_call.assert_called_once_with()
 
     def test_duplW_error_signal_connected_if_duplW_is_not_selected(self):
         with mock.patch(self.DW, return_value=self.mock_duplW):

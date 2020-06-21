@@ -62,11 +62,6 @@ class ImageGroupWidget(QtWidgets.QWidget):
 
     def addDuplicateWidget(self, image: core.Image) -> DuplicateWidget:
         dupl_w = DuplicateWidget(image, self._conf)
-        # If not 'lazy' mode, wait till the thumbnail is made
-        # before rendering widgets
-        while not self._conf['lazy'] and dupl_w.thumbnailWidget.empty:
-            QtCore.QCoreApplication.processEvents()
-
         dupl_w.error.connect(self.error)
         dupl_w.hidden.connect(self._duplicateWidgetHidden)
 
