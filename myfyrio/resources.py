@@ -1,19 +1,19 @@
 '''Copyright 2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
@@ -23,10 +23,11 @@ Module implementing resources managing
 import pathlib
 from enum import Enum
 
-########################## Types #####################################
+################################## Types ######################################
 RelativePath = str  # Path relative to the programme's root directory
 AbsolutePath = str  # Absolute path
-######################################################################
+###############################################################################
+
 
 class Resource(Enum):
     '''Enum implementing a convenient way of getting the resource path'''
@@ -42,16 +43,16 @@ class Resource(Enum):
 class UI(Resource):
     '''Enum class representing .ui files and the paths to them'''
 
-    ABOUT = 'doppelganger/static/ui/aboutwindow.ui'
-    MAIN = 'doppelganger/static/ui/mainwindow.ui'
-    PREFERENCES = 'doppelganger/static/ui/preferenceswindow.ui'
+    ABOUT = 'myfyrio/static/ui/aboutwindow.ui'
+    MAIN = 'myfyrio/static/ui/mainwindow.ui'
+    PREFERENCES = 'myfyrio/static/ui/preferenceswindow.ui'
 
 
 class Image(Resource):
     '''Enum class representing images and the paths to them'''
 
-    ICON = 'doppelganger/static/images/icon.png'
-    ERR_IMG = 'doppelganger/static/images/image_error.png'
+    ICON = 'myfyrio/static/images/icon.png'
+    ERR_IMG = 'myfyrio/static/images/image_error.png'
 
 
 class Config(Resource):

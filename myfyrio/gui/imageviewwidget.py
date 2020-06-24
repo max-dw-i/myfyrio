@@ -1,19 +1,19 @@
 '''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
@@ -24,10 +24,9 @@ from typing import Callable, List, Tuple
 
 from PyQt5 import QtCore, QtWidgets
 
-from doppelganger import config, core
-from doppelganger.gui.errornotifier import errorMessage
-from doppelganger.gui.imagegroupwidget import ImageGroupWidget
-from doppelganger.logger import Logger
+from myfyrio import config, core
+from myfyrio.gui import errornotifier, imagegroupwidget
+from myfyrio.logger import Logger
 
 logger = Logger.getLogger('imageviewwidget')
 
@@ -57,7 +56,7 @@ class ImageViewWidget(QtWidgets.QWidget):
         super().__init__(parent=parent)
 
         self.conf: config.Config = None
-        self.widgets: List[ImageGroupWidget] = []
+        self.widgets: List[imagegroupwidget.ImageGroupWidget] = []
 
         self._errors: List[str] = []
 
@@ -102,7 +101,9 @@ class ImageViewWidget(QtWidgets.QWidget):
             raise ValueError(err_msg)
 
         if len(self.widgets) == image_group[0]:
-            group_w = ImageGroupWidget(image_group[1], self.conf)
+            group_w = imagegroupwidget.ImageGroupWidget(
+                image_group[1], self.conf
+            )
             group_w.error.connect(self._errors.append)
 
             for dup_w in group_w.widgets:
@@ -143,7 +144,7 @@ class ImageViewWidget(QtWidgets.QWidget):
         for group_w in self.widgets:
             func(group_w, *args, **kwargs)
 
-        errorMessage(self._errors)
+        errornotifier.errorMessage(self._errors)
         self._errors.clear()
 
     def delete(self) -> None:
@@ -157,7 +158,7 @@ class ImageViewWidget(QtWidgets.QWidget):
         )
 
         if confirm == QtWidgets.QMessageBox.Yes:
-            self._callOnSelected(ImageGroupWidget.delete)
+            self._callOnSelected(imagegroupwidget.ImageGroupWidget.delete)
 
     def move(self) -> None:
         '''Move the selected images into another folder
@@ -172,7 +173,7 @@ class ImageViewWidget(QtWidgets.QWidget):
 
         if dialog.exec():
             dst = dialog.selectedFiles()[0]
-            self._callOnSelected(ImageGroupWidget.move, dst)
+            self._callOnSelected(imagegroupwidget.ImageGroupWidget.move, dst)
 
     def autoSelect(self) -> None:
         '''Automatic selection of "DuplicateWidget"s'''

@@ -1,19 +1,19 @@
 '''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 import logging
@@ -23,8 +23,8 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtGui, QtTest, QtWidgets
 
-from doppelganger import core
-from doppelganger.gui import duplicatewidget, infolabel, thumbnailwidget
+from myfyrio import core
+from myfyrio.gui import duplicatewidget, infolabel, thumbnailwidget
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -38,9 +38,7 @@ app = QtWidgets.QApplication.instance()
 if app is None:
     app = QtWidgets.QApplication([])
 
-
-DW_MODULE = 'doppelganger.gui.duplicatewidget.'
-
+DW_MODULE = 'myfyrio.gui.duplicatewidget.'
 
 # pylint: disable=unused-argument,missing-class-docstring
 
@@ -125,8 +123,7 @@ class TestDuplicateWidgetMethodInit(TestDuplicateWidget):
 
 class TestMethodSetThumbnailWidget(TestDuplicateWidget):
 
-    VBL = 'PyQt5.QtWidgets.QVBoxLayout.'
-    ThW = DW_MODULE + 'ThumbnailWidget'
+    ThW = 'myfyrio.gui.thumbnailwidget.ThumbnailWidget'
 
     def setUp(self):
         super().setUp()
@@ -176,7 +173,7 @@ class TestMethodSetThumbnailWidget(TestDuplicateWidget):
 
 class TestMethodSetSimilarityLabel(TestDuplicateWidget):
 
-    SL = DW_MODULE + 'SimilarityLabel'
+    SL = 'myfyrio.gui.infolabel.SimilarityLabel'
 
     def setUp(self):
         super().setUp()
@@ -216,7 +213,7 @@ class TestMethodSetSimilarityLabel(TestDuplicateWidget):
 
 class TestMethodSetImageSizeLabel(TestDuplicateWidget):
 
-    ISL = DW_MODULE + 'ImageSizeLabel'
+    ISL = 'myfyrio.gui.infolabel.ImageSizeLabel'
 
     def setUp(self):
         super().setUp()
@@ -313,7 +310,7 @@ class TestMethodSetImageSizeLabel(TestDuplicateWidget):
 
 class TestMethodSetImagePathLabel(TestDuplicateWidget):
 
-    IPL = DW_MODULE + 'ImagePathLabel'
+    IPL = 'myfyrio.gui.infolabel.ImagePathLabel'
 
     def setUp(self):
         super().setUp()
@@ -355,6 +352,8 @@ class TestMethodSetImagePathLabel(TestDuplicateWidget):
 
 
 class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
+
+    PATCH_ERRN = 'myfyrio.gui.errornotifier.'
 
     def setUp(self):
         super().setUp()
@@ -399,13 +398,13 @@ class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
 
     def test_log_error_if_subprocess_run_raise_FileNotFoundError(self):
         with mock.patch('subprocess.run', side_effect=FileNotFoundError):
-            with mock.patch(DW_MODULE+'errorMessage'):
+            with mock.patch(self.PATCH_ERRN+'errorMessage'):
                 with self.assertLogs('main.duplicatewidget', 'ERROR'):
                     self.w.openImage()
 
     def test_call_errorMessage_if_subprocess_run_raise_FileNotFoundError(self):
         with mock.patch('subprocess.run', side_effect=FileNotFoundError):
-            with mock.patch(DW_MODULE+'errorMessage') as mock_msg_call:
+            with mock.patch(self.PATCH_ERRN+'errorMessage') as mock_msg_call:
                 self.w.openImage()
 
         err_msg = ['Something went wrong while opening the "path" image']
@@ -414,14 +413,14 @@ class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
     def test_log_error_if_subprocess_run_raise_CalledProcessError(self):
         with mock.patch('subprocess.run',
                         side_effect=CalledProcessError(0, 'cmd')):
-            with mock.patch(DW_MODULE+'errorMessage'):
+            with mock.patch(self.PATCH_ERRN+'errorMessage'):
                 with self.assertLogs('main.duplicatewidget', 'ERROR'):
                     self.w.openImage()
 
     def test_call_errorMessage_if_subproc_run_raise_CalledProcessError(self):
         with mock.patch('subprocess.run',
                         side_effect=CalledProcessError(0, 'cmd')):
-            with mock.patch(DW_MODULE+'errorMessage') as mock_msg_call:
+            with mock.patch(self.PATCH_ERRN+'errorMessage') as mock_msg_call:
                 self.w.openImage()
 
         err_msg = ['Something went wrong while opening the "path" image']
@@ -431,6 +430,7 @@ class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
 class TestDuplicateWidgetMethodRenameImage(TestDuplicateWidget):
 
     PATCH_INPUT = 'PyQt5.QtWidgets.QInputDialog.getText'
+    PATCH_ERRN = 'myfyrio.gui.errornotifier.'
 
     def setUp(self):
         super().setUp()
@@ -473,14 +473,14 @@ class TestDuplicateWidgetMethodRenameImage(TestDuplicateWidget):
     def test_log_error_if_image_rename_raise_FileExistsError(self):
         self.mock_image.rename.side_effect = FileExistsError
         with mock.patch(self.PATCH_INPUT, return_value=('new_name', True)):
-            with mock.patch(DW_MODULE+'errorMessage'):
+            with mock.patch(self.PATCH_ERRN+'errorMessage'):
                 with self.assertLogs('main.duplicatewidget', 'ERROR'):
                     self.w.renameImage()
 
     def test_call_errorMessage_if_image_rename_raise_FileExistsError(self):
         self.mock_image.rename.side_effect = FileExistsError
         with mock.patch(self.PATCH_INPUT, return_value=('new_name', True)):
-            with mock.patch(DW_MODULE+'errorMessage') as mock_msg_call:
+            with mock.patch(self.PATCH_ERRN+'errorMessage') as mock_msg_call:
                 self.w.renameImage()
 
         err_msg = ['File with the name "new_name" already exists']
@@ -489,14 +489,14 @@ class TestDuplicateWidgetMethodRenameImage(TestDuplicateWidget):
     def test_log_error_if_image_rename_raise_FileNotFoundError(self):
         self.mock_image.rename.side_effect = FileNotFoundError
         with mock.patch(self.PATCH_INPUT, return_value=('new_name', True)):
-            with mock.patch(DW_MODULE+'errorMessage'):
+            with mock.patch(self.PATCH_ERRN+'errorMessage'):
                 with self.assertLogs('main.duplicatewidget', 'ERROR'):
                     self.w.renameImage()
 
     def test_call_errorMessage_if_image_rename_raise_FileNotFoundError(self):
         self.mock_image.rename.side_effect = FileNotFoundError
         with mock.patch(self.PATCH_INPUT, return_value=('new_name', True)):
-            with mock.patch(DW_MODULE+'errorMessage') as mock_msg_call:
+            with mock.patch(self.PATCH_ERRN+'errorMessage') as mock_msg_call:
                 self.w.renameImage()
 
         err_msg = ['File with the name "file" does not exist']

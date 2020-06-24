@@ -1,35 +1,33 @@
 '''Copyright 2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 from unittest import TestCase, mock
 
 from PyQt5 import QtWidgets
 
-from doppelganger.gui import pushbutton
+from myfyrio.gui import pushbutton
 
 # Check if there's QApplication instance already
 app = QtWidgets.QApplication.instance()
 if app is None:
     app = QtWidgets.QApplication([])
 
-
-PB_MODULE = 'doppelganger.gui.pushbutton.'
-
+PB_MODULE = 'myfyrio.gui.pushbutton.'
 
 # pylint: disable=missing-class-docstring
 
@@ -119,28 +117,28 @@ class TestClassStartButtonMethodSwitch(TestClassStartButton):
 
         self.assertTrue(self.w._paths)
 
-    def test_parents_enable_called_if_run_is_False_and_paths_is_True(self):
+    def test_parent_enable_called_if_run_is_False_and_paths_is_True(self):
         self.w._run = False
         with mock.patch(PB_MODULE+'PushButton.enable') as mock_enable_call:
             self.w.switch(True)
 
         mock_enable_call.assert_called_once_with()
 
-    def test_parents_disable_called_if_run_is_False_and_paths_is_False(self):
+    def test_parent_disable_called_if_run_is_False_and_paths_is_False(self):
         self.w._run = False
         with mock.patch(PB_MODULE+'PushButton.disable') as mock_disable_call:
             self.w.switch(False)
 
         mock_disable_call.assert_called_once_with()
 
-    def test_parents_enable_not_called_if_run_is_True_and_paths_is_True(self):
+    def test_parent_enable_not_called_if_run_is_True_and_paths_is_True(self):
         self.w._run = True
         with mock.patch(PB_MODULE+'PushButton.enable') as mock_enable_call:
             self.w.switch(True)
 
         mock_enable_call.assert_not_called()
 
-    def test_parents_disable_not_called_if_run_is_True_and_paths_is_False(self):
+    def test_parent_disable_not_called_if_run_is_True_and_paths_is_False(self):
         self.w._run = True
         with mock.patch(PB_MODULE+'PushButton.disable') as mock_disable_call:
             self.w.switch(False)

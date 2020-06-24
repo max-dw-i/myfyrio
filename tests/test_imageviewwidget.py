@@ -1,19 +1,19 @@
 '''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 
@@ -22,8 +22,8 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
 
-from doppelganger import config, core
-from doppelganger.gui import duplicatewidget, imagegroupwidget, imageviewwidget
+from myfyrio import config, core
+from myfyrio.gui import duplicatewidget, imagegroupwidget, imageviewwidget
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -37,9 +37,7 @@ app = QtWidgets.QApplication.instance()
 if app is None:
     app = QtWidgets.QApplication([])
 
-
-VIEW_MODULE = 'doppelganger.gui.imageviewwidget.'
-
+VIEW_MODULE = 'myfyrio.gui.imageviewwidget.'
 
 # pylint: disable=missing-class-docstring
 
@@ -138,7 +136,7 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
 
 class TestImageViewWidgetMethodPrivateRender(TestImageViewWidget):
 
-    IGW = VIEW_MODULE + 'ImageGroupWidget'
+    IGW = 'myfyrio.gui.imagegroupwidget.ImageGroupWidget'
 
     def setUp(self):
         super().setUp()
@@ -281,6 +279,8 @@ class TestImageViewWidgetMethodClear(TestImageViewWidget):
 
 class TestImageViewWidgetMethodCallOnSelected(TestImageViewWidget):
 
+    PATCH_ERRN = 'myfyrio.gui.errornotifier.'
+
     def setUp(self):
         super().setUp()
 
@@ -300,7 +300,7 @@ class TestImageViewWidgetMethodCallOnSelected(TestImageViewWidget):
 
     def test_errorMessage_called_with_attr_errors_arg(self):
         self.w._errors = ['Error']
-        with mock.patch(VIEW_MODULE+'errorMessage') as mock_err_call:
+        with mock.patch(self.PATCH_ERRN+'errorMessage') as mock_err_call:
             self.w._callOnSelected(self.mock_func, self.args,
                                    kwarg=self.kwargs)
 
@@ -308,7 +308,7 @@ class TestImageViewWidgetMethodCallOnSelected(TestImageViewWidget):
 
     def test_attr_errors_cleared(self):
         self.w._errors = ['Error']
-        with mock.patch(VIEW_MODULE+'errorMessage'):
+        with mock.patch(self.PATCH_ERRN+'errorMessage'):
             self.w._callOnSelected(self.mock_func, self.args,
                                    kwarg=self.kwargs)
 

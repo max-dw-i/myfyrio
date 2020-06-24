@@ -1,19 +1,19 @@
 '''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
@@ -23,8 +23,8 @@ Module implementing widget viewing image thumbnails
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from doppelganger import core, resources, workers
-from doppelganger.logger import Logger
+from myfyrio import core, resources, workers
+from myfyrio.logger import Logger
 
 logger = Logger.getLogger('thumbnailwidget')
 

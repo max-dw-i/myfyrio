@@ -1,6 +1,6 @@
-## Doppelgänger
+## Myfyrio
 
-Doppelgänger is a program that searches for similar images. To find them, perceptual hashes are used, in particular, so-called [Difference hash](https://www.hackerfactor.com/blog/index.php?/archives/529-Kind-of-Like-That.html). Two images are the same if they have equal hashes and, therefore, are marked as duplicates.
+Myfyrio is a program that searches for similar images. To find them, perceptual hashes are used, in particular, so-called [Difference hash](https://www.hackerfactor.com/blog/index.php?/archives/529-Kind-of-Like-That.html). Two images are the same if they have equal hashes and, therefore, are marked as duplicates.
 
 It works great when you want to find exact (or almost, for example, slightly altered lighting, cropping) duplicates. Although sometimes we can get **false positives** (the hashes are the same but the images are different) and sometimes - **false negatives** (the images are quite similar, but the hashes are very different). Nevertheless these are rather rare.
 
@@ -41,7 +41,7 @@ This program requires Python 3.7 or higher and a few modules. To install:
 ```bash
 
 # Clone the repository
-git clone git@github.com:oratosquilla-oratoria/doppelganger.git
+git clone git@github.com:oratosquilla-oratoria/myfyrio.git
 # Install the necessary dependencies
 pip install -r requirements.txt
 # Run the program

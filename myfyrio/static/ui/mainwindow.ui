@@ -23,7 +23,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Doppelgänger</string>
+   <string>Myfyrio</string>
   </property>
   <property name="windowIcon">
    <iconset>
@@ -69,7 +69,7 @@
       </widget>
      </widget>
     </item>
-    <item>
+    <item alignment="Qt::AlignHCenter">
      <widget class="QWidget" name="bottomWidget" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -795,63 +795,63 @@
   <customwidget>
    <class>PathsListWidget</class>
    <extends>QListWidget</extends>
-   <header>doppelganger/gui/pathslistwidget</header>
+   <header>myfyrio/gui/pathslistwidget</header>
   </customwidget>
   <customwidget>
    <class>ImageViewWidget</class>
    <extends>QWidget</extends>
-   <header>doppelganger/gui/imageviewwidget</header>
+   <header>myfyrio/gui/imageviewwidget</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>HighRadioButton</class>
    <extends>QRadioButton</extends>
-   <header>doppelganger/gui/sensitivityradiobutton</header>
+   <header>myfyrio/gui/sensitivityradiobutton</header>
   </customwidget>
   <customwidget>
    <class>VeryHighRadioButton</class>
    <extends>QRadioButton</extends>
-   <header>doppelganger/gui/sensitivityradiobutton</header>
+   <header>myfyrio/gui/sensitivityradiobutton</header>
   </customwidget>
   <customwidget>
    <class>MediumRadioButton</class>
    <extends>QRadioButton</extends>
-   <header>doppelganger/gui/sensitivityradiobutton</header>
+   <header>myfyrio/gui/sensitivityradiobutton</header>
   </customwidget>
   <customwidget>
    <class>LowRadioButton</class>
    <extends>QRadioButton</extends>
-   <header>doppelganger/gui/sensitivityradiobutton</header>
+   <header>myfyrio/gui/sensitivityradiobutton</header>
   </customwidget>
   <customwidget>
    <class>VeryLowRadioButton</class>
    <extends>QRadioButton</extends>
-   <header>doppelganger/gui/sensitivityradiobutton</header>
+   <header>myfyrio/gui/sensitivityradiobutton</header>
   </customwidget>
   <customwidget>
    <class>ProgressLabel</class>
    <extends>QLabel</extends>
-   <header>doppelganger/gui/progresslabel</header>
+   <header>myfyrio/gui/progresslabel</header>
   </customwidget>
   <customwidget>
    <class>MenuBar</class>
    <extends>QMenuBar</extends>
-   <header>doppelganger/gui/menubar</header>
+   <header>myfyrio/gui/menubar</header>
   </customwidget>
   <customwidget>
    <class>PushButton</class>
    <extends>QPushButton</extends>
-   <header>doppelganger/gui/pushbutton</header>
+   <header>myfyrio/gui/pushbutton</header>
   </customwidget>
   <customwidget>
    <class>ProgressBar</class>
    <extends>QProgressBar</extends>
-   <header>doppelganger/gui/progressbar</header>
+   <header>myfyrio/gui/progressbar</header>
   </customwidget>
   <customwidget>
    <class>StartButton</class>
    <extends>QPushButton</extends>
-   <header>doppelganger/gui/pushbutton</header>
+   <header>myfyrio/gui/pushbutton</header>
   </customwidget>
  </customwidgets>
  <resources/>

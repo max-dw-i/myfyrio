@@ -1,19 +1,19 @@
 '''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
@@ -25,8 +25,8 @@ from typing import Callable, List
 
 from PyQt5 import QtCore, QtWidgets
 
-from doppelganger import config, core
-from doppelganger.gui.duplicatewidget import DuplicateWidget
+from myfyrio import config, core
+from myfyrio.gui import duplicatewidget
 
 
 class ImageGroupWidget(QtWidgets.QWidget):
@@ -47,7 +47,7 @@ class ImageGroupWidget(QtWidgets.QWidget):
         super().__init__(parent)
 
         self._conf = conf
-        self.widgets: List[DuplicateWidget] = []
+        self.widgets: List[duplicatewidget.DuplicateWidget] = []
 
         self._visible_num = 0
 
@@ -60,8 +60,9 @@ class ImageGroupWidget(QtWidgets.QWidget):
 
         self.setLayout(self._layout)
 
-    def addDuplicateWidget(self, image: core.Image) -> DuplicateWidget:
-        dupl_w = DuplicateWidget(image, self._conf)
+    def addDuplicateWidget(self, image: core.Image) \
+        -> duplicatewidget.DuplicateWidget:
+        dupl_w = duplicatewidget.DuplicateWidget(image, self._conf)
         dupl_w.error.connect(self.error)
         dupl_w.hidden.connect(self._duplicateWidgetHidden)
 
@@ -74,7 +75,7 @@ class ImageGroupWidget(QtWidgets.QWidget):
 
         return dupl_w
 
-    def _insertIndex(self, new_w: DuplicateWidget) -> int:
+    def _insertIndex(self, new_w: duplicatewidget.DuplicateWidget) -> int:
         key = core.Sort(self._conf['sort']).key()
 
         left, right = 0, len(self.widgets) - 1
@@ -133,7 +134,7 @@ class ImageGroupWidget(QtWidgets.QWidget):
         on, also delete empty folders
         '''
 
-        self._callOnSelected(DuplicateWidget.delete)
+        self._callOnSelected(duplicatewidget.DuplicateWidget.delete)
 
     def move(self, dst: core.FolderPath) -> None:
         '''Move the selected images into the folder :dst:, hide its
@@ -144,7 +145,7 @@ class ImageGroupWidget(QtWidgets.QWidget):
         :param dst: folder to move the images into
         '''
 
-        self._callOnSelected(DuplicateWidget.move, dst)
+        self._callOnSelected(duplicatewidget.DuplicateWidget.move, dst)
 
     def __len__(self) -> int:
         return len(self.widgets)

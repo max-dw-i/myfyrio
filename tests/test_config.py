@@ -1,26 +1,26 @@
 '''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 import os
 import pickle
 from unittest import TestCase, mock
 
-from doppelganger import config
+from myfyrio import config
 
 # pylint: disable=unused-argument,missing-class-docstring
 
@@ -115,7 +115,7 @@ class TestMethodLoad(TestClassConfig):
 
         self.assertEqual('test', self.c.data)
 
-    @mock.patch('doppelganger.config.Config._default')
+    @mock.patch('myfyrio.config.Config._default')
     @mock.patch('builtins.open', side_effect=FileNotFoundError)
     def test_default_called_if_FileNotFoundError(self, mock_open_call,
                                                  mock_default_call):
@@ -123,7 +123,7 @@ class TestMethodLoad(TestClassConfig):
 
         mock_default_call.assert_called_once_with()
 
-    @mock.patch('doppelganger.config.Config._default')
+    @mock.patch('myfyrio.config.Config._default')
     @mock.patch('builtins.open', side_effect=EOFError)
     def test_default_called__OSError_raised_if_EOFError(self, mock_open_call,
                                                         mock_default_call):
@@ -132,7 +132,7 @@ class TestMethodLoad(TestClassConfig):
 
         mock_default_call.assert_called_once_with()
 
-    @mock.patch('doppelganger.config.Config._default')
+    @mock.patch('myfyrio.config.Config._default')
     @mock.patch('builtins.open', side_effect=OSError)
     def test_default_called__OSError_raised_if_OSError(self, mock_open_call,
                                                        mock_default_call):
@@ -141,7 +141,7 @@ class TestMethodLoad(TestClassConfig):
 
         mock_default_call.assert_called_once_with()
 
-    @mock.patch('doppelganger.config.Config._default')
+    @mock.patch('myfyrio.config.Config._default')
     @mock.patch('pickle.load', side_effect=pickle.UnpicklingError)
     @mock.patch('builtins.open')
     def test_default_called__OSError_raised_if_UnpicklingError(

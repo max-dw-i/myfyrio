@@ -1,19 +1,19 @@
 '''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 
 
 This file incorporates work covered by the following copyright and
@@ -46,8 +46,6 @@ permission notice:
 This module provides core functions for processing images and find duplicates
 '''
 
-from __future__ import annotations
-
 import os
 from enum import Enum
 from pathlib import Path
@@ -57,9 +55,27 @@ from typing import (Callable, Collection, Dict, Generator, Iterable, List,
 import pybktree
 from PyQt5 import QtCore, QtGui
 
+################################## Types ######################################
+FilePath = str # Path to a file
+FolderPath = FilePath # Path to a folder
+ImagePath = FilePath # Path to an image
+Hash = int # Perceptual hash of an image
+Distance = int # Distance between 2 hashes
+Sensitivity = int # Max 'Distance' when images are considered similar
+Suffix = str # 'jpg', 'png', etc.
+Width = int # Width of a image
+Height = int # Height of a image
+FileSize = Union[int, float] # Size of a file
+Group = List['Image'] # Group of similar images
+GroupIndex = int # Index of a group
+KeyFunc = TypeVar('KeyFunc', Callable[['Image'], Distance],
+                  Callable[['Image'], FileSize], Callable[['Image'], int],
+                  Callable[['Image'], ImagePath])
+###############################################################################
+
 
 def find_image(folders: Iterable[FolderPath],
-               recursive: bool = True) -> Generator[Image, None, None]:
+               recursive: bool = True) -> Generator['Image', None, None]:
     '''Find next image in :folders: and yield its representation
     as "Image" object
 
@@ -83,7 +99,7 @@ def find_image(folders: Iterable[FolderPath],
             if filename.is_file() and filename.suffix in IMG_SUFFIXES:
                 yield Image(str(filename))
 
-def image_grouping(images: Collection[Image], sensitivity: Sensitivity) \
+def image_grouping(images: Collection['Image'], sensitivity: Sensitivity) \
     -> Generator[Tuple[GroupIndex, Group], None, None]:
     '''Find similar images and group them. Yield a tuple with the group
     index and image group when a new group has been added or existing one
@@ -104,7 +120,7 @@ def image_grouping(images: Collection[Image], sensitivity: Sensitivity) \
     except TypeError:
         raise TypeError('Hashes must be integers')
 
-    checked: Dict[Image, GroupIndex] = dict()
+    checked: Dict['Image', GroupIndex] = dict()
 
     for image in images:
         distance, closest = _closest(bktree, image, sensitivity)
@@ -124,8 +140,9 @@ def image_grouping(images: Collection[Image], sensitivity: Sensitivity) \
             yield _add_new_group(image, closest, checked, image_groups,
                                  distance)
 
-def _closest(bktree: pybktree.BKTree, image: Image, sensitivity: Sensitivity) \
-    -> Tuple[Optional[Distance], Optional[Image]]:
+def _closest(bktree: pybktree.BKTree, image: 'Image',
+             sensitivity: Sensitivity) \
+    -> Tuple[Optional[Distance], Optional['Image']]:
     closests = bktree.find(image, sensitivity)
 
     # if len == 1, there's only 'image' itself
@@ -138,8 +155,9 @@ def _closest(bktree: pybktree.BKTree, image: Image, sensitivity: Sensitivity) \
 
     return distance, closest
 
-def _add_img_to_existing_group(img_in_group: Image, img_not_in_group: Image,
-                               checked: Dict[Image, int],
+def _add_img_to_existing_group(img_in_group: 'Image',
+                               img_not_in_group: 'Image',
+                               checked: Dict['Image', int],
                                image_groups: List[Group]) \
     -> Tuple[GroupIndex, Group]:
     group_num = checked[img_in_group]
@@ -150,7 +168,7 @@ def _add_img_to_existing_group(img_in_group: Image, img_not_in_group: Image,
 
     return (group_num, image_groups[group_num])
 
-def _add_new_group(img1: Image, img2: Image, checked: Dict[Image, int],
+def _add_new_group(img1: 'Image', img2: 'Image', checked: Dict['Image', int],
                    image_groups: List[Group], distance: Distance) \
     -> Tuple[GroupIndex, Group]:
     img2.difference = distance
@@ -181,7 +199,7 @@ class Sort:
         if sort_type not in (0, 1, 2, 3):
             raise ValueError('Such sort type does not exist')
 
-    def sort(self, images: List[Image]) -> None:
+    def sort(self, images: List['Image']) -> None:
         '''Sort image using the chosen sort type (in place)
 
         :param images: images to sort
@@ -287,7 +305,7 @@ class Image:
 
         return row_hash << (size * size) | col_hash
 
-    def dhash_parallel(self) -> Image:
+    def dhash_parallel(self) -> 'Image':
         '''Calculate hash and return "Image" object itself with
         the hash assigned to attribute "dhash". It is used with
         library "multiprocessing"
@@ -298,7 +316,7 @@ class Image:
         self.calculate_dhash()
         return self
 
-    def hamming(self, image: Image) -> Distance:
+    def hamming(self, image: 'Image') -> Distance:
         '''Calculate the Hamming distance between two images
 
         :param image:   the second image,
@@ -498,22 +516,3 @@ class Image:
 
     def __hash__(self) -> int:
         return hash(self.path)
-
-
-########################## Types ##################################
-FilePath = str # Path to a file
-FolderPath = FilePath # Path to a folder
-ImagePath = FilePath # Path to an image
-Hash = int # Perceptual hash of an image
-Distance = int # Distance between 2 hashes
-Sensitivity = int # Max 'Distance' when images are considered similar
-Suffix = str # 'jpg', 'png', etc.
-Width = int # Width of a image
-Height = int # Height of a image
-FileSize = Union[int, float] # Size of a file
-Group = List[Image] # Group of similar images
-GroupIndex = int # Index of a group
-KeyFunc = TypeVar('KeyFunc', Callable[[Image], Distance],
-                  Callable[[Image], FileSize], Callable[[Image], int],
-                  Callable[[Image], ImagePath])
-###################################################################

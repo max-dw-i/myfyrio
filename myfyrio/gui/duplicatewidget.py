@@ -1,19 +1,19 @@
 '''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
@@ -28,12 +28,9 @@ from typing import Callable
 
 from PyQt5 import QtCore, QtWidgets
 
-from doppelganger import config, core
-from doppelganger.gui.errornotifier import errorMessage
-from doppelganger.gui.infolabel import (ImagePathLabel, ImageSizeLabel,
-                                        SimilarityLabel)
-from doppelganger.gui.thumbnailwidget import ThumbnailWidget
-from doppelganger.logger import Logger
+from myfyrio import config, core
+from myfyrio.gui import errornotifier, infolabel, thumbnailwidget
+from myfyrio.logger import Logger
 
 logger = Logger.getLogger('duplicatewidget')
 
@@ -80,24 +77,27 @@ class DuplicateWidget(QtWidgets.QWidget):
 
         self.setLayout(self._layout)
 
-    def _setThumbnailWidget(self) -> ThumbnailWidget:
-        thumbnailWidget = ThumbnailWidget(self._image, self._conf['size'],
-                                          self._conf['lazy'])
+    def _setThumbnailWidget(self) -> thumbnailwidget.ThumbnailWidget:
+        thumbnailWidget = thumbnailwidget.ThumbnailWidget(
+            self._image, self._conf['size'], self._conf['lazy']
+        )
         self._layout.addWidget(thumbnailWidget)
         self._layout.setAlignment(thumbnailWidget, QtCore.Qt.AlignHCenter)
         self.updateGeometry()
 
         return thumbnailWidget
 
-    def _setSimilarityLabel(self) -> SimilarityLabel:
+    def _setSimilarityLabel(self) -> infolabel.SimilarityLabel:
         similarity = self._image.similarity()
-        similarityLabel = SimilarityLabel(f'{similarity}%', self._conf['size'])
+        similarityLabel = infolabel.SimilarityLabel(
+            f'{similarity}%', self._conf['size']
+        )
         self._layout.addWidget(similarityLabel)
         self.updateGeometry()
 
         return similarityLabel
 
-    def _setImageSizeLabel(self) -> ImageSizeLabel:
+    def _setImageSizeLabel(self) -> infolabel.ImageSizeLabel:
         try:
             width, height = self._image.width, self._image.height
 
@@ -114,15 +114,18 @@ class DuplicateWidget(QtWidgets.QWidget):
             logger.exception(e)
             filesize = 0
 
-        imageSizeLabel = ImageSizeLabel(width, height, filesize,
-                                        size_format.name, self._conf['size'])
+        imageSizeLabel = infolabel.ImageSizeLabel(
+            width, height, filesize, size_format.name, self._conf['size']
+        )
         self._layout.addWidget(imageSizeLabel)
         self.updateGeometry()
 
         return imageSizeLabel
 
-    def _setImagePathLabel(self) -> ImagePathLabel:
-        imagePathLabel = ImagePathLabel(self._image.path, self._conf['size'])
+    def _setImagePathLabel(self) -> infolabel.ImagePathLabel:
+        imagePathLabel = infolabel.ImagePathLabel(
+            self._image.path, self._conf['size']
+        )
         self._layout.addWidget(imagePathLabel)
         self.updateGeometry()
 
@@ -148,7 +151,7 @@ class DuplicateWidget(QtWidgets.QWidget):
         except (FileNotFoundError, subprocess.CalledProcessError):
             err_msg = f'Something went wrong while opening the "{path}" image'
             logger.exception(err_msg)
-            errorMessage([err_msg])
+            errornotifier.errorMessage([err_msg])
 
     def renameImage(self) -> None:
         '''Rename the image'''
@@ -167,12 +170,12 @@ class DuplicateWidget(QtWidgets.QWidget):
             except FileExistsError:
                 err_msg = f'File with the name "{new_name}" already exists'
                 logger.exception(err_msg)
-                errorMessage([err_msg])
+                errornotifier.errorMessage([err_msg])
 
             except FileNotFoundError:
                 err_msg = f'File with the name "{name}" does not exist'
                 logger.exception(err_msg)
-                errorMessage([err_msg])
+                errornotifier.errorMessage([err_msg])
 
             else:
                 self.imagePathLabel.setText(self._image.path)

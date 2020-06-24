@@ -1,19 +1,19 @@
 '''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
@@ -24,11 +24,9 @@ from typing import List
 
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
-from doppelganger import resources, workers
-from doppelganger.gui.aboutwindow import AboutWindow
-from doppelganger.gui.errornotifier import errorMessage
-from doppelganger.gui.preferenceswindow import PreferencesWindow
-from doppelganger.gui.sensitivityradiobutton import checkedRadioButton
+from myfyrio import resources, workers
+from myfyrio.gui import (aboutwindow, errornotifier, preferenceswindow,
+                         sensitivityradiobutton)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -44,8 +42,8 @@ class MainWindow(QtWidgets.QMainWindow):
         app_icon = QtGui.QIcon(icon)
         self.setWindowIcon(app_icon)
 
-        self.aboutWindow = AboutWindow(self)
-        self.preferencesWindow = PreferencesWindow(self)
+        self.aboutWindow = aboutwindow.AboutWindow(self)
+        self.preferencesWindow = preferenceswindow.PreferencesWindow(self)
 
         self._errors: List[str] = []
 
@@ -83,7 +81,7 @@ class MainWindow(QtWidgets.QMainWindow):
                      else self.menubar.disableAutoSelectAction())
         )
         self.imageViewWidget.finished.connect(
-            lambda: errorMessage(self._errors)
+            lambda: errornotifier.errorMessage(self._errors)
         )
 
         self.imageViewWidget.error.connect(self._errors.append)
@@ -131,8 +129,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stopBtn.clicked.connect(self.stopBtn.disable)
 
     def _setSensitivityGroupBox(self) -> None:
-        current_sensitivity = checkedRadioButton(self).sensitivity
-        self.preferencesWindow.setSensitivity(current_sensitivity)
+        checkedRbtn = sensitivityradiobutton.checkedRadioButton(self)
+        self.preferencesWindow.setSensitivity(checkedRbtn.sensitivity)
 
         self.veryHighRbtn.sensitivityChanged.connect(
             self.preferencesWindow.setSensitivity
@@ -201,7 +199,7 @@ class MainWindow(QtWidgets.QMainWindow):
         p.error.connect(self._errors.append)
         p.interrupted.connect(self.startBtn.finished)
         p.interrupted.connect(self.stopBtn.disable)
-        p.interrupted.connect(lambda: errorMessage(self._errors))
+        p.interrupted.connect(lambda: errornotifier.errorMessage(self._errors))
 
         self.imageViewWidget.interrupted.connect(p.interrupt)
         self.stopBtn.clicked.connect(p.interrupt)

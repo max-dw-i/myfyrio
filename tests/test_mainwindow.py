@@ -1,45 +1,39 @@
 '''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
 
-from doppelganger import workers
-from doppelganger.gui import (aboutwindow, imageviewwidget, mainwindow,
-                              pathslistwidget, preferenceswindow, pushbutton,
-                              sensitivityradiobutton)
+from myfyrio import workers
+from myfyrio.gui import (aboutwindow, imageviewwidget, mainwindow,
+                         pathslistwidget, preferenceswindow, pushbutton,
+                         sensitivityradiobutton)
 
 # Check if there's QApplication instance already
 app = QtWidgets.QApplication.instance()
 if app is None:
     app = QtWidgets.QApplication([])
 
-MW_MODULE = 'doppelganger.gui.mainwindow.'
-WORKERS_MODULE = 'doppelganger.workers.'
-
-
 # pylint: disable=missing-class-docstring
 
 
 class TestMainWindow(TestCase):
-
-    MW = MW_MODULE + 'MainWindow.'
 
     @classmethod
     def setUpClass(cls):
@@ -103,6 +97,8 @@ class TestMainWindowMethodInit(TestMainWindow):
 
 
 class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
+
+    PATCH_ERRN = 'myfyrio.gui.errornotifier.'
 
     def setUp(self):
         self.mock_IVW = mock.Mock(spec=imageviewwidget.ImageViewWidget)
@@ -194,7 +190,7 @@ class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
 
         call_args_list = self.mock_IVW.finished.connect.call_args_list
         f = call_args_list[5][0][0]
-        with mock.patch(MW_MODULE+'errorMessage') as mock_err_call:
+        with mock.patch(self.PATCH_ERRN+'errorMessage') as mock_err_call:
             f()
 
         mock_err_call.assert_called_once_with(['error'])
@@ -422,6 +418,8 @@ class TestMainWindowMethodSetImageProcessingGroupBox(TestMainWindow):
 
 class TestMainWindowMethodSetSensitivityGroupBox(TestMainWindow):
 
+    PATCH_SRB = 'myfyrio.gui.sensitivityradiobutton.'
+
     def setUp(self):
         self.mw.preferencesWindow = mock.Mock(
             spec=preferenceswindow.PreferencesWindow
@@ -430,7 +428,7 @@ class TestMainWindowMethodSetSensitivityGroupBox(TestMainWindow):
     def test_pW_setSensitivity_called_with_checkedRadioButton_res(self):
         mock_btn = mock.Mock(sensitivityradiobutton.SensitivityRadioButton)
         mock_btn.sensitivity = '69'
-        with mock.patch(MW_MODULE+'checkedRadioButton',
+        with mock.patch(self.PATCH_SRB+'checkedRadioButton',
                         return_value=mock_btn) as mock_checked_call:
             self.mw._setSensitivityGroupBox()
 
@@ -637,8 +635,9 @@ class TestMainWindowMethodSetMenubar(TestMainWindow):
 
 class TestMainWindowMethodStartProcessing(TestMainWindow):
 
-    PATCH_PROC = WORKERS_MODULE + 'ImageProcessing'
-    PATCH_WORKERS = WORKERS_MODULE + 'Worker'
+    PATCH_PROC = 'myfyrio.workers.ImageProcessing'
+    PATCH_WORKERS = 'myfyrio.workers.Worker'
+    PATCH_ERRN = 'myfyrio.gui.errornotifier.'
 
     def setUp(self):
         self.mock_proc = mock.Mock(spec=workers.ImageProcessing)
@@ -752,7 +751,7 @@ class TestMainWindowMethodStartProcessing(TestMainWindow):
 
         call_args_list = self.mock_proc.interrupted.connect.call_args_list
         f = call_args_list[2][0][0]
-        with mock.patch(MW_MODULE+'errorMessage') as mock_err_call:
+        with mock.patch(self.PATCH_ERRN+'errorMessage') as mock_err_call:
             f()
 
         mock_err_call.assert_called_once_with(['error'])

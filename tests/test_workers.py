@@ -1,19 +1,19 @@
 '''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 import logging
@@ -22,8 +22,8 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtGui, QtTest, QtWidgets
 
-from doppelganger import cache, core, resources, workers
-from doppelganger.gui import thumbnailwidget
+from myfyrio import cache, core, resources, workers
+from myfyrio.gui import thumbnailwidget
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -37,12 +37,10 @@ app = QtWidgets.QApplication.instance()
 if app is None:
     app = QtWidgets.QApplication([])
 
+CORE = 'myfyrio.core.'
+PROCESSING = 'myfyrio.workers.'
 
 # pylint: disable=missing-class-docstring
-
-CORE = 'doppelganger.core.'
-CACHE = 'doppelganger.cache.'
-PROCESSING = 'doppelganger.workers.'
 
 
 class TestClassImageProcessing(TestCase):
@@ -314,9 +312,11 @@ class TestClassImageProcessingMethodFindImages(TestClassImageProcessing):
 
 class TestClassImageProcessingMethodLoadCache(TestClassImageProcessing):
 
+    PATCH_CACHE = 'myfyrio.cache.'
+
     def test_load_called_with_cache_file_path(self):
         mock_cache = mock.Mock(spec=cache.Cache)
-        with mock.patch(PROCESSING+'Cache', return_value=mock_cache):
+        with mock.patch(self.PATCH_CACHE+'Cache', return_value=mock_cache):
             self.proc._load_cache()
 
         mock_cache.load.assert_called_once_with(
@@ -325,26 +325,26 @@ class TestClassImageProcessingMethodLoadCache(TestClassImageProcessing):
 
     def test_return_Cache_object(self):
         mock_cache = mock.Mock(spec=cache.Cache)
-        with mock.patch(PROCESSING+'Cache', return_value=mock_cache):
+        with mock.patch(self.PATCH_CACHE+'Cache', return_value=mock_cache):
             res = self.proc._load_cache()
 
         self.assertEqual(res, mock_cache)
 
     def test_cache_empty_if_load_raise_FileNotFoundError(self):
-        with mock.patch(PROCESSING+'Cache.load',
+        with mock.patch(self.PATCH_CACHE+'Cache.load',
                         side_effect=FileNotFoundError):
             res = self.proc._load_cache()
 
         self.assertDictEqual(res.data, {})
 
     def test_cache_empty_if_load_raise_EOFError(self):
-        with mock.patch(PROCESSING+'Cache.load', side_effect=EOFError):
+        with mock.patch(self.PATCH_CACHE+'Cache.load', side_effect=EOFError):
             res = self.proc._load_cache()
 
         self.assertDictEqual(res.data, {})
 
     def test_logging_if_load_raise_EOFError(self):
-        with mock.patch(PROCESSING+'Cache.load', side_effect=EOFError):
+        with mock.patch(self.PATCH_CACHE+'Cache.load', side_effect=EOFError):
             with self.assertLogs('main.workers', 'ERROR'):
                 self.proc._load_cache()
 
@@ -463,8 +463,6 @@ class TestClassImageProcessingMethodCalculateHashes(TestClassImageProcessing):
 
 
 class TestClassImageProcessingMethodUpdateCache(TestClassImageProcessing):
-
-    PATCH_SAVE = PROCESSING + 'Cache.save'
 
     def setUp(self):
         super().setUp()

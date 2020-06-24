@@ -1,19 +1,19 @@
 '''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 
@@ -21,17 +21,15 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtWidgets
 
-from doppelganger import core
-from doppelganger.gui import duplicatewidget, imagegroupwidget
+from myfyrio import core
+from myfyrio.gui import duplicatewidget, imagegroupwidget
 
 # Check if there's QApplication instance already
 app = QtWidgets.QApplication.instance()
 if app is None:
     app = QtWidgets.QApplication([])
 
-
-IGW_MODULE = 'doppelganger.gui.imagegroupwidget.'
-
+IGW_MODULE = 'myfyrio.gui.imagegroupwidget.'
 
 # pylint: disable=missing-class-docstring
 
@@ -71,7 +69,7 @@ class TestImageGroupWidgetMethodInit(TestImageGroupWidget):
 
 class TestImageGroupWidgetMethodAddDuplicateWidget(TestImageGroupWidget):
 
-    DW = IGW_MODULE+'DuplicateWidget'
+    DW = 'myfyrio.gui.duplicatewidget.DuplicateWidget'
 
     def setUp(self):
         super().setUp()
@@ -165,7 +163,7 @@ class TestImageGroupWidgetMethodInsertIndex(TestImageGroupWidget):
         self.w.widgets = [self.mock_duplW1, self.mock_duplW2]
 
     def test_Sort_key_called_with_proper_sort_type_from_conf(self):
-        with mock.patch('doppelganger.core.Sort',
+        with mock.patch('myfyrio.core.Sort',
                         return_value=self.mock_Sort) as mock_Sort_call:
             self.w._insertIndex(self.mock_new_duplW)
 
@@ -174,21 +172,21 @@ class TestImageGroupWidgetMethodInsertIndex(TestImageGroupWidget):
 
     def test_new_widget_inserted_in_beginning(self):
         self.mock_new_duplW._image = 0
-        with mock.patch('doppelganger.core.Sort', return_value=self.mock_Sort):
+        with mock.patch('myfyrio.core.Sort', return_value=self.mock_Sort):
             res = self.w._insertIndex(self.mock_new_duplW)
 
         self.assertEqual(res, 0)
 
     def test_new_widget_inserted_in_middle(self):
         self.mock_new_duplW._image = 1.5
-        with mock.patch('doppelganger.core.Sort', return_value=self.mock_Sort):
+        with mock.patch('myfyrio.core.Sort', return_value=self.mock_Sort):
             res = self.w._insertIndex(self.mock_new_duplW)
 
         self.assertEqual(res, 1)
 
     def test_new_widget_inserted_in_end(self):
         self.mock_new_duplW._image = 3
-        with mock.patch('doppelganger.core.Sort', return_value=self.mock_Sort):
+        with mock.patch('myfyrio.core.Sort', return_value=self.mock_Sort):
             res = self.w._insertIndex(self.mock_new_duplW)
 
         self.assertEqual(res, 2)

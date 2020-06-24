@@ -1,38 +1,38 @@
 '''Copyright 2019-2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
 Module implementing working with worker threads
 '''
 
-from __future__ import annotations
-
 import os
 from multiprocessing import Pool
-from typing import Any, Callable, Collection, Iterable, List, Set, Tuple, Union
+from typing import (TYPE_CHECKING, Any, Callable, Collection, Iterable, List,
+                    Set, Tuple, Union)
 
 from PyQt5 import QtCore, QtGui
 
-from doppelganger import core, resources
-from doppelganger.cache import Cache
-from doppelganger.config import Config
-from doppelganger.gui import thumbnailwidget
-from doppelganger.logger import Logger
+from myfyrio import cache, core, resources
+from myfyrio.logger import Logger
+
+if TYPE_CHECKING:
+    from myfyrio import config
+    from myfyrio.gui import thumbnailwidget
 
 logger = Logger.getLogger('workers')
 
@@ -110,7 +110,7 @@ class ImageProcessing(QtCore.QObject):
     PROG_MAX = 100
 
     def __init__(self, folders: Iterable[core.FolderPath],
-                 conf: Config) -> None:
+                 conf: 'config.Config') -> None:
         super().__init__(parent=None)
 
         self._folders = folders
@@ -169,9 +169,9 @@ class ImageProcessing(QtCore.QObject):
 
         return images
 
-    def _load_cache(self) -> Cache:
+    def _load_cache(self) -> cache.Cache:
         try:
-            c = Cache()
+            c = cache.Cache()
             c.load(resources.Cache.CACHE.abs_path) # pylint: disable=no-member
         except FileNotFoundError:
             # Make an empty cache (it's empty by default) since there's no one
@@ -182,7 +182,8 @@ class ImageProcessing(QtCore.QObject):
 
         return c
 
-    def _check_cache(self, images: Collection[core.Image], cache: Cache) \
+    def _check_cache(self, images: Collection[core.Image],
+                     cache: cache.Cache) \
         -> Tuple[List[core.Image], List[core.Image]]:
         cached, not_cached = [], []
 
@@ -223,7 +224,7 @@ class ImageProcessing(QtCore.QObject):
 
         return calculated
 
-    def _update_cache(self, cache: Cache, images: Iterable[core.Image]) \
+    def _update_cache(self, cache: cache.Cache, images: Iterable[core.Image]) \
         -> None:
         for img in images:
             dhash = img.dhash
@@ -304,7 +305,7 @@ class ThumbnailProcessing(QtCore.QObject):
     finished = QtCore.pyqtSignal()
 
     def __init__(self, image: core.Image, size: Union[core.Width, core.Height],
-                 widget: thumbnailwidget.ThumbnailWidget = None) -> None:
+                 widget: 'thumbnailwidget.ThumbnailWidget' = None) -> None:
         super().__init__(parent=None)
 
         self._image = image

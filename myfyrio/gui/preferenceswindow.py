@@ -1,19 +1,19 @@
 '''Copyright 2020 Maxim Shpak <maxim.shpak@posteo.uk>
 
-This file is part of Doppelgänger.
+This file is part of Myfyrio.
 
-Doppelgänger is free software: you can redistribute it and/or modify
+Myfyrio is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-Doppelgänger is distributed in the hope that it will be useful,
+Myfyrio is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with Doppelgänger. If not, see <https://www.gnu.org/licenses/>.
+along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 
 -------------------------------------------------------------------------------
 
@@ -24,13 +24,13 @@ from typing import List, Union
 
 from PyQt5 import QtCore, QtWidgets, uic
 
-from doppelganger import config, resources
-from doppelganger.logger import Logger
+from myfyrio import config, resources
+from myfyrio.logger import Logger
 
 logger = Logger.getLogger('preferences')
 
 
-###################################Types#######################################
+################################## Types ######################################
 Widget = Union[QtWidgets.QSpinBox, QtWidgets.QComboBox,
                QtWidgets.QCheckBox, QtWidgets.QGroupBox] # preference widgets
 Value = Union[int, str] # values of preference widgets
