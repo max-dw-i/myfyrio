@@ -1,0 +1,4 @@
+mypy==0.770
+pybktree==1.1
+pylint==2.4.4
+PyQt5==5.12.2
