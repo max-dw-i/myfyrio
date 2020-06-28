@@ -39,7 +39,6 @@ class ImageViewWidget(QtWidgets.QWidget):
     :signal selected:           True - there are selected "DuplicateWidget"s,
                                 False - otherwise, emitted when any
                                 "DuplicateWidget" is clicked,
-    :signal updateProgressBar:  new value of progress bar: float,
     :signal finished:           widgets rendering has been finished,
     :signal interrupted:        widgets rendering has been interrupted because
                                 of an error,
@@ -47,7 +46,6 @@ class ImageViewWidget(QtWidgets.QWidget):
     '''
 
     selected = QtCore.pyqtSignal(bool)
-    updateProgressBar = QtCore.pyqtSignal(float)
     finished = QtCore.pyqtSignal()
     interrupted = QtCore.pyqtSignal()
     error = QtCore.pyqtSignal(str)

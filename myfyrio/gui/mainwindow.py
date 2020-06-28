@@ -63,10 +63,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def _setImageViewWidget(self) -> None:
         self.imageViewWidget.conf = self.preferencesWindow.conf
 
-        self.imageViewWidget.updateProgressBar.connect(
-            self.processProg.setValue
-        )
-
         self.imageViewWidget.finished.connect(self.processProg.setMaxValue)
         self.imageViewWidget.finished.connect(self.stopBtn.disable)
         self.imageViewWidget.finished.connect(self.startBtn.finished)
