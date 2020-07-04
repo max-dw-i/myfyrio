@@ -65,7 +65,7 @@ class TestDuplicateWidget(TestCase):
 class TestDuplicateWidgetMethodInit(TestDuplicateWidget):
 
     def test_init_values(self):
-        self.assertEqual(self.w._image, self.mock_image)
+        self.assertEqual(self.w.image, self.mock_image)
         self.assertEqual(self.w._conf, self.conf)
         self.assertFalse(self.w._selected)
 
@@ -80,7 +80,8 @@ class TestDuplicateWidgetMethodInit(TestDuplicateWidget):
         self.assertEqual(margins.left(), 0)
 
         self.assertIsInstance(self.w._layout, QtWidgets.QVBoxLayout)
-        self.assertEqual(self.w._layout.alignment(), QtCore.Qt.AlignTop)
+        self.assertEqual(self.w._layout.sizeConstraint(),
+                         QtWidgets.QLayout.SetFixedSize)
 
     def test_setThumbnailWidget_called(self):
         with mock.patch(self.DW+'_setThumbnailWidget') as mock_th_call:
@@ -119,6 +120,15 @@ class TestDuplicateWidgetMethodInit(TestDuplicateWidget):
                 )
 
         mock_path_call.assert_called_once_with()
+
+    def test_setFixedWidth_called_with_conf_size_arg(self):
+        with mock.patch(self.DW+'_setThumbnailWidget'):
+            with mock.patch(self.DW+'setFixedWidth') as mock_width_call:
+                self.w = duplicatewidget.DuplicateWidget(
+                    self.mock_image, self.conf
+                )
+
+        mock_width_call.assert_called_once_with(self.conf['size'])
 
 
 class TestMethodSetThumbnailWidget(TestDuplicateWidget):
@@ -162,14 +172,6 @@ class TestMethodSetThumbnailWidget(TestDuplicateWidget):
 
         self.assertEqual(res, self.mock_thumbnailW)
 
-    def test_updateGeometry_called(self):
-        PATCH_UPDATE = 'PyQt5.QtWidgets.QWidget.updateGeometry'
-        with mock.patch(self.ThW):
-            with mock.patch(PATCH_UPDATE) as mock_upd_call:
-                self.w._setThumbnailWidget()
-
-        mock_upd_call.assert_called_once_with()
-
 
 class TestMethodSetSimilarityLabel(TestDuplicateWidget):
 
@@ -201,14 +203,6 @@ class TestMethodSetSimilarityLabel(TestDuplicateWidget):
             res = self.w._setSimilarityLabel()
 
         self.assertEqual(res, self.mock_similarityL)
-
-    def test_updateGeometry_called(self):
-        PATCH_UPDATE = 'PyQt5.QtWidgets.QWidget.updateGeometry'
-        with mock.patch(self.SL, return_value=self.mock_similarityL):
-            with mock.patch(PATCH_UPDATE) as mock_upd_call:
-                self.w._setSimilarityLabel()
-
-        mock_upd_call.assert_called_once_with()
 
 
 class TestMethodSetImageSizeLabel(TestDuplicateWidget):
@@ -299,14 +293,6 @@ class TestMethodSetImageSizeLabel(TestDuplicateWidget):
 
         self.assertEqual(res, self.mock_sizeL)
 
-    def test_updateGeometry_called(self):
-        PATCH_UPDATE = 'PyQt5.QtWidgets.QWidget.updateGeometry'
-        with mock.patch(self.ISL, return_value=self.mock_sizeL):
-            with mock.patch(PATCH_UPDATE) as mock_upd_call:
-                self.w._setImageSizeLabel()
-
-        mock_upd_call.assert_called_once_with()
-
 
 class TestMethodSetImagePathLabel(TestDuplicateWidget):
 
@@ -341,14 +327,6 @@ class TestMethodSetImagePathLabel(TestDuplicateWidget):
             res = self.w._setImagePathLabel()
 
         self.assertEqual(res, self.mock_pathL)
-
-    def test_updateGeometry_called(self):
-        PATCH_UPDATE = 'PyQt5.QtWidgets.QWidget.updateGeometry'
-        with mock.patch(self.IPL, return_value=self.mock_pathL):
-            with mock.patch(PATCH_UPDATE) as mock_upd_call:
-                self.w._setImagePathLabel()
-
-        mock_upd_call.assert_called_once_with()
 
 
 class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):

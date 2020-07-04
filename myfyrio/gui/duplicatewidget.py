@@ -56,15 +56,13 @@ class DuplicateWidget(QtWidgets.QWidget):
                  parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
 
-        self._image = image
+        self.image = image
         self._conf = conf
 
         self._selected = False
 
-        self.setFixedWidth(self._conf['size'])
-
         self._layout = QtWidgets.QVBoxLayout(self)
-        self._layout.setAlignment(QtCore.Qt.AlignTop)
+        self._layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
         self._layout.setContentsMargins(0, 0, 0, 0)
 
         self.thumbnailWidget = self._setThumbnailWidget()
@@ -75,31 +73,30 @@ class DuplicateWidget(QtWidgets.QWidget):
         if self._conf['show_path']:
             self.imagePathLabel = self._setImagePathLabel()
 
+        self.setFixedWidth(self._conf['size'])
         self.setLayout(self._layout)
 
     def _setThumbnailWidget(self) -> thumbnailwidget.ThumbnailWidget:
         thumbnailWidget = thumbnailwidget.ThumbnailWidget(
-            self._image, self._conf['size'], self._conf['lazy']
+            self.image, self._conf['size'], self._conf['lazy']
         )
         self._layout.addWidget(thumbnailWidget)
         self._layout.setAlignment(thumbnailWidget, QtCore.Qt.AlignHCenter)
-        self.updateGeometry()
 
         return thumbnailWidget
 
     def _setSimilarityLabel(self) -> infolabel.SimilarityLabel:
-        similarity = self._image.similarity()
+        similarity = self.image.similarity()
         similarityLabel = infolabel.SimilarityLabel(
             f'{similarity}%', self._conf['size']
         )
         self._layout.addWidget(similarityLabel)
-        self.updateGeometry()
 
         return similarityLabel
 
     def _setImageSizeLabel(self) -> infolabel.ImageSizeLabel:
         try:
-            width, height = self._image.width, self._image.height
+            width, height = self.image.width, self.image.height
 
         except OSError as e:
             logger.exception(e)
@@ -108,7 +105,7 @@ class DuplicateWidget(QtWidgets.QWidget):
         size_format = core.SizeFormat(self._conf['size_format'])
 
         try:
-            filesize = self._image.filesize(size_format)
+            filesize = self.image.filesize(size_format)
 
         except OSError as e:
             logger.exception(e)
@@ -118,16 +115,14 @@ class DuplicateWidget(QtWidgets.QWidget):
             width, height, filesize, size_format.name, self._conf['size']
         )
         self._layout.addWidget(imageSizeLabel)
-        self.updateGeometry()
 
         return imageSizeLabel
 
     def _setImagePathLabel(self) -> infolabel.ImagePathLabel:
         imagePathLabel = infolabel.ImagePathLabel(
-            self._image.path, self._conf['size']
+            self.image.path, self._conf['size']
         )
         self._layout.addWidget(imagePathLabel)
-        self.updateGeometry()
 
         return imagePathLabel
 
@@ -143,7 +138,7 @@ class DuplicateWidget(QtWidgets.QWidget):
         else:
             command = 'Unknown platform'
 
-        path = self._image.path
+        path = self.image.path
 
         try:
             subprocess.run([command, path], check=True)
@@ -156,7 +151,7 @@ class DuplicateWidget(QtWidgets.QWidget):
     def renameImage(self) -> None:
         '''Rename the image'''
 
-        name = pathlib.Path(self._image.path).name
+        name = pathlib.Path(self.image.path).name
         new_name, ok = QtWidgets.QInputDialog.getText(
             self,
             'New name',
@@ -165,7 +160,7 @@ class DuplicateWidget(QtWidgets.QWidget):
         )
         if ok:
             try:
-                self._image.rename(new_name)
+                self.image.rename(new_name)
 
             except FileExistsError:
                 err_msg = f'File with the name "{new_name}" already exists'
@@ -178,7 +173,7 @@ class DuplicateWidget(QtWidgets.QWidget):
                 errornotifier.errorMessage([err_msg])
 
             else:
-                self.imagePathLabel.setText(self._image.path)
+                self.imagePathLabel.setText(self.image.path)
 
     def contextMenuEvent(self, event) -> None:
         menu = QtWidgets.QMenu(self)
@@ -220,7 +215,7 @@ class DuplicateWidget(QtWidgets.QWidget):
 
     def _callOnImage(self, func: Callable[..., None], *args, **kwargs) -> None:
         try:
-            func(self._image, *args, **kwargs)
+            func(self.image, *args, **kwargs)
 
         except OSError as e:
             logger.exception(e)
@@ -231,7 +226,7 @@ class DuplicateWidget(QtWidgets.QWidget):
             self.hide()
 
             if self._conf['delete_dirs']:
-                self._image.del_parent_dir()
+                self.image.del_parent_dir()
 
     def delete(self):
         '''Delete the image from the disk, hide its "DuplicateWidget"
