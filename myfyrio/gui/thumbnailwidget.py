@@ -49,16 +49,12 @@ class ThumbnailWidget(QtWidgets.QLabel):
         super().__init__(parent)
 
         self._image = image
-        self._size = thumbnail_size
+        self._size = thumbnail_size - 2 * self.lineWidth()
         self._lazy = lazy
 
         self.empty = True
 
-        self.setSizePolicy(QtWidgets.QSizePolicy.Fixed,
-                           QtWidgets.QSizePolicy.Fixed)
-
         self.setFrameStyle(QtWidgets.QFrame.Box)
-
         self._pixmap = self._setEmptyPixmap()
 
         if lazy:
@@ -74,12 +70,10 @@ class ThumbnailWidget(QtWidgets.QLabel):
         width, height = self._image.scaling_dimensions(self._size)
         self.setFixedWidth(width)
         self.setFixedHeight(height)
-        self.updateGeometry()
 
     def _setEmptyPixmap(self) -> QtGui.QPixmap:
         pixmap = QtGui.QPixmap()
         self.setPixmap(pixmap)
-        self.updateGeometry()
 
         self.empty = True
 
@@ -93,7 +87,6 @@ class ThumbnailWidget(QtWidgets.QLabel):
                 self._pixmap = self._errorThumbnail()
 
             self.setPixmap(self._pixmap)
-            self.updateGeometry()
 
             self.empty = False
             if self._lazy:

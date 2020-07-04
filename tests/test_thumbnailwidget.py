@@ -51,6 +51,8 @@ class TestThumbnailWidget(TestCase):
         self.mock_image = mock.Mock(spec=core.Image)
         self.mock_image.thumb = None
         self.mock_image.path = 'path'
+        self.mock_image.scaling_dimensions.return_value = (1, 1)
+
         self.size = 333
         self.lazy = True
 
@@ -66,16 +68,9 @@ class TestThumbnailWidgetMethodInit(TestThumbnailWidget):
         self.assertEqual(self.w.KEEP_TIME_MSEC, 10000)
 
         self.assertEqual(self.w._image, self.mock_image)
-        self.assertEqual(self.w._size, self.size)
+        self.assertEqual(self.w._size, 331)
         self.assertEqual(self.w._lazy, self.lazy)
         self.assertTrue(self.w.empty, True)
-
-    def test_size_policy(self):
-        size_policy = self.w.sizePolicy()
-        self.assertEqual(size_policy.horizontalPolicy(),
-                         QtWidgets.QSizePolicy.Fixed)
-        self.assertEqual(size_policy.verticalPolicy(),
-                         QtWidgets.QSizePolicy.Fixed)
 
     def test_frame_style(self):
         self.assertEqual(self.w.frameStyle(), QtWidgets.QFrame.Box)
@@ -84,43 +79,38 @@ class TestThumbnailWidgetMethodInit(TestThumbnailWidget):
         mock_pixmap = mock.Mock(spec=QtGui.QPixmap)
         with mock.patch(self.ThW+'_setEmptyPixmap',
                         return_value=mock_pixmap) as mock_empty_call:
-            with mock.patch(self.ThW+'_setSize'):
-                w = thumbnailwidget.ThumbnailWidget(self.mock_image,
-                                                    self.size, self.lazy)
+            w = thumbnailwidget.ThumbnailWidget(self.mock_image,
+                                                self.size, self.lazy)
 
         mock_empty_call.assert_called_once_with()
         self.assertEqual(w._pixmap, mock_pixmap)
 
     def test_setSize_called(self):
         with mock.patch(self.ThW+'_setSize') as mock_size_call:
-            thumbnailwidget.ThumbnailWidget(self.mock_image, self.size,
-                                            True)
+            thumbnailwidget.ThumbnailWidget(self.mock_image, self.size, True)
 
         mock_size_call.assert_called_once_with()
 
     def test_QTimer_made_if_lazy(self):
-        with mock.patch(self.ThW+'_setEmptyPixmap'):
-            with mock.patch(self.ThW+'_setSize'):
-                w = thumbnailwidget.ThumbnailWidget(self.mock_image,
-                                                    self.size, True)
+        w = thumbnailwidget.ThumbnailWidget(self.mock_image, self.size, True)
 
         self.assertIsInstance(w._qtimer, QtCore.QTimer)
 
     def test_makeThumbnail_called_if_not_lazy(self):
-        with mock.patch(self.ThW+'_setEmptyPixmap'):
-            with mock.patch(self.ThW+'_makeThumbnail') as mock_make_call:
-                with mock.patch(self.ThW+'_setThumbnail'):
-                    thumbnailwidget.ThumbnailWidget(self.mock_image, self.size,
-                                                    False)
+        with mock.patch(self.ThW+'_makeThumbnail') as mock_make_call:
+            with mock.patch(self.ThW+'_setThumbnail'):
+                thumbnailwidget.ThumbnailWidget(
+                    self.mock_image, self.size, False
+                )
 
         mock_make_call.assert_called_once_with()
 
     def test_setThumbnail_called_if_not_lazy(self):
-        with mock.patch(self.ThW+'_setEmptyPixmap'):
-            with mock.patch(self.ThW+'_makeThumbnail'):
-                with mock.patch(self.ThW+'_setThumbnail') as mock_set_call:
-                    thumbnailwidget.ThumbnailWidget(self.mock_image, self.size,
-                                                    False)
+        with mock.patch(self.ThW+'_makeThumbnail'):
+            with mock.patch(self.ThW+'_setThumbnail') as mock_set_call:
+                thumbnailwidget.ThumbnailWidget(
+                    self.mock_image, self.size, False
+                )
 
         mock_set_call.assert_called_once_with()
 
@@ -137,25 +127,23 @@ class TestThumbnailWidgetMethodSetSize(TestThumbnailWidget):
     def test_scaling_dimensions_called_with_attr_size(self):
         self.w._setSize()
 
-        self.mock_image.scaling_dimensions.assert_called_once_with(self.size)
+        self.mock_image.scaling_dimensions.assert_called_once_with(
+            self.w._size
+        )
 
     def test_fixed_width_set(self):
+        self.w.setLineWidth(11)
         self.w._setSize()
 
         self.assertEqual(self.w.minimumWidth(), self.width)
         self.assertEqual(self.w.maximumWidth(), self.width)
 
     def test_fixed_height_set(self):
+        self.w.setLineWidth(11)
         self.w._setSize()
 
         self.assertEqual(self.w.minimumHeight(), self.height)
         self.assertEqual(self.w.maximumHeight(), self.height)
-
-    def test_updateGeometry_called(self):
-        with mock.patch(self.ThW+'updateGeometry') as mock_upd_call:
-            self.w._setEmptyPixmap()
-
-        mock_upd_call.assert_called_once_with()
 
 
 class TestThumbnailWidgetMethodSetEmptyPixmap(TestThumbnailWidget):
@@ -182,14 +170,6 @@ class TestThumbnailWidgetMethodSetEmptyPixmap(TestThumbnailWidget):
                 self.w._setEmptyPixmap()
 
         mock_setPixmap_call.assert_called_once_with(mock_pixmap)
-
-    def test_updateGeometry_called(self):
-        with mock.patch('PyQt5.QtGui.QPixmap'):
-            with mock.patch(self.ThW+'setPixmap'):
-                with mock.patch(self.ThW+'updateGeometry') as mock_upd_call:
-                    self.w._setEmptyPixmap()
-
-        mock_upd_call.assert_called_once_with()
 
     def test_attr_empty_set_to_True(self):
         self.w.empty = False
@@ -244,15 +224,6 @@ class TestThumbnailWidgetMethodSetThumbnail(TestThumbnailWidget):
                 self.w._setThumbnail()
 
         mock_setPixmap_call.assert_called_once_with('error_image')
-
-    def test_updateGeometry_called_if_not_lazy(self):
-        self.w._lazy = False
-        self.mock_pixmap.convertFromImage.return_value = True
-        with mock.patch(self.ThW+'setPixmap'):
-            with mock.patch(self.ThW+'updateGeometry') as mock_upd_call:
-                self.w._setThumbnail()
-
-        mock_upd_call.assert_called_once_with()
 
     def test_empty_attr_set_to_False_if_not_lazy(self):
         self.w._lazy = False
@@ -313,16 +284,6 @@ class TestThumbnailWidgetMethodSetThumbnail(TestThumbnailWidget):
                     self.w._setThumbnail()
 
         mock_setPixmap_call.assert_called_once_with('error_image')
-
-    def test_updateGeometry_called_if_lazy_and_visible(self):
-        self.w._lazy = True
-        self.mock_pixmap.convertFromImage.return_value = True
-        with mock.patch(self.ThW+'isVisible', return_value=True):
-            with mock.patch(self.ThW+'setPixmap'):
-                with mock.patch(self.ThW+'updateGeometry') as mock_upd_call:
-                    self.w._setThumbnail()
-
-        mock_upd_call.assert_called_once_with()
 
     def test_empty_attr_set_to_False_if_lazy_and_visible(self):
         self.w._lazy = True
