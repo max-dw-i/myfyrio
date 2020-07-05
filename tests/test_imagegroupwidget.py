@@ -138,6 +138,15 @@ class TestImageGroupWidgetMethodAddDuplicateWidget(TestImageGroupWidget):
 
         self.w._layout.insertWidget.assert_called_once_with(0, self.mock_duplW)
 
+    def test_inserted_DuplicateWidget_layout_alignment_set_to_AlignTop(self):
+        with mock.patch(self.DW, return_value=self.mock_duplW):
+            with mock.patch(self.IGW+'_insertIndex', return_value=0):
+                self.w.addDuplicateWidget(self.mock_image)
+
+        self.w._layout.setAlignment.assert_called_once_with(
+            self.mock_duplW, QtCore.Qt.AlignTop
+        )
+
     def test_added_DuplicateWidget_returned(self):
         with mock.patch(self.DW, return_value=self.mock_duplW):
             with mock.patch(self.IGW+'_insertIndex', return_value=0):

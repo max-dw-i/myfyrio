@@ -62,7 +62,6 @@ class DuplicateWidget(QtWidgets.QWidget):
         self._selected = False
 
         self._layout = QtWidgets.QVBoxLayout(self)
-        self._layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
         self._layout.setContentsMargins(0, 0, 0, 0)
 
         self.thumbnailWidget = self._setThumbnailWidget()

@@ -80,8 +80,6 @@ class TestDuplicateWidgetMethodInit(TestDuplicateWidget):
         self.assertEqual(margins.left(), 0)
 
         self.assertIsInstance(self.w._layout, QtWidgets.QVBoxLayout)
-        self.assertEqual(self.w._layout.sizeConstraint(),
-                         QtWidgets.QLayout.SetFixedSize)
 
     def test_setThumbnailWidget_called(self):
         with mock.patch(self.DW+'_setThumbnailWidget') as mock_th_call:

@@ -74,6 +74,7 @@ class ImageGroupWidget(QtWidgets.QWidget):
         i = self._insertIndex(dupl_w)
         self.widgets.insert(i, dupl_w)
         self._layout.insertWidget(i, dupl_w)
+        self._layout.setAlignment(dupl_w, QtCore.Qt.AlignTop)
 
         return dupl_w
 
