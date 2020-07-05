@@ -98,45 +98,54 @@ class TestMainWindowMethodInit(TestMainWindow):
 
 class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
 
+    PACTH_IVW = 'myfyrio.gui.imageviewwidget.ImageViewWidget'
     PATCH_ERRN = 'myfyrio.gui.errornotifier.'
 
     def setUp(self):
+        self.mw.scrollArea = mock.Mock(spec=QtWidgets.QScrollArea)
+
         self.mock_IVW = mock.Mock(spec=imageviewwidget.ImageViewWidget)
-        self.mw.imageViewWidget = self.mock_IVW
 
-    def test_preferences_conf_assigned_to_attr_conf(self):
-        self.mw._setImageViewWidget()
+    def test_ImageViewWidget_called_with_conf_and_parent_args(self):
+        with mock.patch(self.PACTH_IVW) as mock_IVW_call:
+            self.mw._setImageViewWidget()
 
-        self.assertEqual(self.mw.imageViewWidget.conf,
-                         self.mw.preferencesWindow.conf)
+        mock_IVW_call.assert_called_once_with(
+            self.mw.preferencesWindow.conf, self.mw
+        )
 
     def test_finished_signal_connected_to_6_slots(self):
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         self.assertEqual(len(self.mock_IVW.finished.connect.call_args_list), 6)
 
     def test_finished_signal_connected_to_processProg_setMaxValue(self):
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.processProg.setMaxValue)]
         self.mock_IVW.finished.connect.assert_has_calls(calls)
 
     def test_finished_signal_connected_to_stopBtn_disable(self):
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.stopBtn.disable)]
         self.mock_IVW.finished.connect.assert_has_calls(calls)
 
     def test_finished_signal_connected_to_startBtn_finished(self):
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.startBtn.finished)]
         self.mock_IVW.finished.connect.assert_has_calls(calls)
 
     def test_finished_signal_connected_to_autoSelectBtn_enable(self):
-        self.mw.imageViewWidget.widgets = ['widget']
+        self.mock_IVW.widgets = ['widget']
         self.mw.autoSelectBtn.setEnabled(False)
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         call_args_list = self.mock_IVW.finished.connect.call_args_list
         f = call_args_list[3][0][0]
@@ -145,9 +154,10 @@ class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
         self.assertTrue(self.mw.autoSelectBtn.isEnabled())
 
     def test_finished_signal_connected_to_autoSelectBtn_disable(self):
-        self.mw.imageViewWidget.widgets = []
+        self.mock_IVW.widgets = []
         self.mw.autoSelectBtn.setEnabled(True)
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         call_args_list = self.mock_IVW.finished.connect.call_args_list
         f = call_args_list[3][0][0]
@@ -156,9 +166,10 @@ class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
         self.assertFalse(self.mw.autoSelectBtn.isEnabled())
 
     def test_finished_connected_to_menubar_disableAutoSelectAction(self):
-        self.mw.imageViewWidget.widgets = ['widget']
+        self.mock_IVW.widgets = ['widget']
         self.mw.autoSelectAction.setEnabled(False)
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         call_args_list = self.mock_IVW.finished.connect.call_args_list
         f = call_args_list[4][0][0]
@@ -167,9 +178,10 @@ class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
         self.assertTrue(self.mw.autoSelectAction.isEnabled())
 
     def test_finished_signal_connected_to_menubar_enableAutoSelectAction(self):
-        self.mw.imageViewWidget.widgets = []
+        self.mock_IVW.widgets = []
         self.mw.autoSelectAction.setEnabled(True)
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         call_args_list = self.mock_IVW.finished.connect.call_args_list
         f = call_args_list[4][0][0]
@@ -179,7 +191,8 @@ class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
 
     def test_finished_signal_connected_to_errorMessage(self):
         self.mw._errors = ['error']
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         call_args_list = self.mock_IVW.finished.connect.call_args_list
         f = call_args_list[5][0][0]
@@ -189,51 +202,59 @@ class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
         mock_err_call.assert_called_once_with(['error'])
 
     def test_error_signal_connected_to_attr_errors_append_method(self):
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         self.mock_IVW.error.connect.assert_called_once_with(
             self.mw._errors.append
         )
 
     def test_test_selected_signal_connected_to_6_slots(self):
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         self.assertEqual(
             len(self.mock_IVW.selected.connect.call_args_list), 6
         )
 
     def test_selected_signal_connected_to_moveBtn_setEnabled(self):
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.moveBtn.setEnabled)]
         self.mock_IVW.selected.connect.assert_has_calls(calls)
 
     def test_selected_signal_connected_to_deleteBtn_setEnabled(self):
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.deleteBtn.setEnabled)]
         self.mock_IVW.selected.connect.assert_has_calls(calls)
 
     def test_selected_signal_connected_to_unselectBtn_setEnabled(self):
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.unselectBtn.setEnabled)]
         self.mock_IVW.selected.connect.assert_has_calls(calls)
 
     def test_selected_signal_connected_to_moveAction_setEnabled(self):
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.moveAction.setEnabled)]
         self.mock_IVW.selected.connect.assert_has_calls(calls)
 
     def test_selected_signal_connected_to_deleteAction_setEnabled(self):
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.deleteAction.setEnabled)]
         self.mock_IVW.selected.connect.assert_has_calls(calls)
 
     def test_selected_signal_connected_to_unselectAction_setEnabled(self):
-        self.mw._setImageViewWidget()
+        with mock.patch(self.PACTH_IVW, return_value=self.mock_IVW):
+            self.mw._setImageViewWidget()
 
         calls = [mock.call(self.mw.unselectAction.setEnabled)]
         self.mock_IVW.selected.connect.assert_has_calls(calls)

@@ -22,7 +22,6 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
 
-from myfyrio import config
 from myfyrio.gui import duplicatewidget, imagegroupwidget, imageviewwidget
 
 # Configure a logger for testing purposes
@@ -47,13 +46,15 @@ class TestImageViewWidget(TestCase):
     IVW = VIEW_MODULE + 'ImageViewWidget.'
 
     def setUp(self):
-        self.w = imageviewwidget.ImageViewWidget()
+        self.conf = {'param': 'val'}
+
+        self.w = imageviewwidget.ImageViewWidget(self.conf)
 
 
 class TestImageViewWidgetMethodInit(TestImageViewWidget):
 
     def test_default_values(self):
-        self.assertIsNone(self.w.conf)
+        self.assertEqual(self.w._conf, self.conf)
         self.assertListEqual(self.w.widgets, [])
         self.assertListEqual(self.w._errors, [])
 
@@ -142,25 +143,17 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
     def setUp(self):
         super().setUp()
 
-        self.mock_conf = mock.Mock(spec=config.Config)
-        self.w.conf = self.mock_conf
-
         self.w._layout = mock.Mock(spec=QtWidgets.QVBoxLayout)
 
         self.image_group = (0, ['image1', 'image2'])
         self.mock_groupW = mock.Mock(spec=imagegroupwidget.ImageGroupWidget)
         self.mock_groupW.widgets = []
 
-    def test_raise_ValueError_if_attr_conf_is_None(self):
-        self.w.conf = None
-        with self.assertRaises(ValueError):
-            self.w._render(self.image_group)
-
     def test_call_ImageGroupWidget_with_conf_arg_if_new_group(self):
         with mock.patch(self.IGW, return_value=self.mock_groupW) as mock_widg:
             self.w._render(self.image_group)
 
-        mock_widg.assert_called_once_with(self.mock_conf)
+        mock_widg.assert_called_once_with(self.conf)
 
     def test_ImageGroupWidget_error_connect_to_attr_errors_append_if_new(self):
         with mock.patch(self.IGW, return_value=self.mock_groupW):

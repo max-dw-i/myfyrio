@@ -34,6 +34,7 @@ logger = Logger.getLogger('imageviewwidget')
 class ImageViewWidget(QtWidgets.QWidget):
     '''Widget rendering found duplicate images
 
+    :param conf:                programme's preferences as a "Config" object,
     :param parent:              widget's parent (optional),
 
     :signal selected:           True - there are selected "DuplicateWidget"s,
@@ -50,10 +51,11 @@ class ImageViewWidget(QtWidgets.QWidget):
     interrupted = QtCore.pyqtSignal()
     error = QtCore.pyqtSignal(str)
 
-    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, conf: config.Config,
+                 parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent=parent)
 
-        self.conf: config.Config = None
+        self._conf = conf
         self.widgets: List[imagegroupwidget.ImageGroupWidget] = []
 
         self._errors: List[str] = []
@@ -95,13 +97,8 @@ class ImageViewWidget(QtWidgets.QWidget):
                 msg_box.exec()
 
     def _render(self, image_group: Tuple[core.GroupIndex, core.Group]) -> None:
-        if self.conf is None:
-            err_msg = ('"Config" object must be assigned to the attribute '
-                       '"conf" before continuing')
-            raise ValueError(err_msg)
-
         if len(self.widgets) == image_group[0]:
-            group_w = imagegroupwidget.ImageGroupWidget(self.conf)
+            group_w = imagegroupwidget.ImageGroupWidget(self._conf)
             group_w.error.connect(self._errors.append)
 
             self._layout.addWidget(group_w)

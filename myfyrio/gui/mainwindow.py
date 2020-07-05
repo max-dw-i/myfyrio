@@ -25,8 +25,8 @@ from typing import List
 from PyQt5 import QtCore, QtGui, QtWidgets, uic
 
 from myfyrio import resources, workers
-from myfyrio.gui import (aboutwindow, errornotifier, preferenceswindow,
-                         sensitivityradiobutton)
+from myfyrio.gui import (aboutwindow, errornotifier, imageviewwidget,
+                         preferenceswindow, sensitivityradiobutton)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -61,7 +61,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self._setMenubar()
 
     def _setImageViewWidget(self) -> None:
-        self.imageViewWidget.conf = self.preferencesWindow.conf
+        self.imageViewWidget = imageviewwidget.ImageViewWidget(
+            self.preferencesWindow.conf, self
+        )
 
         self.imageViewWidget.finished.connect(self.processProg.setMaxValue)
         self.imageViewWidget.finished.connect(self.stopBtn.disable)
@@ -88,6 +90,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.imageViewWidget.selected.connect(self.moveAction.setEnabled)
         self.imageViewWidget.selected.connect(self.deleteAction.setEnabled)
         self.imageViewWidget.selected.connect(self.unselectAction.setEnabled)
+
+        self.scrollArea.setWidget(self.imageViewWidget)
 
     def _setFolderPathsGroupBox(self) -> None:
         self.pathsList.hasSelection.connect(self.delFolderBtn.setEnabled)

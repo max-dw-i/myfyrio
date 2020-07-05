@@ -59,7 +59,7 @@
       <property name="alignment">
        <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
       </property>
-      <widget class="ImageViewWidget" name="imageViewWidget">
+      <widget class="QWidget" name="imageViewWidget">
        <property name="geometry">
         <rect>
          <x>0</x>
@@ -798,12 +798,6 @@
    <class>PathsListWidget</class>
    <extends>QListWidget</extends>
    <header>myfyrio/gui/pathslistwidget</header>
-  </customwidget>
-  <customwidget>
-   <class>ImageViewWidget</class>
-   <extends>QWidget</extends>
-   <header>myfyrio/gui/imageviewwidget</header>
-   <container>1</container>
   </customwidget>
   <customwidget>
    <class>HighRadioButton</class>
