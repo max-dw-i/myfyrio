@@ -190,7 +190,7 @@ class MainWindow(QtWidgets.QMainWindow):
         p.groups_found.connect(self.groupsLbl.updateNumber)
 
         p.update_progressbar.connect(self.processProg.setValue)
-        p.image_group.connect(self.imageViewWidget.render,
+        p.image_group.connect(self.imageViewWidget.addGroup,
                               QtCore.Qt.BlockingQueuedConnection)
         p.error.connect(self._errors.append)
         p.interrupted.connect(self.startBtn.finished)

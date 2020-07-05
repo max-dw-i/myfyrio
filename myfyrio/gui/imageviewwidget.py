@@ -64,8 +64,10 @@ class ImageViewWidget(QtWidgets.QWidget):
         self._layout.setSpacing(10)
         self.setLayout(self._layout)
 
-    def render(self, image_group: Tuple[core.GroupIndex, core.Group]) -> None:
-        '''Render "ImageGroupWidget" with grouped duplicate images
+    def addGroup(self, image_group: Tuple[core.GroupIndex, core.Group]) \
+        -> None:
+        '''Add a new "ImageGroupWidget" with grouped duplicate images or
+        change existing one
 
         :param image_group: tuple with the group index and list of grouped
                             duplicate images

@@ -110,13 +110,6 @@ class TestMainWindowMethodSetImageViewWidget(TestMainWindow):
         self.assertEqual(self.mw.imageViewWidget.conf,
                          self.mw.preferencesWindow.conf)
 
-    def test_updateProgressBar_signal_connected_to_processProg_setValue(self):
-        self.mw._setImageViewWidget()
-
-        self.mock_IVW.updateProgressBar.connect.assert_called_once_with(
-            self.mw.processProg.setValue
-        )
-
     def test_finished_signal_connected_to_6_slots(self):
         self.mw._setImageViewWidget()
 
@@ -711,7 +704,8 @@ class TestMainWindowMethodStartProcessing(TestMainWindow):
             self.mw._startProcessing()
 
         self.mock_proc.image_group.connect.assert_called_once_with(
-            self.mw.imageViewWidget.render, QtCore.Qt.BlockingQueuedConnection
+            self.mw.imageViewWidget.addGroup,
+            QtCore.Qt.BlockingQueuedConnection
         )
 
     def test_error_connected_to_attr_errors_append_method(self):

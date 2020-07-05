@@ -70,7 +70,7 @@ class TestImageViewWidgetMethodInit(TestImageViewWidget):
                          QtWidgets.QLayout.SetFixedSize)
 
 
-class TestImageViewWidgetMethodRender(TestImageViewWidget):
+class TestImageViewWidgetMethodAddGroup(TestImageViewWidget):
 
     def setUp(self):
         super().setUp()
@@ -82,19 +82,19 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
 
     def test_render_called_if_image_groups_found(self):
         with mock.patch(self.IVW+'_render') as mock_render_call:
-            self.w.render(self.image_group)
+            self.w.addGroup(self.image_group)
 
         mock_render_call.assert_called_once_with(self.image_group)
 
     def test_logging_if_render_raise_Exception(self):
         with mock.patch(self.IVW+'_render', side_effect=Exception):
             with self.assertLogs('main.imageviewwidget', 'ERROR'):
-                self.w.render(self.image_group)
+                self.w.addGroup(self.image_group)
 
     def test_emit_error_signal_with_err_msg_if_render_raise_Exception(self):
         spy = QtTest.QSignalSpy(self.w.error)
         with mock.patch(self.IVW+'_render', side_effect=Exception('Error')):
-            self.w.render(self.image_group)
+            self.w.addGroup(self.image_group)
 
         self.assertEqual(len(spy), 1)
         self.assertEqual(spy[0][0], 'Error')
@@ -102,19 +102,19 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
     def test_emit_interrupted_signal_if_render_raise_Exception(self):
         spy = QtTest.QSignalSpy(self.w.interrupted)
         with mock.patch(self.IVW+'_render', side_effect=Exception):
-            self.w.render(self.image_group)
+            self.w.addGroup(self.image_group)
 
         self.assertEqual(len(spy), 1)
 
     def test_render_not_called_if_empty_image_groups(self):
         with mock.patch(self.IVW+'_render') as mock_render_call:
-            self.w.render(self.empty_image_group)
+            self.w.addGroup(self.empty_image_group)
 
         mock_render_call.assert_not_called()
 
     def test_finished_signal_emitted_ifempty__image_group(self):
         spy = QtTest.QSignalSpy(self.w.finished)
-        self.w.render(self.empty_image_group)
+        self.w.addGroup(self.empty_image_group)
 
         self.assertEqual(len(spy), 1)
 
@@ -122,7 +122,7 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
     def test_QMessageBox_not_called_if_empty_image_group__no_widgets(self,
                                                                      mock_box):
         self.w.widgets = []
-        self.w.render(self.empty_image_group)
+        self.w.addGroup(self.empty_image_group)
 
         mock_box.assert_called_once()
 
@@ -130,12 +130,12 @@ class TestImageViewWidgetMethodRender(TestImageViewWidget):
     def test_QMessageBox_called_if_empty_image_group__widgets_found(self,
                                                                     mock_box):
 
-        self.w.render(self.empty_image_group)
+        self.w.addGroup(self.empty_image_group)
 
         mock_box.assert_not_called()
 
 
-class TestImageViewWidgetMethodPrivateRender(TestImageViewWidget):
+class TestImageViewWidgetMethodRender(TestImageViewWidget):
 
     IGW = 'myfyrio.gui.imagegroupwidget.ImageGroupWidget'
 
