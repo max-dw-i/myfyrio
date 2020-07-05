@@ -42,7 +42,8 @@ class ImageGroupWidget(QtWidgets.QWidget):
 
     error = QtCore.pyqtSignal(str)
 
-    def __init__(self, image_group: List[core.Image], conf: config.Config,
+    def __init__(self, conf: config.Config,
+                 image_group: List[core.Image] = None,
                  parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
 
@@ -52,11 +53,13 @@ class ImageGroupWidget(QtWidgets.QWidget):
         self._visible_num = 0
 
         self._layout = QtWidgets.QHBoxLayout(self)
-        self._layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+        self._layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
+        self._layout.setContentsMargins(0, 0, 0, 0)
         self._layout.setSpacing(10)
 
-        for image in image_group:
-            self.addDuplicateWidget(image)
+        if image_group is not None:
+            for image in image_group:
+                self.addDuplicateWidget(image)
 
         self.setLayout(self._layout)
 
@@ -71,7 +74,6 @@ class ImageGroupWidget(QtWidgets.QWidget):
         i = self._insertIndex(dupl_w)
         self.widgets.insert(i, dupl_w)
         self._layout.insertWidget(i, dupl_w)
-        self.updateGeometry()
 
         return dupl_w
 
@@ -79,12 +81,12 @@ class ImageGroupWidget(QtWidgets.QWidget):
         key = core.Sort(self._conf['sort']).key()
 
         left, right = 0, len(self.widgets) - 1
-        new_w_key = key(new_w._image)
+        new_w_key = key(new_w.image)
 
         while left <= right:
             middle = (right + left) // 2
 
-            if new_w_key < key(self.widgets[middle]._image):
+            if new_w_key < key(self.widgets[middle].image):
                 right = middle - 1
             else:
                 left = middle + 1

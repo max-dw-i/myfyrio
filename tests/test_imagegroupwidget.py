@@ -43,8 +43,8 @@ class TestImageGroupWidget(TestCase):
         self.mock_image = mock.Mock(spec=core.Image)
         self.image_group = [self.mock_image]
         with mock.patch(self.IGW+'addDuplicateWidget'):
-            self.w = imagegroupwidget.ImageGroupWidget(self.image_group,
-                                                       self.conf)
+            self.w = imagegroupwidget.ImageGroupWidget(self.conf,
+                                                       self.image_group)
 
 
 class TestImageGroupWidgetMethodInit(TestImageGroupWidget):
@@ -55,16 +55,28 @@ class TestImageGroupWidgetMethodInit(TestImageGroupWidget):
         self.assertEqual(self.w._visible_num, 0)
 
     def test_widget_layout(self):
+        margins = self.w._layout.contentsMargins()
+        self.assertEqual(margins.top(), 0)
+        self.assertEqual(margins.right(), 0)
+        self.assertEqual(margins.bottom(), 0)
+        self.assertEqual(margins.left(), 0)
+
         self.assertEqual(self.w._layout.spacing(), 10)
         self.assertIsInstance(self.w._layout, QtWidgets.QHBoxLayout)
-        self.assertEqual(self.w._layout.alignment(),
-                         QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+        self.assertEqual(self.w._layout.sizeConstraint(),
+                         QtWidgets.QLayout.SetFixedSize)
 
-    def test_addDuplicateWidget_called_with_image_group_arg(self):
+    def test_addDuplicateWidget_called_with_image_group_arg_if_passed(self):
         with mock.patch(self.IGW+'addDuplicateWidget') as mock_dupl_call:
-            imagegroupwidget.ImageGroupWidget(self.image_group, self.conf)
+            imagegroupwidget.ImageGroupWidget(self.conf, self.image_group)
 
         mock_dupl_call.assert_called_once_with(self.mock_image)
+
+    def test_addDuplicateWidget_not_called_if_image_group_not_passed(self):
+        with mock.patch(self.IGW+'addDuplicateWidget') as mock_dupl_call:
+            imagegroupwidget.ImageGroupWidget(self.conf)
+
+        mock_dupl_call.assert_not_called()
 
 
 class TestImageGroupWidgetMethodAddDuplicateWidget(TestImageGroupWidget):
@@ -126,15 +138,6 @@ class TestImageGroupWidgetMethodAddDuplicateWidget(TestImageGroupWidget):
 
         self.w._layout.insertWidget.assert_called_once_with(0, self.mock_duplW)
 
-    def test_updateGeometry_called(self):
-        updateGem = 'PyQt5.QtWidgets.QWidget.updateGeometry'
-        with mock.patch(self.DW, return_value=self.mock_duplW):
-            with mock.patch(self.IGW+'_insertIndex', return_value=0):
-                with mock.patch(updateGem) as mock_upd_call:
-                    self.w.addDuplicateWidget(self.mock_image)
-
-        mock_upd_call.assert_called_once_with()
-
     def test_added_DuplicateWidget_returned(self):
         with mock.patch(self.DW, return_value=self.mock_duplW):
             with mock.patch(self.IGW+'_insertIndex', return_value=0):
@@ -153,12 +156,12 @@ class TestImageGroupWidgetMethodInsertIndex(TestImageGroupWidget):
         self.mock_Sort.key.return_value = lambda x: x
 
         self.mock_new_duplW = mock.Mock()
-        self.mock_new_duplW._image = 888
+        self.mock_new_duplW.image = 888
 
         self.mock_duplW1 = mock.Mock()
-        self.mock_duplW1._image = 1
+        self.mock_duplW1.image = 1
         self.mock_duplW2 = mock.Mock()
-        self.mock_duplW2._image = 2
+        self.mock_duplW2.image = 2
 
         self.w.widgets = [self.mock_duplW1, self.mock_duplW2]
 
@@ -171,21 +174,21 @@ class TestImageGroupWidgetMethodInsertIndex(TestImageGroupWidget):
         self.mock_Sort.key.assert_called_once_with()
 
     def test_new_widget_inserted_in_beginning(self):
-        self.mock_new_duplW._image = 0
+        self.mock_new_duplW.image = 0
         with mock.patch('myfyrio.core.Sort', return_value=self.mock_Sort):
             res = self.w._insertIndex(self.mock_new_duplW)
 
         self.assertEqual(res, 0)
 
     def test_new_widget_inserted_in_middle(self):
-        self.mock_new_duplW._image = 1.5
+        self.mock_new_duplW.image = 1.5
         with mock.patch('myfyrio.core.Sort', return_value=self.mock_Sort):
             res = self.w._insertIndex(self.mock_new_duplW)
 
         self.assertEqual(res, 1)
 
     def test_new_widget_inserted_in_end(self):
-        self.mock_new_duplW._image = 3
+        self.mock_new_duplW.image = 3
         with mock.patch('myfyrio.core.Sort', return_value=self.mock_Sort):
             res = self.w._insertIndex(self.mock_new_duplW)
 
