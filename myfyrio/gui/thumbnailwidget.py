@@ -20,11 +20,15 @@ along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 Module implementing widget viewing image thumbnails
 '''
 
+from typing import TYPE_CHECKING
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from myfyrio import core, resources, workers
+from myfyrio import resources, workers
 from myfyrio.logger import Logger
+
+if TYPE_CHECKING:
+    from myfyrio import core
 
 logger = Logger.getLogger('thumbnailwidget')
 
@@ -44,7 +48,7 @@ class ThumbnailWidget(QtWidgets.QLabel):
 
     KEEP_TIME_MSEC = 10000
 
-    def __init__(self, image: core.Image, thumbnail_size: int, lazy: bool,
+    def __init__(self, image: 'core.Image', thumbnail_size: int, lazy: bool,
                  parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
 

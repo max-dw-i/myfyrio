@@ -24,13 +24,16 @@ Module implementing widget representing a duplicate image
 import pathlib
 import subprocess
 import sys
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 from PyQt5 import QtCore, QtWidgets
 
-from myfyrio import config, core
+from myfyrio import core
 from myfyrio.gui import errornotifier, infolabel, thumbnailwidget
 from myfyrio.logger import Logger
+
+if TYPE_CHECKING:
+    from myfyrio import config
 
 logger = Logger.getLogger('duplicatewidget')
 
@@ -52,7 +55,7 @@ class DuplicateWidget(QtWidgets.QWidget):
     clicked = QtCore.pyqtSignal()
     error = QtCore.pyqtSignal(str)
 
-    def __init__(self, image: core.Image, conf: config.Config,
+    def __init__(self, image: core.Image, conf: 'config.Config',
                  parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
 

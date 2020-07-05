@@ -20,12 +20,14 @@ along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 Module implementing widget viewing the folders to search for images in
 '''
 
-from typing import List
+from typing import TYPE_CHECKING, List
 
 from PyQt5 import QtCore, QtWidgets
 
-from myfyrio import core
 from myfyrio.gui import multiselectionfiledialog
+
+if TYPE_CHECKING:
+    from myfyrio import core
 
 
 class PathsListWidget(QtWidgets.QListWidget):
@@ -68,7 +70,7 @@ class PathsListWidget(QtWidgets.QListWidget):
         else:
             self.hasItems.emit(False)
 
-    def paths(self) -> List[core.FolderPath]:
+    def paths(self) -> List['core.FolderPath']:
         '''Return all the folders the user added to the widget
 
         :return: list with the folder paths

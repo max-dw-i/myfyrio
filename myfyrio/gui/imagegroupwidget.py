@@ -21,12 +21,15 @@ Module implementing widget viewing a group of similar (duplicate) images
 '''
 
 
-from typing import Callable, List
+from typing import TYPE_CHECKING, Callable, List
 
 from PyQt5 import QtCore, QtWidgets
 
-from myfyrio import config, core
+from myfyrio import core
 from myfyrio.gui import duplicatewidget
+
+if TYPE_CHECKING:
+    from myfyrio import config
 
 
 class ImageGroupWidget(QtWidgets.QWidget):
@@ -42,7 +45,7 @@ class ImageGroupWidget(QtWidgets.QWidget):
 
     error = QtCore.pyqtSignal(str)
 
-    def __init__(self, conf: config.Config,
+    def __init__(self, conf: 'config.Config',
                  image_group: List[core.Image] = None,
                  parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)

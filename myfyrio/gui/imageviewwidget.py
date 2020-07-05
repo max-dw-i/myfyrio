@@ -20,13 +20,15 @@ along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 Module implementing widget rendering found duplicate images
 '''
 
-from typing import Callable, List, Tuple
+from typing import TYPE_CHECKING, Callable, List, Tuple
 
 from PyQt5 import QtCore, QtWidgets
 
-from myfyrio import config, core
 from myfyrio.gui import errornotifier, imagegroupwidget
 from myfyrio.logger import Logger
+
+if TYPE_CHECKING:
+    from myfyrio import config, core
 
 logger = Logger.getLogger('imageviewwidget')
 
@@ -51,7 +53,7 @@ class ImageViewWidget(QtWidgets.QWidget):
     interrupted = QtCore.pyqtSignal()
     error = QtCore.pyqtSignal(str)
 
-    def __init__(self, conf: config.Config,
+    def __init__(self, conf: 'config.Config',
                  parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent=parent)
 
@@ -66,7 +68,7 @@ class ImageViewWidget(QtWidgets.QWidget):
         self._layout.setSpacing(10)
         self.setLayout(self._layout)
 
-    def addGroup(self, image_group: Tuple[core.GroupIndex, core.Group]) \
+    def addGroup(self, image_group: Tuple['core.GroupIndex', 'core.Group']) \
         -> None:
         '''Add a new "ImageGroupWidget" with grouped duplicate images or
         change existing one
@@ -96,7 +98,8 @@ class ImageViewWidget(QtWidgets.QWidget):
                 )
                 msg_box.exec()
 
-    def _render(self, image_group: Tuple[core.GroupIndex, core.Group]) -> None:
+    def _render(self, image_group: Tuple['core.GroupIndex', 'core.Group']) \
+        -> None:
         if len(self.widgets) == image_group[0]:
             group_w = imagegroupwidget.ImageGroupWidget(self._conf)
             group_w.error.connect(self._errors.append)
