@@ -59,9 +59,9 @@ class ImageViewWidget(QtWidgets.QWidget):
         self._errors: List[str] = []
 
         self._layout = QtWidgets.QVBoxLayout()
-        self._layout.setContentsMargins(0, 0, 0, 0)
-        self._layout.setSpacing(0)
-        self._layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+        self._layout.setSizeConstraint(QtWidgets.QLayout.SetFixedSize)
+        self._layout.setContentsMargins(9, 9, 9, 9)
+        self._layout.setSpacing(10)
         self.setLayout(self._layout)
 
     def render(self, image_group: Tuple[core.GroupIndex, core.Group]) -> None:
@@ -99,22 +99,19 @@ class ImageViewWidget(QtWidgets.QWidget):
             raise ValueError(err_msg)
 
         if len(self.widgets) == image_group[0]:
-            group_w = imagegroupwidget.ImageGroupWidget(
-                image_group[1], self.conf
-            )
+            group_w = imagegroupwidget.ImageGroupWidget(self.conf)
             group_w.error.connect(self._errors.append)
-
-            for dup_w in group_w.widgets:
-                dup_w.clicked.connect(self._hasSelected)
 
             self._layout.addWidget(group_w)
             self.widgets.append(group_w)
-            self.updateGeometry()
+
+            new_images = image_group[1]
 
         else:
-            dupl_w = self.widgets[image_group[0]].addDuplicateWidget(
-                image_group[1][-1]
-            )
+            new_images = [image_group[1][-1]]
+
+        for img in new_images:
+            dupl_w = self.widgets[image_group[0]].addDuplicateWidget(img)
             dupl_w.clicked.connect(self._hasSelected)
 
     def _hasSelected(self) -> None:

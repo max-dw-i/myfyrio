@@ -22,7 +22,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtTest, QtWidgets
 
-from myfyrio import config, core
+from myfyrio import config
 from myfyrio.gui import duplicatewidget, imagegroupwidget, imageviewwidget
 
 # Configure a logger for testing purposes
@@ -59,14 +59,15 @@ class TestImageViewWidgetMethodInit(TestImageViewWidget):
 
     def test_layout(self):
         margins = self.w._layout.contentsMargins()
-        self.assertEqual(margins.top(), 0)
-        self.assertEqual(margins.right(), 0)
-        self.assertEqual(margins.bottom(), 0)
-        self.assertEqual(margins.left(), 0)
-        self.assertEqual(self.w._layout.spacing(), 0)
-        self.assertEqual(self.w._layout.alignment(),
-                         QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+        self.assertEqual(margins.top(), 9)
+        self.assertEqual(margins.right(), 9)
+        self.assertEqual(margins.bottom(), 9)
+        self.assertEqual(margins.left(), 9)
+
+        self.assertEqual(self.w._layout.spacing(), 10)
         self.assertIsInstance(self.w._layout, QtWidgets.QVBoxLayout)
+        self.assertEqual(self.w._layout.sizeConstraint(),
+                         QtWidgets.QLayout.SetFixedSize)
 
 
 class TestImageViewWidgetMethodRender(TestImageViewWidget):
@@ -146,8 +147,7 @@ class TestImageViewWidgetMethodPrivateRender(TestImageViewWidget):
 
         self.w._layout = mock.Mock(spec=QtWidgets.QVBoxLayout)
 
-        mock_image = mock.Mock(spec=core.Image)
-        self.image_group = (0, [mock_image])
+        self.image_group = (0, ['image1', 'image2'])
         self.mock_groupW = mock.Mock(spec=imagegroupwidget.ImageGroupWidget)
         self.mock_groupW.widgets = []
 
@@ -156,25 +156,17 @@ class TestImageViewWidgetMethodPrivateRender(TestImageViewWidget):
         with self.assertRaises(ValueError):
             self.w._render(self.image_group)
 
-    def test_call_ImageGroupWidget_with_image_group_and_conf_args_if_new(self):
+    def test_call_ImageGroupWidget_with_conf_arg_if_new_group(self):
         with mock.patch(self.IGW, return_value=self.mock_groupW) as mock_widg:
             self.w._render(self.image_group)
 
-        mock_widg.assert_called_once_with(self.image_group[1], self.mock_conf)
+        mock_widg.assert_called_once_with(self.mock_conf)
 
     def test_ImageGroupWidget_error_connect_to_attr_errors_append_if_new(self):
         with mock.patch(self.IGW, return_value=self.mock_groupW):
             self.w._render(self.image_group)
 
         self.mock_groupW.error.connect(self.w._errors.append)
-
-    def test_duplicate_widgets_connected_to_hasSelected_if_new_group(self):
-        mock_duplW = mock.Mock(spec=duplicatewidget.DuplicateWidget)
-        self.mock_groupW.widgets = [mock_duplW]
-        with mock.patch(self.IGW, return_value=self.mock_groupW):
-            self.w._render(self.image_group)
-
-        mock_duplW.clicked.connect.assert_called_once_with(self.w._hasSelected)
 
     def test_ImageGroupWidget_added_to_layout_if_new_group(self):
         with mock.patch(self.IGW, return_value=self.mock_groupW):
@@ -188,33 +180,49 @@ class TestImageViewWidgetMethodPrivateRender(TestImageViewWidget):
 
         self.assertListEqual(self.w.widgets, [self.mock_groupW])
 
-    def test_updateGeometry_called_if_new_group(self):
-        updateGem = 'PyQt5.QtWidgets.QWidget.updateGeometry'
+    def test_new_DuplicateWidgets_added_if_new_group(self):
+        mock_duplW1 = mock.Mock(spec=duplicatewidget.DuplicateWidget)
+        mock_duplW2 = mock.Mock(spec=duplicatewidget.DuplicateWidget)
+        self.mock_groupW.addDuplicateWidget.side_effect = [mock_duplW1,
+                                                           mock_duplW2]
         with mock.patch(self.IGW, return_value=self.mock_groupW):
-            with mock.patch(updateGem) as mock_upd_call:
-                self.w._render(self.image_group)
+            self.w._render(self.image_group)
 
-        mock_upd_call.assert_called_once_with()
+        calls = [mock.call('image1'), mock.call('image2')]
+        self.mock_groupW.addDuplicateWidget.assert_has_calls(calls)
+
+    def test_new_DuplicateWidgets_connected_to_hasSelected_if_new_group(self):
+        mock_duplW1 = mock.Mock(spec=duplicatewidget.DuplicateWidget)
+        mock_duplW2 = mock.Mock(spec=duplicatewidget.DuplicateWidget)
+        self.mock_groupW.addDuplicateWidget.side_effect = [mock_duplW1,
+                                                           mock_duplW2]
+        with mock.patch(self.IGW, return_value=self.mock_groupW):
+            self.w._render(self.image_group)
+
+        mock_duplW1.clicked.connect.assert_called_once_with(
+            self.w._hasSelected
+        )
+        mock_duplW2.clicked.connect.assert_called_once_with(
+            self.w._hasSelected
+        )
 
     def test_new_DuplicateWidget_added_to_existing_group(self):
-        mock_groupW = mock.Mock(spec=imagegroupwidget.ImageGroupWidget)
-        self.w.widgets = [mock_groupW]
-        with mock.patch(self.IGW, return_value=self.mock_groupW):
-            self.w._render((0, ['image1', 'image2']))
+        self.w.widgets = [self.mock_groupW]
+        self.image_group[1].append('image3')
+        self.w._render(self.image_group)
 
-        mock_groupW.addDuplicateWidget.assert_called_once_with('image2')
+        self.mock_groupW.addDuplicateWidget.assert_called_once_with('image3')
 
-    def test_new_DuplicateWidget_connected_to_method_hasSelected(self):
-        mock_groupW = mock.Mock(spec=imagegroupwidget.ImageGroupWidget)
-        self.w.widgets = [mock_groupW]
-
+    def test_new_DuplicateWidget_connected_to_hasSelected_if_existing(self):
+        self.w.widgets = [self.mock_groupW]
+        self.image_group[1].append('image3')
         mock_duplW = mock.Mock(spec=duplicatewidget.DuplicateWidget)
-        mock_groupW.addDuplicateWidget.return_value = mock_duplW
+        self.mock_groupW.addDuplicateWidget.return_value = mock_duplW
+        self.w._render(self.image_group)
 
-        with mock.patch(self.IGW, return_value=self.mock_groupW):
-            self.w._render((0, ['image1', 'image2']))
-
-        mock_duplW.clicked.connect.assert_called_once_with(self.w._hasSelected)
+        mock_duplW.clicked.connect.assert_called_once_with(
+            self.w._hasSelected
+        )
 
 
 class TestImageViewWidgetMethodHasSelected(TestImageViewWidget):
