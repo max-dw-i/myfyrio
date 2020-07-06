@@ -330,11 +330,15 @@ class TestMethodSetImagePathLabel(TestDuplicateWidget):
 class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
 
     PATCH_ERRN = 'myfyrio.gui.errornotifier.'
+    PLATFORM = sys.platform
 
     def setUp(self):
         super().setUp()
 
         self.mock_image.path = 'path'
+
+    def tearDown(self):
+        sys.platform = self.PLATFORM
 
     def test_subprocess_run_called_with_linux_img_viewer_cmd(self):
         sys.platform = 'linux'
