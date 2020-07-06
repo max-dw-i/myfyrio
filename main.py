@@ -23,10 +23,13 @@ from PyQt5.QtWidgets import QApplication
 import myfyrio.gui.mainwindow as mw
 from myfyrio.logger import Logger
 
-if __name__ == '__main__':
+def main() -> None:
     Logger.setLogger()
 
     app = QApplication(sys.argv)
     ex = mw.MainWindow()
     ex.show()
     app.exec()
+
+if __name__ == '__main__':
+    main()
