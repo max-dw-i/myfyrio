@@ -51,7 +51,7 @@ class UI(Resource):
 class Image(Resource):
     '''Enum class representing images and the paths to them'''
 
-    ICON = 'myfyrio/static/images/icon.svg'
+    ICON = 'myfyrio/static/images/icon.png'
 
     ERR_IMG = 'myfyrio/static/images/error.png'
 
