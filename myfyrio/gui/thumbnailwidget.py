@@ -104,7 +104,7 @@ class ThumbnailWidget(QtWidgets.QLabel):
         logger.exception(err_msg)
 
         size = self._size
-        err_img = resources.Image.ERR_IMG.abs_path # pylint: disable=no-member
+        err_img = resources.Image.ERR_IMG.get() # pylint: disable=no-member
         err_pixmap = QtGui.QPixmap(err_img)
         return err_pixmap.scaled(size, size)
 

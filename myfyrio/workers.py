@@ -172,7 +172,7 @@ class ImageProcessing(QtCore.QObject):
     def _load_cache(self) -> cache.Cache:
         try:
             c = cache.Cache()
-            c.load(resources.Cache.CACHE.abs_path) # pylint: disable=no-member
+            c.load(resources.Cache.CACHE.get()) # pylint: disable=no-member
         except FileNotFoundError:
             # Make an empty cache (it's empty by default) since there's no one
             pass
@@ -237,7 +237,7 @@ class ImageProcessing(QtCore.QObject):
                 cache[path] = dhash
 
         try:
-            cache.save(resources.Cache.CACHE.abs_path) # pylint: disable=no-member
+            cache.save(resources.Cache.CACHE.get()) # pylint: disable=no-member
         except OSError:
             err_msg = 'Cache cannot be saved on the disk'
             logger.exception(err_msg)

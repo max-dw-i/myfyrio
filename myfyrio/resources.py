@@ -21,54 +21,90 @@ Module implementing resources managing
 '''
 
 import pathlib
+import sys
 from enum import Enum
+from io import BytesIO
+from typing import Any
+
+from PyQt5 import QtCore
 
 ################################## Types ######################################
-RelativePath = str  # Path relative to the programme's root directory
-AbsolutePath = str  # Absolute path
+RelativePath = str      # Path relative to the programme's root directory
+AbsolutePath = str      # Absolute path in the file system
+ByteResource = BytesIO  # Resource as bytes
+QtResourcePath = str    # Path to a resource in Qt resource system format
 ###############################################################################
 
 
 class Resource(Enum):
-    '''Enum implementing a convenient way of getting the resource path'''
+    '''Enum implementing a convenient way of getting a resource'''
 
-    def __init__(self, rel_path: RelativePath) -> None:
-        self._rel_path = rel_path
+    def nonfrozen(self) -> AbsolutePath:
+        '''Return the absolute path of the resource for the non-frozen
+        application
+        '''
 
-    @property
-    def abs_path(self) -> AbsolutePath:
-        return str(pathlib.Path(__file__).parents[1] / self._rel_path)
+        return str(pathlib.Path(__file__).parents[1] / self.value)
+
+    def frozen(self) -> Any:
+        '''Return the resource (as the absolute path, bytes, ...) for
+        the frozen application (this, default, implementation returns
+        the absolute path of the resource)
+        '''
+
+        return str(pathlib.Path(sys.executable).parent / self.value)
+
+    def get(self) -> Any:
+        '''Return the resource (for frozen or non-frozen application)'''
+
+        if getattr(sys, 'frozen', False):
+            return self.frozen()
+        return self.nonfrozen()
 
 
 class UI(Resource):
-    '''Enum class representing .ui files and the paths to them'''
+    '''Represent '.ui' resources'''
 
     ABOUT = 'myfyrio/static/ui/aboutwindow.ui'
     MAIN = 'myfyrio/static/ui/mainwindow.ui'
     PREFERENCES = 'myfyrio/static/ui/preferenceswindow.ui'
 
+    def frozen(self) -> ByteResource:
+        '''Return the '.ui' file as BytesIO object'''
+
+        ui_file = QtCore.QFile(':/' + self.value)
+        ui_file.open(QtCore.QIODevice.ReadOnly)
+        data = ui_file.readAll()
+        ui_file.close()
+        return BytesIO(bytes(data))
+
 
 class Image(Resource):
-    '''Enum class representing images and the paths to them'''
+    '''Represent image resources'''
 
     ICON = 'myfyrio/static/images/icon.png'
 
     ERR_IMG = 'myfyrio/static/images/error.png'
 
+    def frozen(self) -> QtResourcePath:
+        '''Return the path of the image in Qt resource system format'''
+
+        return ':/' + self.value
+
 
 class Config(Resource):
-    '''Enum class representing config file and the path to it'''
+    '''Represent config file'''
 
     CONFIG = 'config.p'
 
 
 class Cache(Resource):
-    '''Enum class representing cache file and the path to it'''
+    '''Represent cache file'''
 
     CACHE = 'cache.p'
 
 
 class Log(Resource):
-    '''Enum class representing error log file and the path to it'''
+    '''Represent error log file'''
 
     ERROR = 'errors.log'

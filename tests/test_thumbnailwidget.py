@@ -24,7 +24,6 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from myfyrio import core, workers
 from myfyrio.gui import thumbnailwidget
-from myfyrio.resources import Image
 
 # Configure a logger for testing purposes
 logger = logging.getLogger('main')
@@ -370,9 +369,11 @@ class TestThumbnailWidgetMethodErrorThumbnail(TestThumbnailWidget):
 
     def test_QPixmap_called_with_error_image_path(self):
         with mock.patch('PyQt5.QtGui.QPixmap') as mock_pixmap_call:
-            self.w._errorThumbnail()
+            with mock.patch('myfyrio.resources.Image.get',
+                            return_value='image_path'):
+                self.w._errorThumbnail()
 
-        mock_pixmap_call.assert_called_once_with(Image.ERR_IMG.abs_path) # pylint: disable=no-member
+        mock_pixmap_call.assert_called_once_with('image_path')
 
     def test_return_scaled_image_with_size_from_attr_size(self):
         mock_pixmap = mock.Mock(spec=QtGui.QPixmap)

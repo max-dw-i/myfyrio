@@ -46,7 +46,7 @@ class PreferencesWindow(QtWidgets.QMainWindow):
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent)
 
-        pref_ui = resources.UI.PREFERENCES.abs_path # pylint: disable=no-member
+        pref_ui = resources.UI.PREFERENCES.get() # pylint: disable=no-member
         uic.loadUi(pref_ui, self)
 
         self._widgets = self._gather_widgets()
@@ -87,7 +87,7 @@ class PreferencesWindow(QtWidgets.QMainWindow):
     def _load_config() -> config.Config:
         conf = config.Config()
         try:
-            conf.load(resources.Config.CONFIG.abs_path) # pylint: disable=no-member
+            conf.load(resources.Config.CONFIG.get()) # pylint: disable=no-member
 
         except OSError:
             err_msg = 'Config file cannot be read from the disk'
@@ -97,7 +97,7 @@ class PreferencesWindow(QtWidgets.QMainWindow):
 
     def _save_config(self) -> None:
         try:
-            self.conf.save(resources.Config.CONFIG.abs_path) # pylint: disable=no-member
+            self.conf.save(resources.Config.CONFIG.get()) # pylint: disable=no-member
 
         except OSError:
             err_msg = 'Config cannot be written on the disk'

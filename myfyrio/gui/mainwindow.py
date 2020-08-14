@@ -35,10 +35,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self) -> None:
         super().__init__()
 
-        main_ui = resources.UI.MAIN.abs_path # pylint: disable=no-member
+        main_ui = resources.UI.MAIN.get() # pylint: disable=no-member
         uic.loadUi(main_ui, self)
 
-        icon = resources.Image.ICON.abs_path # pylint: disable=no-member
+        icon = resources.Image.ICON.get() # pylint: disable=no-member
         app_icon = QtGui.QIcon(icon)
         self.setWindowIcon(app_icon)
 

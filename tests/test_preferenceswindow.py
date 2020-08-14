@@ -21,7 +21,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore, QtWidgets
 
-from myfyrio import config, resources
+from myfyrio import config
 from myfyrio.gui import preferenceswindow
 
 # Configure a logger for testing purposes
@@ -117,11 +117,11 @@ class TestMethodLoadConfig(TestPreferencesWindow):
 
     def test_load_is_ok(self):
         with mock.patch(self.PATCH_CONFIG, return_value=self.mock_Config):
-            res = self.w._load_config()
+            with mock.patch('myfyrio.resources.Config.get',
+                            return_value='config_path'):
+                res = self.w._load_config()
 
-        self.mock_Config.load.assert_called_once_with(
-            resources.Config.CONFIG.abs_path #pylint: disable=no-member
-        )
+        self.mock_Config.load.assert_called_once_with('config_path')
         self.assertEqual(res, self.mock_Config)
 
     def test_log_error_if_load_raise_OSError(self):
@@ -140,11 +140,11 @@ class TestMethodSaveConfig(TestPreferencesWindow):
         self.w.conf = self.mock_Config
 
     def test_save_is_ok(self):
-        self.w._save_config()
+        with mock.patch('myfyrio.resources.Config.get',
+                        return_value='config_path'):
+            self.w._save_config()
 
-        self.mock_Config.save.assert_called_once_with(
-            resources.Config.CONFIG.abs_path # pylint: disable=no-member
-        )
+        self.mock_Config.save.assert_called_once_with('config_path')
 
     def test_log_error_if_save_raise_OSError(self):
         self.mock_Config.save.side_effect = OSError

@@ -22,7 +22,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtGui, QtTest, QtWidgets
 
-from myfyrio import cache, core, resources, workers
+from myfyrio import cache, core, workers
 from myfyrio.gui import thumbnailwidget
 
 # Configure a logger for testing purposes
@@ -317,11 +317,11 @@ class TestClassImageProcessingMethodLoadCache(TestClassImageProcessing):
     def test_load_called_with_cache_file_path(self):
         mock_cache = mock.Mock(spec=cache.Cache)
         with mock.patch(self.PATCH_CACHE+'Cache', return_value=mock_cache):
-            self.proc._load_cache()
+            with mock.patch('myfyrio.resources.Cache.get',
+                            return_value='cache_path'):
+                self.proc._load_cache()
 
-        mock_cache.load.assert_called_once_with(
-            resources.Cache.CACHE.abs_path # pylint: disable=no-member
-        )
+        mock_cache.load.assert_called_once_with('cache_path')
 
     def test_return_Cache_object(self):
         mock_cache = mock.Mock(spec=cache.Cache)
@@ -494,11 +494,11 @@ class TestClassImageProcessingMethodUpdateCache(TestClassImageProcessing):
         self.assertEqual(spy[0][0], err_msg)
 
     def test_cache_save_called_with_cache_file_path_arg(self):
-        self.proc._update_cache(self.mock_cache, self.images)
+        with mock.patch('myfyrio.resources.Cache.get',
+                        return_value='cache_path'):
+            self.proc._update_cache(self.mock_cache, self.images)
 
-        self.mock_cache.save.assert_called_once_with(
-            resources.Cache.CACHE.abs_path # pylint: disable=no-member
-        )
+        self.mock_cache.save.assert_called_once_with('cache_path')
 
     def test_logging_if_cache_save_raise_OSError(self):
         self.mock_cache.save.side_effect = OSError

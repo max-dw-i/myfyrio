@@ -30,7 +30,7 @@ from myfyrio import resources
 
 
 def version():
-    tree = ElementTree.parse(resources.UI.ABOUT.abs_path) # pylint: disable=no-member
+    tree = ElementTree.parse(resources.UI.ABOUT.get()) # pylint: disable=no-member
     root = tree.getroot()
     for w in root.iter('widget'):
         if w.get('name') == 'versionLbl':

@@ -34,7 +34,7 @@ class AboutWindow(QtWidgets.QMainWindow):
     def __init__(self, parent: QtWidgets.QWidget = None) -> None:
         super().__init__(parent=parent)
 
-        about_ui = resources.UI.ABOUT.abs_path # pylint: disable=no-member
+        about_ui = resources.UI.ABOUT.get() # pylint: disable=no-member
         uic.loadUi(about_ui, self)
 
         sizeHint = self.sizeHint()
