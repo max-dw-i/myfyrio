@@ -114,3 +114,12 @@ venv.bak/
 
 #mypy config
 mypy.ini
+
+# dir with build sources
+build-src
+
+# building sysroot dir
+sysroot
+
+# dir with app bundles
+bundle
