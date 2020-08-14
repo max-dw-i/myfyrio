@@ -1,0 +1,1199 @@
+[
+    {
+        "Copyright": "Copyright (C) 2005 The Android Open Source Project",
+        "Description": "",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "android-native-style",
+        "License": "Apache License 2.0",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/android/LICENSE",
+        "LicenseId": "Apache-2.0",
+        "Name": "Native Style for Android",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/android",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Android platform plugin.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 2002-2013 The ANGLE Project Authors",
+        "Description": "The ANGLE library translates OpenGL ES API calls to hardware-supported APIs.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "http://angleproject.org/",
+        "Id": "angle",
+        "License": "BSD 3-clause \"New\" or \"Revised\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/angle/LICENSE",
+        "LicenseId": "BSD-3-Clause",
+        "Name": "ANGLE Library",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/angle",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used on Windows to implement OpenGL ES on top of DirectX. Configure with -no-opengl, or -opengl desktop to exclude.",
+        "Version": "chromium/3280"
+    },
+    {
+        "Copyright": "Copyright (C) 2012 Apple Inc.",
+        "Description": "Implements clamping of array indexing expressions during shader translation.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "angle-arrayboundsclamper",
+        "License": "BSD 2-clause \"Simplified\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/angle/src/third_party/compiler/LICENSE",
+        "LicenseId": "BSD-2-Clause",
+        "Name": "ANGLE: Array Bounds Clamper for WebKit",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/angle/src/third_party/compiler",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used on Windows to implement OpenGL ES on top of DirectX. Configure with -no-opengl, or -opengl desktop to exclude.",
+        "Version": ""
+    },
+    {
+        "Copyright": "MurmurHash3 was written by Austin Appleby, and is placed in the public domain. The author hereby disclaims copyright to this source code.",
+        "Description": "",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "angle-murmurhash",
+        "License": "Public Domain",
+        "LicenseFile": "",
+        "LicenseId": "NONE",
+        "Name": "ANGLE: Murmurhash",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/angle/src/third_party/murmurhash",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used on Windows to implement OpenGL ES on top of DirectX. Configure with -no-opengl, or -opengl desktop to exclude.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 2009 Apple Inc. All Rights Reserved.",
+        "Description": "",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "angle-systeminfo",
+        "License": "BSD 2-clause \"Simplified\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/angle/SYSTEMINFO_LICENSE",
+        "LicenseId": "BSD-2-Clause",
+        "Name": "ANGLE: Systeminfo",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/angle/src/third_party/systeminfo",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used on Windows to implement OpenGL ES on top of DirectX. Configure with -no-opengl, or -opengl desktop to exclude.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (c) 2013 The Chromium Authors.",
+        "Description": "",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "angle-trace_event",
+        "License": "BSD 3-clause \"New\" or \"Revised\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/angle/TRACEEVENT_LICENSE",
+        "LicenseId": "BSD-3-Clause",
+        "Name": "ANGLE: trace_event",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/angle/src/third_party/trace_event",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used on Windows to implement OpenGL ES on top of DirectX. Configure with -no-opengl, or -opengl desktop to exclude.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright 2006-2012, the V8 project authors",
+        "Description": "",
+        "DownloadLocation": "https://github.com/google/double-conversion/commit/5fa81e88ef24e735b4283b8f7454dc59693ac1fc",
+        "Files": "",
+        "Homepage": "https://github.com/google/double-conversion",
+        "Id": "doubleconversion",
+        "License": "BSD 3-clause \"New\" or \"Revised\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/double-conversion/LICENSE",
+        "LicenseId": "BSD-3-Clause",
+        "Name": "Efficient Binary-Decimal and Decimal-Binary Conversion Routines for IEEE Doubles",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/double-conversion",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core. Configure with -system-doubleconversion or -no-doubleconversion to avoid.",
+        "Version": "3.1.5"
+    },
+    {
+        "Copyright": "Copyright (c) 2001 Robert Penner",
+        "Description": "",
+        "DownloadLocation": "",
+        "Files": "easing.cpp",
+        "Homepage": "http://robertpenner.com/easing/",
+        "Id": "easing",
+        "License": "BSD 3-clause \"New\" or \"Revised\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/easing/LICENSE",
+        "LicenseId": "BSD-3-Clause",
+        "Name": "Easing Equations by Robert Penner",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/easing",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core (QEasingCurve).",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 2016 Intel Corporation\nCopyright (C) 2015 Klarälvdalens Datakonsult AB, a KDAB Group company, info@kdab.com",
+        "Description": "",
+        "DownloadLocation": "",
+        "Files": "forkfd.c forkfd.h forkfd_gcc.h",
+        "Homepage": "",
+        "Id": "forkfd",
+        "License": "MIT License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/forkfd/LICENSE",
+        "LicenseId": "MIT",
+        "Name": "forkfd",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/forkfd",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used on most Unix platforms in Qt Core.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (c) 1992, 1993 The Regents of the University of California.\nCopyright (c) 2011 The FreeBSD Foundation",
+        "Description": "strtoll() and strtoull() are functions for converting a string to (unsigned) long long integer.",
+        "DownloadLocation": "https://github.com/freebsd/freebsd/tree/master/lib/libc/stdlib",
+        "Files": "strtoll.c strtoull.c",
+        "Homepage": "https://github.com/freebsd/freebsd/",
+        "Id": "freebsd",
+        "License": "BSD 3-clause \"New\" or \"Revised\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/freebsd/LICENSE",
+        "LicenseId": "BSD-3-Clause",
+        "Name": "FreeBSD strtoll and strtoull",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/freebsd",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core.",
+        "Version": "18b29f3fb8abee5d57ed8f4a44f806bec7e0eeff"
+    },
+    {
+        "Copyright": "Copyright 2006-2015 by David Turner, Robert Wilhelm, and Werner Lemberg.",
+        "Description": "FreeType is a freely available software library to render fonts.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "http://www.freetype.org",
+        "Id": "freetype",
+        "License": "Freetype Project License or GNU General Public License v2.0 only",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/freetype/LICENSE.txt",
+        "LicenseId": "FTL OR GPL-2.0",
+        "Name": "Freetype 2",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/freetype",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Optionally used in Qt GUI and platform plugins. Configure with -no-freetype, or -system-freetype to avoid.",
+        "Version": "2.10.1"
+    },
+    {
+        "Copyright": "Copyright (C) 1995-2002 Jean-loup Gailly and Mark Adler",
+        "Description": "FreeType is a freely available software library to render fonts.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "http://www.freetype.org",
+        "Id": "freetype-zlib",
+        "License": "zlib License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/freetype/ZLIB-LICENSE.txt",
+        "LicenseId": "Zlib",
+        "Name": "Freetype 2 - zlib",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/freetype",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Optionally used in Qt GUI and platform plugins. Configure with -no-freetype, or -system-freetype to avoid.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 2001-2002 by Francesco Zappa Nardelli\nCopyright 2000 Computing Research Labs, New Mexico State University\nCopyright 2001-2002, 2011 Francesco Zappa Nardelli",
+        "Description": "FreeType is a freely available software library to render fonts.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "http://www.freetype.org",
+        "Id": "freetype-bdf",
+        "License": "MIT License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/freetype/BDF-LICENSE.txt",
+        "LicenseId": "MIT",
+        "Name": "Freetype 2 - Bitmap Distribution Format (BDF) support",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/freetype",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Optionally used in Qt GUI and platform plugins. Configure with -no-freetype, or -system-freetype to avoid.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 2000 by Francesco Zappa Nardelli",
+        "Description": "FreeType is a freely available software library to render fonts.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "http://www.freetype.org",
+        "Id": "freetype-pcf",
+        "License": "MIT License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/freetype/PCF-LICENSE.txt",
+        "LicenseId": "MIT",
+        "Name": "Freetype 2 - Portable Compiled Format (PCF) support",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/freetype",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Optionally used in Qt GUI and platform plugins. Configure with -no-freetype, or -system-freetype to avoid.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 2017 Gradle Inc.",
+        "Description": "",
+        "DownloadLocation": "https://github.com/gradle/gradle/releases/tag/v3.4.1",
+        "Files": "",
+        "Homepage": "https://gradle.org",
+        "Id": "android-gradle-wrapper",
+        "License": "Apache License 2.0",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/gradle/LICENSE-GRADLEW.txt",
+        "LicenseId": "Apache-2.0",
+        "Name": "Gradle wrapper",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/gradle",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "tools"
+        ],
+        "QtUsage": "Needed to create Android packages",
+        "Version": "3.4.1"
+    },
+    {
+        "Copyright": "Copyright © 2008,2010  Nokia Corporation and/or its subsidiary(-ies)\nCopyright © 2006  Behdad Esfahbod\nCopyright © 2005  David Turner\nCopyright © 2004,2007,2008,2009,2010  Red Hat, Inc.\nCopyright © 1998-2004  David Turner and Werner Lemberg",
+        "Description": "",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "harfbuzz",
+        "License": "MIT License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/harfbuzz/COPYING",
+        "LicenseId": "MIT",
+        "Name": "HarfBuzz",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/harfbuzz",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Optionally used in Qt GUI. Configure with -system-harfbuzz to force the use of the system library, or -no-harfbuzz to disable the use of HarfBuzz entirely.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright © 2010,2011,2012  Google, Inc.\nCopyright © 2012  Mozilla Foundation\nCopyright © 2011  Codethink Limited\nCopyright © 2008,2010  Nokia Corporation and/or its subsidiary(-ies)\nCopyright © 2009  Keith Stribley\nCopyright © 2009  Martin Hosken and SIL International\nCopyright © 2007  Chris Wilson\nCopyright © 2006  Behdad Esfahbod\nCopyright © 2005  David Turner\nCopyright © 2004,2007,2008,2009,2010  Red Hat, Inc.\nCopyright © 1998-2004  David Turner and Werner Lemberg\n",
+        "Description": "HarfBuzz is an OpenType text shaping engine.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "http://harfbuzz.org",
+        "Id": "harfbuzz-ng",
+        "License": "MIT License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/harfbuzz-ng/COPYING",
+        "LicenseId": "MIT",
+        "Name": "HarfBuzz-NG",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/harfbuzz-ng",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Optionally used in Qt GUI. Configure with -system-harfbuzz to force the use of the system library, or -qt-harfbuzz to link statically to the library that is bundled with your Qt version.",
+        "Version": "1.7.4"
+    },
+    {
+        "Copyright": "Copyright (c) 2000, 2006 Sun Microsystems, Inc.\nCopyright (c) 2006 IBM Corporation\nCopyright (c) 2007, 2010, 2012, 2013 Linux Foundation\n\nIAccessible2 is a trademark of the Linux Foundation. The IAccessible2 mark may be used in accordance with the Linux Foundation Trademark Policy to indicate compliance with the IAccessible2 specification.",
+        "Description": "IAccessible2 is a new accessibility API which complements Microsoft's earlier work on MSAA",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "https://wiki.linuxfoundation.org/accessibility/iaccessible2/",
+        "Id": "iaccessible2",
+        "License": "BSD 3-clause \"New\" or \"Revised\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/iaccessible2/LICENSE",
+        "LicenseId": "BSD-3-Clause",
+        "Name": "IAccessible2 IDL Specification",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/iaccessible2",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Optionally used in the Windows platform plugin. Configure with -no-accessibility to avoid.",
+        "Version": "1.3.0"
+    },
+    {
+        "Copyright": "Copyright International Color Consortium, 2015",
+        "Description": "An ICC color profile for PDF/A-1b compatible PDF files.",
+        "DownloadLocation": "",
+        "Files": "sRGB2014.icc",
+        "Homepage": "http://www.color.org/",
+        "Id": "icc-sRGB-color-profile",
+        "License": "International Color Consortium License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/icc/LICENSE.txt",
+        "LicenseId": "ICC License",
+        "Name": "sRGB color profile icc file",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/icc",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Gui (Embedded into PDF/A-1b files generated by QPrinter/QPdfWriter).",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 2009-2019 D. R. Commander\nCopyright (C) 2011-2016 Siarhei Siamashka\nCopyright (C) 2015-2016, 2018 Matthieu Darbois\nCopyright (C) 2015 Intel Corporation\nCopyright (C) 2015 Google, Inc.\nCopyright (C) 2013-2014 MIPS Technologies, Inc.\nCopyright (C) 2013 Linaro Limited\nCopyright (C) 2009-2011 Nokia Corporation and/or its subsidiary(-ies)\nCopyright (C) 2009 Pierre Ossman for Cendio AB\nCopyright (C) 1999-2006 MIYASAKA Masaru\nCopyright (C) 1991-2016 Thomas G. Lane, Guido Vollbeding",
+        "Description": "The Independent JPEG Group's JPEG software",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "http://libjpeg-turbo.virtualgl.org/",
+        "Id": "libjpeg",
+        "License": "Independent JPEG Group License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/libjpeg/LICENSE",
+        "LicenseId": "IJG",
+        "Name": "LibJPEG-turbo",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/libjpeg",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in the qjpeg image plugin. Configure with -system-libjpeg or -no-libjpeg to avoid.",
+        "Version": "2.0.3"
+    },
+    {
+        "Copyright": "Copyright (c) 1998-2018 Glenn Randers-Pehrson\nCopyright (c) 2000-2017 Simon-Pierre Cadieux\nCopyright (c) 2000-2017 Eric S. Raymond\nCopyright (c) 2000-2017 Mans Rullgard\nCopyright (c) 2000-2019 Cosmin Truta\nCopyright (c) 2000-2017 Gilles Vollant\nCopyright (c) 2000-2017 James Yu\nCopyright (c) 2000-2017 Mandar Sahastrabuddhe\nCopyright (c) 1998-2000 Tom Lane\nCopyright (c) 1998-2000 Willem van Schaik\nCopyright (c) 1996-1997 Andreas Dilger\nCopyright (c) 1996-1997 John Bowler\nCopyright (c) 1996-1997 Kevin Bracey\nCopyright (c) 1996-1997 Sam Bushell\nCopyright (c) 1996-1997 Magnus Holmgren\nCopyright (c) 1996-1997 Greg Roelofs\nCopyright (c) 1996-1997 Tom Tanner\nCopyright (c) 1995-1996 Dave Martindale\nCopyright (c) 1995-1996 Paul Schmidt\nCopyright (c) 1995-1996 Tim Wegner\nCopyright (c) 1995-1996 Guy Eric Schalnat, Group 42, Inc.",
+        "Description": "libpng is the official PNG reference library.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "http://www.libpng.org/pub/png/libpng.html",
+        "Id": "libpng",
+        "License": "libpng License and libpng License 2",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/libpng/LICENSE",
+        "LicenseId": "Libpng AND Libpng2",
+        "Name": "LibPNG",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/libpng",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in the qpng image plugin. Configure with -system-libpng or -no-libpng to avoid.",
+        "Version": "1.6.37"
+    },
+    {
+        "Copyright": "Written by Alexander Peslyak - better known as Solar Designer <solar@openwall.com> - in 2001, and placed in the public domain. There's absolutely no warranty.",
+        "Description": "An OpenSSL-compatible implementation of the RSA Data Security, Inc. MD4 Message-Digest Algorithm.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "md4",
+        "License": "Public Domain",
+        "LicenseFile": "",
+        "LicenseId": "",
+        "Name": "MD4",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/md4",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core (QCryptographicHash). Configure with -DQT_CRYPTOGRAPHICHASH_ONLY_SHA1 to avoid.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright © 2016-2020 Martin Mitáš",
+        "Description": "A CommonMark-compliant Markdown parser.",
+        "DownloadLocation": "https://github.com/mity/md4c/releases/tag/release-0.4.3",
+        "Files": "",
+        "Homepage": "https://github.com/mity/md4c",
+        "Id": "md4c",
+        "License": "MIT License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/md4c/LICENSE.md",
+        "LicenseId": "MIT",
+        "Name": "MD4C",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/md4c",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Optionally used in QTextDocument if configured with textmarkdownreader.",
+        "Version": "0.4.3"
+    },
+    {
+        "Copyright": "Written by Colin Plumb in 1993, no copyright is claimed.\nIan Jackson <ian@chiark.greenend.org.uk>.",
+        "Description": "MD5 message-digest algorithm.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "md5",
+        "License": "Public Domain",
+        "LicenseFile": "",
+        "LicenseId": "",
+        "Name": "MD5",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/md5",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core (QCryptographicHash). Configure with -DQT_CRYPTOGRAPHICHASH_ONLY_SHA1 to avoid.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (c) 1997-2019 University of Cambridge\nCopyright (c) 2010-2019 Zoltan Herczeg",
+        "Description": "The PCRE library is a set of functions that implement regular expression pattern matching using the same syntax and semantics as Perl 5.",
+        "DownloadLocation": "https://ftp.pcre.org/pub/pcre/pcre2-10.34.tar.bz2",
+        "Files": "",
+        "Homepage": "http://www.pcre.org/",
+        "Id": "pcre2",
+        "License": "BSD 3-clause \"New\" or \"Revised\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/pcre2/LICENCE",
+        "LicenseId": "BSD-3-Clause",
+        "Name": "PCRE2",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/pcre2",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Optionally used in Qt Core (QRegularExpression). Configure with -system-pcre or -no-pcre to avoid.",
+        "Version": "10.34"
+    },
+    {
+        "Copyright": "Copyright (c) 2009-2019 Zoltan Herczeg\nCopyright 2013-2013 Tilera Corporation(jiwang@tilera.com)",
+        "Description": "The PCRE library is a set of functions that implement regular expression pattern matching using the same syntax and semantics as Perl 5.",
+        "DownloadLocation": "https://ftp.pcre.org/pub/pcre/pcre2-10.34.tar.bz2",
+        "Files": "",
+        "Homepage": "http://www.pcre.org/",
+        "Id": "pcre2-sljit",
+        "License": "BSD 2-clause \"Simplified\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/pcre2/LICENCE-SLJIT",
+        "LicenseId": "BSD-2-Clause",
+        "Name": "PCRE2 - Stack-less Just-In-Time Compiler",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/pcre2/src/sljit",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Optionally used in Qt Core (QRegularExpression). Configure with -system-pcre or -no-pcre to avoid.",
+        "Version": "10.34"
+    },
+    {
+        "Copyright": "Copyright © 2009 Nokia Corporation",
+        "Description": "pixman is a library that provides low-level pixel manipulation features such as image compositing and trapezoid rasterization.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "http://www.pixman.org/",
+        "Id": "pixman",
+        "License": "MIT License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/pixman/LICENSE",
+        "LicenseId": "MIT",
+        "Name": "Pixman",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/pixman",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt GUI on ARM NEON.",
+        "Version": "0.17.12"
+    },
+    {
+        "Copyright": "Copyright (c) 2011 IETF Trust and the persons identified as authors of the code.",
+        "Description": "Implements the Secure Hash Algorithms SHA 384 and SHA-521",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "rfc6234",
+        "License": "BSD 3-clause \"New\" or \"Revised\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/rfc6234/LICENSE",
+        "LicenseId": "BSD-3-Clause",
+        "Name": "Secure Hash Algorithms SHA-384 and SHA-512",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/rfc6234",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core (QCryptographicHash and QMessageAuthenticationCode)",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) Dominik Reichl <dominik.reichl@t-online.de>\nCopyright (C) 2016 The Qt Company Ltd",
+        "Description": "Implements the Secure Hash Algorithms SHA 1",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "http://www.dominik-reichl.de/projects/csha1/",
+        "Id": "sha1",
+        "License": "Public Domain",
+        "LicenseFile": "",
+        "LicenseId": "",
+        "Name": "Secure Hash Algorithm SHA-1",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/sha1",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core (QCryptographicHash).",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (c) 1998-2013, Brian Gladman, Worcester, UK. All rights reserved.",
+        "Description": "SHA-3, originally known as Keccak, is a cryptographic hash function.",
+        "DownloadLocation": "",
+        "Files": "brg_endian.h",
+        "Homepage": "",
+        "Id": "sha3_endian",
+        "License": "BSD 2-clause \"Simplified\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/sha3/BRG_ENDIAN_LICENSE",
+        "LicenseId": "BSD-2-Clause",
+        "Name": "Secure Hash Algorithm SHA-3 - brg_endian",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/sha3",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core (QCryptographicHash).",
+        "Version": "https://github.com/BrianGladman/sha/ commit 4b9e13ead2c5b5e41ca27c65de4dd69ae0bac228"
+    },
+    {
+        "Copyright": "Guido Bertoni, Joan Daemen, Michaël Peeters and Gilles Van Assche.\n\nTo the extent possible under law, the implementers have waived all copyright\nand related or neighboring rights to the source code in this file.",
+        "Description": "SHA-3, originally known as Keccak, is a cryptographic hash function.",
+        "DownloadLocation": "",
+        "Files": "KeccakF-1600-32-rvk.macros KeccakF-1600-32.macros KeccakF-1600-64.macros KeccakF-1600-interface.h KeccakF-1600-opt32.c KeccakF-1600-opt64.c KeccakF-1600-unrolling.macros KeccakNISTInterface.c KeccakNISTInterface.h KeccakSponge.c KeccakSponge.h",
+        "Homepage": "",
+        "Id": "sha3_keccak",
+        "License": "Creative Commons Zero v1.0 Universal",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/sha3/CC0_LICENSE",
+        "LicenseId": "CC0-1.0",
+        "Name": "Secure Hash Algorithm SHA-3 - Keccak",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/sha3",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core (QCryptographicHash).",
+        "Version": "3.2"
+    },
+    {
+        "Copyright": "The authors disclaim copyright to the source code. However, a license can be obtained if needed.",
+        "Description": "SQLite is a small C library that implements a self-contained, embeddable, zero-configuration SQL database engine.",
+        "DownloadLocation": "https://www.sqlite.org/2020/sqlite-amalgamation-3310100.zip",
+        "Files": "",
+        "Homepage": "https://www.sqlite.org/",
+        "Id": "sqlite",
+        "License": "Public Domain",
+        "LicenseFile": "",
+        "LicenseId": "",
+        "Name": "SQLite",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/sqlite",
+        "QDocModule": "qtsql",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt SQL Lite plugin. Configure Qt with -system-sqlite or -no-sqlite to avoid.",
+        "Version": "3.31.1"
+    },
+    {
+        "Copyright": "Copyright (C) 2018 Intel Corporation",
+        "Description": "Concise Binary Object Representation (CBOR) Library",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "https://github.com/intel/tinycbor",
+        "Id": "tinycbor",
+        "License": "MIT License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/tinycbor/LICENSE",
+        "LicenseId": "MIT",
+        "Name": "TinyCBOR",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/tinycbor",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used for QCborStreamReader and QCborStreamWriter.",
+        "Version": "0.6+patches"
+    },
+    {
+        "Copyright": "Copyright (c) 2017-2018 Advanced Micro Devices, Inc. All rights reserved.",
+        "Description": "Vulkan Memory Allocator",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator",
+        "Id": "VulkanMemoryAllocator",
+        "License": "MIT License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/VulkanMemoryAllocator/LICENSE.txt",
+        "LicenseId": "MIT",
+        "Name": "Vulkan Memory Allocator",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/VulkanMemoryAllocator",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Memory management for the Vulkan backend of QRhi.",
+        "Version": "2.2.0"
+    },
+    {
+        "Copyright": "Copyright (C) 2003 Bitstream,Inc",
+        "Description": "Vera is a group typeface (font) with a liberal license.",
+        "DownloadLocation": "http://ftp.gnome.org/pub/GNOME/sources/ttf-bitstream-vera/1.10/ttf-bitstream-vera-1.10.tar.bz2",
+        "Files": "Vera.ttf",
+        "Homepage": "https://www.gnome.org/fonts/",
+        "Id": "vera_font",
+        "License": "Bitstream Vera Font License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/wasm/VERA-LICENSE",
+        "LicenseId": "bitstream-vera",
+        "Name": "Bitstream Vera Font",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/wasm",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used for WebAssembly platform.",
+        "Version": "1.10"
+    },
+    {
+        "Copyright": "Copyright (c) 2003 by Bitstream, Inc\nCopyright (c) 2006 by Tavmjong Bah\n(c) American Mathematical Society",
+        "Description": "The DejaVu fonts are a font family based on the Vera Fonts.",
+        "DownloadLocation": "",
+        "Files": "DejaVuSans.ttf, DejaVuSansMono.ttf",
+        "Homepage": "https://dejavu-fonts.github.io/",
+        "Id": "dejayvu",
+        "License": "Bitstream Vera Font License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/wasm/DEJAVU-LICENSE",
+        "LicenseId": "",
+        "Name": "DejaVu Fonts",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/wasm",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used for WebAssembly platform.",
+        "Version": "2.37"
+    },
+    {
+        "Copyright": "Copyright 1991-1998 by LCS/Telegraphics.",
+        "Description": "Wintab is a de facto API for pointing devices on Windows.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "wintab",
+        "License": "Custom License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/wintab/LICENSE.txt",
+        "LicenseId": "NONE",
+        "Name": "Wintab API",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/wintab",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in the Qt platform plugin for Windows. Configure with -no-feature-tabletevent to avoid.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright © 2000 Keith Packard\nCopyright © 2006 Jamey Sharp\nCopyright © 2007-2008 Vincent Torri <vtorri@univ-evry.fr>\nCopyright © 2007 Bart Massey\nCopyright © 2008-2009 Julien Danjou <julien@danjou.info>\nCopyright © 2008 Arnaud Fontaine <arnau@debian.org>\nCopyright © 2008 Bart Massey <bart@cs.pdx.edu>\nCopyright © 2008 Ian Osgood <iano@quirkster.com>\nCopyright © 2008 Jamey Sharp <jamey@minilop.net>\nCopyright © 2008 Josh Triplett <josh@freedesktop.org>\nCopyright © 2008 Ulrich Eckhardt <doomster@knuut.de>\n",
+        "Description": "Selected xcb libraries.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "https://xcb.freedesktop.org/",
+        "Id": "xcb",
+        "License": "MIT License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/xcb/LICENSE",
+        "LicenseId": "MIT",
+        "Name": "XCB",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/xcb",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Optionally used in xcb platform plugin if configured with -qt-xcb.",
+        "Version": ""
+    },
+    {
+        "Copyright": "(C) 1995-2017 Jean-loup Gailly and Mark Adler",
+        "Description": "zlib is a general purpose data compression library.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "http://zlib.net/",
+        "Id": "zlib",
+        "License": "zlib License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/zlib/LICENSE",
+        "LicenseId": "Zlib",
+        "Name": "Data Compression Library (zlib)",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/3rdparty/zlib",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Optionally used in Qt Core and and development tools. Configure with -system-zlib to avoid.",
+        "Version": "1.2.11"
+    },
+    {
+        "Copyright": "Copyright (C) 2000  Ming-Che Chuang\nCopyright (C) 2001, 2002  James Su, Turbolinux Inc.\nCopyright (C) 2002  WU Yi, HancomLinux Inc.\nCopyright (C) 2001, 2002  Anthony Fok, ThizLinux Laboratory Ltd.",
+        "Description": "The Big5 codecs (QBig5Codec, QBig5hkscsCodec)\nprovide conversion to and from the Big5 encodings.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "qbig5codecs",
+        "License": "BSD 2-clause \"Simplified\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/codecs/QBIG5CODEC_LICENSE.txt",
+        "LicenseId": "BSD-2-Clause",
+        "Name": "Text Codecs: Big5, Big5-HKSCS",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/codecs/qbig5codec.cpp",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core if ICU is not used. Configure with -icu to avoid.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 1999 Serika Kurusugawa.",
+        "Description": "The EUC-JP text codec provides conversion to and from EUC-JP,\nthe main legacy encoding for Unix machines in Japan.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "qeucjpcodec",
+        "License": "BSD 2-clause \"Simplified\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/codecs/QEUCJPCODEC_LICENSE.txt",
+        "LicenseId": "BSD-2-Clause",
+        "Name": "Text Codec: EUC-JP",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/codecs/qeucjpcodec.cpp",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core if ICU is not used. Configure with -icu to avoid.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 1999-2000 Mizi Research Inc.",
+        "Description": "The EUC-KR text codec provides conversion to and from EUC-KR, KR,\nthe main legacy encoding for Unix machines in Korea.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "qeuckrcodec",
+        "License": "BSD 2-clause \"Simplified\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/codecs/QEUCKRCODEC_LICENSE.txt",
+        "LicenseId": "BSD-2-Clause",
+        "Name": "Text Codec: EUC-KR",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/codecs/qeuckrcodec.cpp",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core if ICU is not used. Configure with -icu to avoid.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 1999 Serika Kurusugawa.",
+        "Description": "The ISO 2022-JP (JIS) text codec provides conversion to and from ISO 2022-JP.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "qjiscodec",
+        "License": "BSD 2-clause \"Simplified\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/codecs/QJISCODEC_LICENSE.txt",
+        "LicenseId": "BSD-2-Clause",
+        "Name": "Text Codec: ISO 2022-JP (JIS)",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/codecs/qjiscodec.cpp",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core if ICU is not used. Configure with -icu to avoid.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 1999 Serika Kurusugawa.",
+        "Description": "The Shift-JIS text codec provides conversion to and from Shift-JIS.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "qsjiscodec",
+        "License": "BSD 2-clause \"Simplified\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/codecs/QSJISCODEC_LICENSE.txt",
+        "LicenseId": "BSD-2-Clause",
+        "Name": "Text Codec: Shift-JIS",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/codecs/qsjiscodec.cpp",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core if ICU is not used. Configure with -icu to avoid.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 2000 Hans Petter Bieker.",
+        "Description": "The TSCII text codec provides conversion to and from the Tamil TSCII\nencoding.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "qtsciicodec",
+        "License": "BSD 2-clause \"Simplified\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/codecs/QTSCIICODEC_LICENSE.txt",
+        "LicenseId": "BSD-2-Clause",
+        "Name": "Text Codec: TSCII",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/codecs/qtsciicodec.cpp",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 2000 TurboLinux, Inc.  Written by Justin Yu and Sean Chen.\nCopyright (C) 2001, 2002 Turbolinux, Inc.  Written by James Su.\nCopyright (C) 2001, 2002 ThizLinux Laboratory Ltd.  Written by Anthony Fok.",
+        "Description": "The GBK codec provides conversion to and from the Chinese\nGB18030/GBK/GB2312 encoding.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "qbkcodec",
+        "License": "BSD 2-clause \"Simplified\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/codecs/QBKCODEC_LICENSE.txt",
+        "LicenseId": "BSD-2-Clause",
+        "Name": "Text Codec: GBK",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/codecs/qgb18030codec.cpp",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core if ICU is not used. Configure with -icu to avoid.",
+        "Version": ""
+    },
+    {
+        "Copyright": "The list was originally provided by Jo Hermans <jo.hermans@gmail.com>.\nIt is now maintained on github (https://github.com/publicsuffix/list).",
+        "Description": "The Public Suffix List is an initiative of Mozilla,\nbut is maintained as a community resource. It is available for use in any software,\nbut was originally created to meet the needs of browser manufacturers.\nIt allows browsers to, for example:\n\n- Avoid privacy-damaging \"supercookies\" being set for high-level domain name suffixes\n\n- Highlight the most important part of a domain name in the user interface\n\n- Accurately sort history entries by site",
+        "DownloadLocation": "",
+        "Files": "qurltlds_p.h",
+        "Homepage": "http://publicsuffix.org/",
+        "Id": "psl",
+        "License": "Mozilla Public License 2.0",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/io/PSL-LICENSE.txt",
+        "LicenseId": "MPL-2.0",
+        "Name": "The Public Suffix List",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/io",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core to avoid setting \"supercookies\" in the cookie jar\nsupported by Qt (by the QNetworkCookieJar class).",
+        "Version": "3bd641472776a5df4a8c6407da4a4846282cba94, fetched on 2019-10-23"
+    },
+    {
+        "Copyright": "Copyright (c) 2007-2008, Apple, Inc.",
+        "Description": "Implementation of QAbstractEventDispatcher for macOS.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "",
+        "Id": "qeventdispatcher_cf",
+        "License": "BSD 3-clause \"New\" or \"Revised\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/kernel/QEVENTDISPATCHER_CF_LICENSE.txt",
+        "LicenseId": "BSD-3-Clause",
+        "Name": "QEventDispatcher on macOS",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/kernel/qeventdispatcher_cf_p.h",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core on macOS.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 1991-2018 Unicode, Inc.",
+        "Description": "The Unicode Character Database (UCD) is a set of files that\n define the Unicode character properties and internal mappings.",
+        "DownloadLocation": "",
+        "Files": "qunicodetables_p.h qunicodetables.cpp",
+        "Homepage": "https://www.unicode.org/ucd/",
+        "Id": "unicode-character-database",
+        "License": "Unicode License Agreement - Data Files and Software (2016)",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/text/UNICODE_LICENSE.txt",
+        "LicenseId": "Unicode-DFS-2016",
+        "Name": "Unicode Character Database (UCD)",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/text",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Qt Core uses data obtained from UCD files for working with characters and strings.",
+        "Version": "20"
+    },
+    {
+        "Copyright": "Copyright (C) 1991-2019 Unicode, Inc.",
+        "Description": "The Unicode CLDR provides key building blocks for software to support the\n world's languages, with the largest and most extensive standard repository of locale data\n available.",
+        "DownloadLocation": "",
+        "Files": "qlocale_data_p.h qtimezoneprivate_data_p.h",
+        "Homepage": "http://cldr.unicode.org/",
+        "Id": "unicode-cldr",
+        "License": "Unicode License Agreement - Data Files and Software (2016)",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/text/UNICODE_LICENSE.txt",
+        "LicenseId": "Unicode-DFS-2016",
+        "Name": "Unicode Common Locale Data Repository (CLDR)",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/corelib/text",
+        "QDocModule": "qtcore",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Core (QTimeZone, QLocale).",
+        "Version": "v36"
+    },
+    {
+        "Copyright": "Copyright (C) 2002, 2003 CodeFactory AB\nCopyright (C) 2004, 2005 Red Hat, Inc.",
+        "Description": "D-Bus is a message bus system, a simple way for applications to talk to one another.",
+        "DownloadLocation": "",
+        "Files": "dbus_minimal_p.h",
+        "Homepage": "https://www.freedesktop.org/wiki/Software/dbus/",
+        "Id": "libdbus-1-headers",
+        "License": "Academic Free License v2.1, or GNU General Public License v2.0 or later",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/dbus/LIBDBUS-1-LICENSE.txt",
+        "LicenseId": "AFL-2.1 OR GPL-2.0-or-later",
+        "Name": "libdus-1 headers",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/dbus",
+        "QDocModule": "qtdbus",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Qt D-Bus uses constants and typedefs from libdbus-1 headers.",
+        "Version": "dbus-1.12.12"
+    },
+    {
+        "Copyright": "Copyright (c) 2013-2014 The Khronos Group Inc.",
+        "Description": "OpenGL header generated from the Khronos OpenGL / OpenGL ES XML API Registry.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "https://www.khronos.org/",
+        "Id": "opengl-headers",
+        "License": "MIT License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/opengl/KHRONOS_LICENSE.txt",
+        "LicenseId": "MIT",
+        "Name": "OpenGL Headers",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/opengl/qopenglext.h",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used on Windows and Linux in the OpenGL related headers of Qt GUI.",
+        "Version": "Revision 27684"
+    },
+    {
+        "Copyright": "Copyright (c) 2013-2014 The Khronos Group Inc.",
+        "Description": "OpenGL ES 2 header generated from the Khronos OpenGL / OpenGL ES XML API Registry.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "https://www.khronos.org/",
+        "Id": "opengl-es2-headers",
+        "License": "MIT License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/opengl/KHRONOS_LICENSE.txt",
+        "LicenseId": "MIT",
+        "Name": "OpenGL ES 2 Headers",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/opengl/qopengles2ext.h",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used on Windows and Linux in the OpenGL related headers of Qt GUI.",
+        "Version": "Revision 27673"
+    },
+    {
+        "Copyright": "Copyright 2000-2016 by David Turner, Robert Wilhelm, and Werner Lemberg.",
+        "Description": "FreeType is a freely available software library to render fonts.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "http://www.freetype.org",
+        "Id": "grayraster",
+        "License": "Freetype Project License or GNU General Public License v2.0 only",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/painting/../../3rdparty/freetype/docs/LICENSE.TXT",
+        "LicenseId": "FTL or GPL-2.0",
+        "Name": "Anti-aliasing rasterizer from FreeType 2",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/painting/qgrayraster.c",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt GUI.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 2004, 2005 Daniel M. Duley.\n    (C) Carsten Haitzler and various contributors.\n    (C) Willem Monsuwe <willem@stack.nl>",
+        "Description": "Normal smoothscale method, based on Imlib2's smoothscale.",
+        "DownloadLocation": "",
+        "Files": "qimagescale.cpp",
+        "Homepage": "",
+        "Id": "smooth-scaling-algorithm",
+        "License": "BSD 2-clause \"Simplified\" License and Imlib2 License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/painting/QIMAGETRANSFORM_LICENSE.txt",
+        "LicenseId": "BSD-2-Clause AND Imlib2",
+        "Name": "Smooth Scaling Algorithm",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/painting",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt Gui (QImage::transformed() functions).",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (c) 2017 itmeo",
+        "Description": "WebGradients is a free collection of 180 linear gradients.",
+        "DownloadLocation": "",
+        "Files": "webgradients.css",
+        "Homepage": "https://webgradients.com/",
+        "Id": "webgradients",
+        "License": "MIT License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/painting/WEBGRADIENTS_LICENSE.txt",
+        "LicenseId": "MIT",
+        "Name": "WebGradients",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/painting",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt GUI to provide presets for QGradient.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (c) 1987, 1988 X Consortium\nCopyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.",
+        "Description": "Code from X11's region.h, Region.c, poly.h, and PolyReg.c",
+        "DownloadLocation": "",
+        "Files": "qregion.cpp",
+        "Homepage": "https://www.x.org/",
+        "Id": "xserverhelper",
+        "License": "X11 License and Historical Permission Notice and Disclaimer",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/painting/XCONSORTIUM_LICENSE.txt",
+        "LicenseId": "X11 AND HPND",
+        "Name": "X Server helper",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/painting",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in Qt GUI (QRegion).",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright 2002, 2003, 2005, 2006, 2008, 2010, 2015 Adobe Systems",
+        "Description": "Provides standardized names for glyphs.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "https://github.com/adobe-type-tools/agl-aglfn",
+        "Id": "aglfn",
+        "License": "BSD 3-Clause \"New\" or \"Revised\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/text/AGLFN_LICENSE.txt",
+        "LicenseId": "BSD-3-Clause",
+        "Name": "Adobe Glyph List For New Fonts",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/text/qfontsubset_agl.cpp",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used by PDF generator to make it easier for reader applications to resolve  the original contents of rendered text.",
+        "Version": "1.7"
+    },
+    {
+        "Copyright": "Copyright (c) 2015-2017 The Khronos Group Inc.",
+        "Description": "Vulkan XML API Registry.",
+        "DownloadLocation": "",
+        "Files": "",
+        "Homepage": "https://www.khronos.org/",
+        "Id": "vulkan-xml-spec",
+        "License": "MIT License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/vulkan/KHRONOS_LICENSE.txt",
+        "LicenseId": "MIT",
+        "Name": "Vulkan API Registry",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/gui/vulkan/vk.xml",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used to dynamically generate the sources for the QVulkan(Device)Functions classes.",
+        "Version": "1.0.39"
+    },
+    {
+        "Copyright": "Copyright (c) 2007-2008, Apple, Inc.",
+        "Description": "Allows Qt to integrate into Apple's Cocoa API.",
+        "DownloadLocation": "",
+        "Files": "qcocoaapplication.h qcocoaapplication.mm qcocoaapplicationdelegate.h qcocoaapplicationdelegate.mm qcocoaeventdispatcher.h qcocoaeventdispatcher.mm qcocoaintrospection.h qcocoaintrospection.mm qcocoasystemtrayicon.mm qmacdefines_mac.h",
+        "Homepage": "",
+        "Id": "cocoa-platform-plugin",
+        "License": "BSD 3-clause \"New\" or \"Revised\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/plugins/platforms/cocoa/COCOA_LICENSE.txt",
+        "LicenseId": "BSD-3-Clause",
+        "Name": "Cocoa Platform Plugin",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/plugins/platforms/cocoa",
+        "QDocModule": "qtgui",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Code used in the Qt Platform Abstraction (QPA) for macOS.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 2000-2017 Julian Seward\nCopyright (C) 2003-2017 Josef Weidendorfer.",
+        "Description": "An instrumentation framework for building dynamic analysis tools.",
+        "DownloadLocation": "",
+        "Files": "valgrind_p.h callgrind_p.h",
+        "Homepage": "http://valgrind.org/",
+        "Id": "valgrind",
+        "License": "BSD 4-clause \"Original\" or \"Old\" License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/testlib/3rdparty/VALGRIND_LICENSE.txt",
+        "LicenseId": "BSD-4-Clause",
+        "Name": "Valgrind",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/testlib/3rdparty",
+        "QDocModule": "qttestlib",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used on Linux ond MacOS in the Qt Test module.",
+        "Version": "3.14.0"
+    },
+    {
+        "Copyright": "Copyright (c) 2003, 2006 Matteo Frigo\nCopyright (c) 2003, 2006 Massachusetts Institute of Technology",
+        "Description": "Allows to access the CPU's cycle counters.",
+        "DownloadLocation": "",
+        "Files": "cycle_p.h",
+        "Homepage": "",
+        "Id": "cycle",
+        "License": "MIT License",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/testlib/3rdparty/CYCLE_LICENSE.txt",
+        "LicenseId": "MIT",
+        "Name": "Cycle",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/testlib/3rdparty",
+        "QDocModule": "qttestlib",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used in the Qt Test module.",
+        "Version": ""
+    },
+    {
+        "Copyright": "Copyright (C) 2008-2009, Thomas Gleixner <tglx@linutronix.de>\nCopyright (C) 2008-2011, Red Hat, Inc., Ingo Molnar\nCopyright (C) 2008-2011, Red Hat, Inc., Peter Zijlstra",
+        "Description": "Allows access to the Linux kernel's performance events.",
+        "DownloadLocation": "",
+        "Files": "linux_perf_event_p.h",
+        "Homepage": "https://www.kernel.org",
+        "Id": "linuxperf",
+        "License": "GNU General Public License v2.0 only with Linux Syscall Note",
+        "LicenseFile": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/testlib/3rdparty/LINUX_LICENSE.txt",
+        "LicenseId": "GPL-2.0 WITH Linux-syscall-note",
+        "Name": "Linux Performance Events",
+        "Path": "/media/ntfs/Maxim/Sources/myfyrio/build-src/qtbase-everywhere-src-5.14.2/src/testlib/3rdparty",
+        "QDocModule": "qttestlib",
+        "QtParts": [
+            "libs"
+        ],
+        "QtUsage": "Used on Linux and Android in the Qt Test module. Note that this is a copy of the respective Linux header, and the clarifications of the Linux Syscall Note apply.",
+        "Version": "3.7"
+    }
+]

@@ -27,28 +27,36 @@ Module that lets you build the application using "setuptools"
 
 import pathlib
 import shutil
+import sys
 
-from deployment import utils
+project_dir = pathlib.Path(__file__).parents[1].absolute()
+sys.path.append(str(project_dir))
 
-setup_file = pathlib.Path(__file__).parents[1] / 'setup.py'
+from deploy import utils # pylint:disable=wrong-import-position
 
 
-def source():
+def source(setup_file):
     '''Make "Source Distribution"
 
+    :param setup_file: path to the 'setup.py' file,
     :raise ImportWarning: 'setuptools' is not installed
     '''
+
+    print('Source Distribution...')
 
     _check_package_installed('setuptools')
 
     cmd = f'python {setup_file} sdist'
     utils.run(cmd)
 
-def wheel():
+def wheel(setup_file):
     '''Make "Pure Python Wheel"
 
+    :param setup_file: path to the 'setup.py' file,
     :raise ImportWarning: 'setuptools' or/and 'wheel' are not installed
     '''
+
+    print('Pure Python Wheel...')
 
     _check_package_installed('setuptools')
     _check_package_installed('wheel')
@@ -57,13 +65,15 @@ def wheel():
     utils.run(cmd)
 
 def _check_package_installed(package):
-    if not utils.installed(package):
+    if not utils.pip_installed(package):
         err_msg = (f'Package "{package}" is not installed: '
                    f'"pip install {package}"')
         raise ImportWarning(err_msg)
 
 def clear():
     '''Clear the temporary directories used for building the application'''
+
+    print('Clearing temporary directories...')
 
     parent_dir = setup_file.parent
     programme_name = utils.name()
@@ -73,3 +83,11 @@ def clear():
     for d in [egg_dir, build_dir]:
         if d.exists():
             shutil.rmtree(d)
+
+
+if __name__ == '__main__':
+    setup_file = project_dir / 'setup.py'
+
+    source(setup_file)
+    wheel(setup_file)
+    clear()
