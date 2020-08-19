@@ -21,6 +21,7 @@ Module implementing working with worker threads
 '''
 
 import os
+import sys
 from multiprocessing import Pool
 from typing import (TYPE_CHECKING, Any, Callable, Collection, Iterable, List,
                     Set, Tuple, Union)
@@ -275,9 +276,13 @@ class ImageProcessing(QtCore.QObject):
 
     def _available_cores(self) -> int:
         cores = self._conf['cores']
+        if sys.platform.startswith('win'):
+            # Windows does not support 'sched_getaffinity'
+            return cores
+
         available_cores = len(os.sched_getaffinity(0))
         if cores > available_cores:
-            cores = available_cores
+            return available_cores
         return cores
 
     def _update_progressbar(self, value: float) -> None:

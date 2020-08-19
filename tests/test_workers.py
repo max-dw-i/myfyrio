@@ -17,6 +17,7 @@ along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 '''
 
 import logging
+import sys
 from multiprocessing import pool
 from unittest import TestCase, mock
 
@@ -589,6 +590,18 @@ class TestClassImageProcessingMethodAvailableCores(TestClassImageProcessing):
 
         self.mock_sched = mock.MagicMock(spec=set)
         self.mock_sched.__len__.return_value = 1
+
+        self.real_platform = sys.platform
+        sys.platform = 'linux'
+
+    def tearDown(self):
+        sys.platform = self.real_platform
+
+    def test_return_cores_number_from_conf_if_windows(self):
+        sys.platform = 'win-32'
+        res = self.proc._available_cores()
+
+        self.assertEqual(res, self.proc._conf['cores'])
 
     def test_sched_getaffinity_called_with_0(self):
         with mock.patch('os.sched_getaffinity',
