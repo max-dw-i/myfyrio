@@ -145,10 +145,19 @@ class DuplicateWidget(QtWidgets.QWidget):
         try:
             subprocess.run([command, path], check=True)
 
-        except (FileNotFoundError, subprocess.CalledProcessError):
-            err_msg = f'Something went wrong while opening the "{path}" image'
+        except FileNotFoundError:
+            err_msg = f'Image at "{path}" does not exist'
             logger.exception(err_msg)
             errornotifier.errorMessage([err_msg])
+
+        except subprocess.CalledProcessError:
+            err_msg = f'Something went wrong while opening the "{path}" image'
+            logger.exception(err_msg)
+            # Crazy hack: on Windows, for some reason, 'explorer's exit code
+            # is 1, even though the image is opened in the image viewer, so
+            # we do not show the error message to the user
+            if not sys.platform.startswith('win'):
+                errornotifier.errorMessage([err_msg])
 
     def renameImage(self) -> None:
         '''Rename the image'''

@@ -387,7 +387,7 @@ class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
             with mock.patch(self.PATCH_ERRN+'errorMessage') as mock_msg_call:
                 self.w.openImage()
 
-        err_msg = ['Something went wrong while opening the "path" image']
+        err_msg = ['Image at "path" does not exist']
         mock_msg_call.assert_called_once_with(err_msg)
 
     def test_log_error_if_subprocess_run_raise_CalledProcessError(self):
@@ -397,7 +397,7 @@ class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
                 with self.assertLogs('main.duplicatewidget', 'ERROR'):
                     self.w.openImage()
 
-    def test_call_errorMessage_if_subproc_run_raise_CalledProcessError(self):
+    def test_call_errorMessage_if_raise_CalledProcessError_and_not_Win(self):
         with mock.patch('subprocess.run',
                         side_effect=CalledProcessError(0, 'cmd')):
             with mock.patch(self.PATCH_ERRN+'errorMessage') as mock_msg_call:
@@ -405,6 +405,15 @@ class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
 
         err_msg = ['Something went wrong while opening the "path" image']
         mock_msg_call.assert_called_once_with(err_msg)
+
+    def test_not_call_errorMessage_if_raise_CalledProcessError_and_Win(self):
+        sys.platform = 'win-32'
+        with mock.patch('subprocess.run',
+                        side_effect=CalledProcessError(0, 'cmd')):
+            with mock.patch(self.PATCH_ERRN+'errorMessage') as mock_msg_call:
+                self.w.openImage()
+
+        mock_msg_call.assert_not_called()
 
 
 class TestDuplicateWidgetMethodRenameImage(TestDuplicateWidget):
