@@ -16,6 +16,7 @@ You should have received a copy of the GNU General Public License
 along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 '''
 
+import multiprocessing
 import sys
 
 from PyQt5.QtWidgets import QApplication
@@ -32,4 +33,5 @@ def main() -> None:
     app.exec()
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     main()
