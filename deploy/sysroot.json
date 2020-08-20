@@ -1,5 +1,5 @@
 {
-    "linux|win#zlib": {
+    "zlib": {
         "source":                   "zlib-1.2.11.tar.gz",
         "static_msvc_runtime":      true
     },
@@ -13,9 +13,6 @@
                                     "-confirm-license",
                                     "-release",
                                     "#-static",
-                                    "#-static-runtime # Windows",
-                                    "#-mp # Multiple cores with MSVC",
-                                    "-ccache",
                                     "-optimize-size",
 
                                     "-nomake",
@@ -25,12 +22,8 @@
                                     "-nomake",
                                     "tests",
 
-                                    "-no-iconv",
                                     "-no-icu",
 
-                                    "#-no-dbus # ibus error???",
-                                    "-no-kms",
-                                    "-no-linuxfb",
                                     "-no-opengl",
 
                                     "-no-ssl",
@@ -54,6 +47,35 @@
                                     "-no-gif",
 
                                     "-v"
+        ],
+        "linux#configure_options": [
+                                    "-ccache",
+
+                                    "-no-iconv",
+
+                                    "#-no-dbus # ibus error???",
+                                    "-no-kms",
+                                    "-no-linuxfb",
+
+                                    "-style-fusion",
+                                    "-no-style-windows"
+        ],
+        "win#configure_options": [
+                                    "#-static-runtime # Windows",
+                                    "-mp",
+
+                                    "-no-icu",
+
+                                    "-no-dbus",
+                                    "-no-direct2d",
+
+                                    "# Use DirectWrite on Win",
+                                    "-no-freetype",
+                                    "-no-harfbuzz",
+
+                                    "-style-windows",
+                                    "-style-windowsvista",
+                                    "-no-style-fusion"
         ],
         "disabled_features": [
                                     "# Printer",
@@ -114,9 +136,6 @@
 
                                     "# QtCore",
 
-                                    "# Animation need for MacOS style",
-                                    "animation",
-                                    "easingcurve",
                                     "statemachine",
                                     "# Qeventtransition dep on statemachine",
                                     "qeventtransition",
@@ -138,8 +157,6 @@
                                     "future",
                                     "commandlineparser",
                                     "topleveldomain",
-                                    "# Temporaryfile dep on linkat",
-                                    "temporaryfile",
                                     "# Linkat need for Android",
                                     "linkat",
                                     "# Process dep on processenvironment",
@@ -176,11 +193,9 @@
                                     "calendarwidget",
                                     "colordialog",
                                     "columnview",
-                                    "commandlinkbutton",
                                     "datawidgetmapper",
                                     "datetimeedit",
                                     "dial",
-                                    "dockwidget",
                                     "errormessage",
                                     "fontcombobox",
                                     "fontdialog",
@@ -196,16 +211,28 @@
                                     "splashscreen",
                                     "style-stylesheet",
                                     "syntaxhighlighter",
-                                    "tableview",
                                     "tablewidget",
                                     "textbrowser",
-                                    "toolbar",
                                     "toolbox",
                                     "undocommand",
                                     "undogroup",
                                     "undostack",
                                     "undoview",
                                     "wizard"
+        ],
+        "linux#disabled_features": [
+                                    "# Temporaryfile dep on linkat",
+                                    "temporaryfile",
+
+                                    "# Animation need for MacOS and WinVista styles",
+                                    "animation",
+                                    "# Easingcurve is animation's dep",
+                                    "easingcurve",
+                                    "# Qt error without the next 4 (need by vista style)",
+                                    "commandlinkbutton",
+                                    "dockwidget",
+                                    "tableview",
+                                    "toolbar"
         ],
 
         "static_msvc_runtime":      true

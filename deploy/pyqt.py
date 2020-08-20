@@ -29,10 +29,10 @@ import pathlib
 import shutil
 import sys
 
-project_dir = pathlib.Path(__file__).parents[1].absolute()
+project_dir = pathlib.Path(__file__).parents[1].resolve()
 sys.path.append(str(project_dir))
 
-from deploy import utils # pylint:disable=wrong-import-position
+from deploy import qt, utils # pylint:disable=wrong-import-position
 
 
 def build(src_dir, build_dir, qmake, build_options=None, install_dir=None):
@@ -71,7 +71,16 @@ def build(src_dir, build_dir, qmake, build_options=None, install_dir=None):
 
     options = ' '.join(options)
     cmd = f'sip-install {options}'
-    utils.run(utils.ccache_wrapper(cmd), cwd=src_dir)
+    if utils.is_linux():
+        add_ccache_cmd = utils.add_ccache_to_PATH_cmd()
+        cmd = f'{add_ccache_cmd} && {cmd}'
+    qt.run(cmd, src_dir, cwd=src_dir)
+
+def check_build_dependencies():
+    '''Check that all the necessary dependencies are installed'''
+
+    if not utils.pip_installed('pyqtbuild'):
+        raise RuntimeError('Install PyQt-builder')
 
 def set_project_toml():
     # TODO: add disabled features to toml dynamically
@@ -79,14 +88,17 @@ def set_project_toml():
 
 
 if __name__ == '__main__':
+    check_build_dependencies()
+
     sysroot = project_dir / 'sysroot'
     if not sysroot.exists():
         sysroot.mkdir()
 
-    src_dir = project_dir / 'build-src' / 'PyQt5-5.14.2mod'
+    src_dir = project_dir.joinpath('build-src', 'PyQt5-5.14.2mod')
     build_dir = sysroot / 'build-pyqt'
     install_dir = sysroot / 'PyQt'
-    qmake = sysroot / 'Qt' / 'bin' / 'qmake'
+    qt_bin = sysroot.joinpath('Qt', 'bin')
+    qmake = qt_bin / ('qmake' if utils.is_linux() else 'qmake.exe')
 
     options = [
         '--confirm-license',

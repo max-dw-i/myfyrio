@@ -30,6 +30,8 @@ import json
 import os
 import pathlib
 import subprocess
+import sys
+from collections import UserDict
 from xml.etree import ElementTree
 
 
@@ -45,7 +47,8 @@ def version():
 
 def _widget_text(widget_name):
     project_root = pathlib.Path(__file__).parents[1]
-    about_ui = project_root / 'myfyrio' / 'static' / 'ui' / 'aboutwindow.ui'
+    about_ui = project_root.joinpath('myfyrio', 'static', 'ui',
+                                     'aboutwindow.ui')
 
     tree = ElementTree.parse(about_ui)
     root = tree.getroot()
@@ -63,12 +66,9 @@ def pip_installed(package):
     '''
 
     # If the package name has dashes ('-'), replace with dots ('.')
+    package = package.replace('-', '.')
     spec = importlib.util.find_spec(package)
-    installed = False
-    if spec is not None:
-        installed = True
-
-    return installed
+    return spec is not None
 
 def apt_installed(packages):
     '''Check if :packages: are installed by the 'apt' package manager
@@ -100,77 +100,82 @@ def run(cmd, cwd=None, stdout=True):
         return ''
     return output.decode('utf-8')
 
-def ccache_wrapper(cmd):
-    '''Precede the :cmd: command with a command adding the 'ccache' path
-    with the compiler symlinks to :PATH: so 'ccache' can be used
+def add_ccache_to_PATH_cmd():
+    '''Return the command adding the 'ccache' path with the compiler symlinks
+    to :PATH: so 'ccache' can be used
 
-    :cmd: command to run,
-    :return: e.g. 'export PATH=/usr/lib/ccache:rest_of_PATH && make'
+    :return: 'export PATH=/usr/lib/ccache:rest_of_PATH'
     '''
 
     CCACHE_PATH = '/usr/lib/ccache'
     PATH = os.environ['PATH']
-    new_PATH = f'{CCACHE_PATH}:{PATH}'
-    return f'export PATH={new_PATH} && {cmd}'
+    return f'export PATH={CCACHE_PATH}:{PATH}'
+
+def is_linux():
+    '''Return True if the platform is 'Linux', otherwise - False'''
+
+    if sys.platform.startswith('linux'):
+        return True
+    return False
 
 
-class ConfigJSON:
-    '''Represent '.json' file'''
+class JSON(UserDict):
+    '''Represent '.json' file
 
-    def __init__(self, file_path):
-        self.file_path = file_path
-        self.data = None
+    :param file_path: path to the '.json' file
+    '''
 
-    def load(self):
-        with open(self.file_path, 'r') as f:
-            data = f.read()
-            self.data = json.loads(data)
+    def load(self, file_path):
+        with open(file_path, 'r') as f:
+            self.data = json.load(f) # pylint:disable=attribute-defined-outside-init
 
     def save(self, file_path):
-        data = json.dumps(self.data)
         with open(file_path, 'w') as f:
-            f.write(data)
+            json.dump(self.data, f)
 
 
-class SysrootJSON(ConfigJSON):
-    '''Parse and load 'sysroot.json' containing build settings'''
+class BetterJSON(JSON):
+    '''Represent '.json' file that can have platform specific options
+    and 'comment values' if an option is a list. After the file is loaded,
+    it's sanitised (without 'comment values' and platform specific options -
+    your platform options have been chosen and merged under a not platform
+    specific option, e.g. the platform is 'win' and the options are 'option'
+    and 'win#option', then the values of these 2 options will be merged under
+    a new option 'option')
+    '''
 
-    @staticmethod
-    def _uncomment(data):
-        qt5 = data['qt5']
-        for k in ['configure_options', 'disabled_features']:
-            qt5[k] = [v for v in qt5[k] if not v.startswith('#')]
+    def load(self, file_path):
+        super().load(file_path)
 
-    def load(self):
-        super().load()
-        self._uncomment(self.data)
+        self._group_platform_options()
+        self._uncomment() # call AFTER '_group_platform_options'
 
-    def qt_options(self):
-        '''Return Qt configuration options as a string.
-        E.g. '-static -no-opengl -ccache'
-        '''
+    def _group_platform_options(self):
+        platform = 'linux'
+        if sys.platform.startswith('win'):
+            platform = 'win'
 
-        options = self.data['qt5']['configure_options']
-        return ' '.join(options)
+        data = {plugin: {} for plugin in self.data}
+        for plugin, options in self.data.items():
+            for option, value in options.items():
+                if '#' in option:
+                    # platform specific, e.g. 'win|macos#configure_options'
+                    option_platforms, option = option.split('#')
+                    if platform not in option_platforms:
+                        continue
 
-    def qt_disabled_features(self):
-        '''Return Qt disabled features as a string.
-        E.g. '-no-feature-colornames -no-feature-fontdialog'
-        '''
-        features = self.data['qt5']['disabled_features']
-        return ' '.join(['-no-feature-' + f for f in features])
+                if option in data[plugin]:
+                    if not isinstance(value, list):
+                        raise ValueError(f"'{option}' is already provided")
+                    data[plugin][option].extend(value)
+                else:
+                    data[plugin][option] = value
 
-    def generate_pyqt_disabled_features(self):
-        '''Use the Qt disabled features to generate PyQt disabled features and
-        assign them to the corresponding json object
-        '''
+        self.data = data # pylint:disable=attribute-defined-outside-init
 
-        features = self.data['qt5']['disabled_features']
-        features = ['PyQt_' + f.replace('-', '_') for f in features]
-
-        options = self.data['qt5']['configure_options']
-        if '-no-opengl' in options:
-            features.append('PyQt_desktop_opengl')
-            features.append('PyQt_opengl')
-
-        self.data['pyqt5']['disabled_features'] = features
+    def _uncomment(self):
+        for plugin, options in self.data.items():
+            for option, value in options.items():
+                if isinstance(value, list):
+                    self.data[plugin][option] = [el for el in value
+                                                 if not el.startswith('#')]

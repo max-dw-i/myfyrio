@@ -29,7 +29,7 @@ import pathlib
 import shutil
 import sys
 
-project_dir = pathlib.Path(__file__).parents[1].absolute()
+project_dir = pathlib.Path(__file__).parents[1].resolve()
 sys.path.append(str(project_dir))
 
 from deploy import utils # pylint:disable=wrong-import-position

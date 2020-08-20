@@ -29,11 +29,10 @@ import pathlib
 import shutil
 import sys
 
-project_dir = pathlib.Path(__file__).parents[1].absolute()
+project_dir = pathlib.Path(__file__).parents[1].resolve()
 sys.path.append(str(project_dir))
 
-from deploy import qt # pylint:disable=wrong-import-position
-from deploy import utils # pylint:disable=wrong-import-position
+from deploy import qt, utils # pylint:disable=wrong-import-position
 
 
 def build_sysroot(src_dir, sysroot_json, sysroot_dir, clean=True):
@@ -64,71 +63,30 @@ def build_sysroot(src_dir, sysroot_json, sysroot_dir, clean=True):
         '--no-clean '
         '--verbose'
     )
-    cmd = f'pyqtdeploy-sysroot {options} {sysroot_json}'
-    utils.run(cmd)
+    build_sysroot_cmd = f'pyqtdeploy-sysroot {options} {sysroot_json}'
+    qt_src = sysroot_dir.joinpath('build', 'qtbase-everywhere-src-5.14.2')
+    qt.run(build_sysroot_cmd, qt_src)
 
-def _temp_sysroot_json(sysroot_json, sysroot_dir):
+def _temp_sysroot_json(template_sysroot_json, sysroot_dir):
     '''Make a new 'sysroot.json' file and put it in the sysroot folder.
     This file also contain PyQt disabled features that are generated
     based on the Qt disabled features
 
-    :param sysroot_json: path to the default 'sysroot.json',
+    :param template_sysroot_json: path to the default 'sysroot.json',
     :param sysroot_dir: sysroot folder (where to put the new 'sysroot.json'),
     :return: path to the new 'sysroot.json'
     '''
 
-    temp_sysroot_json_path = sysroot_dir / 'sysroot.json'
+    working_sysroot_json = sysroot_dir / 'sysroot.json'
 
-    conf = utils.SysrootJSON(sysroot_json)
-    conf.load()
+    conf = SysrootJSON()
+    conf.load(template_sysroot_json)
     conf.generate_pyqt_disabled_features()
-    conf.save(temp_sysroot_json_path)
+    conf.save(working_sysroot_json)
 
-    return temp_sysroot_json_path
+    return working_sysroot_json
 
-def check_build_dependencies():
-    '''Check that all the necessary dependencies are installed. If not,
-    raise an exception with the packages not installed
-
-    :raise RuntimeError: if there is any not installed package
-    '''
-
-    print('Checking build dependencies...')
-
-    qt_xcb_deps = [
-        'libfontconfig1-dev',
-        'libfreetype6-dev',
-        'libx11-dev',
-        'libxext-dev',
-        'libxfixes-dev',
-        'libxi-dev',
-        'libxrender-dev',
-        'libxcb1-dev',
-        'libx11-xcb-dev',
-        'libxcb-glx0-dev',
-        'libxkbcommon-x11-dev',
-        'libxkbcommon-dev',
-    ]
-
-    #system_xcb_deps = [
-    #    'libxcb-keysyms1-dev',
-    #    'libxcb-image0-dev',
-    #    'libxcb-shm0-dev',
-    #    'libxcb-icccm4-dev',
-    #    'libxcb-sync0-dev',
-    #    'libxcb-xfixes0-dev',
-    #    'libxcb-shape0-dev',
-    #    'libxcb-randr0-dev',
-    #    'libxcb-render-util0-dev',
-    #]
-    pkgs = utils.apt_installed(qt_xcb_deps)
-    not_installed = '\n'.join(
-        [f'{name} is missing' for name, installed in pkgs if not installed]
-    )
-    if not_installed:
-        raise RuntimeError(f'\n{not_installed}')
-
-def _check_load_library():
+def _check_load_library_reminder():
     msg = ("'pyqtdeploy' needs 'loadlibrary.c' to be in the Python source "
            "(Python-x.x.x/Modules/expat/loadlibrary.c). New Python versions "
            "do not have this file. Check it. If there is no such a file "
@@ -138,7 +96,7 @@ def _check_load_library():
 
     input('Press any key to continue...')
 
-def check_pdy(pdy_file):
+def check_pdy_reminder(pdy_file):
     '''Remind about checking the paths in the :pdy_file:
 
     :param pdy_file: '.pdy' file to check
@@ -160,15 +118,17 @@ def build_myfyrio(sysroot_dir, pdy_file, build_dir):
 
     print('Building Myfyrio...')
 
+    qt_src = sysroot_dir.joinpath('build', 'qtbase-everywhere-src-5.14.2')
+
     options = f'--sysroot {sysroot_dir} --build-dir {build_dir}'
-    cmd = f'pyqtdeploy-build {options} {pdy_file}'
-    utils.run(cmd)
+    build_project_cmd = f'pyqtdeploy-build {options} {pdy_file}'
+    qt.run(build_project_cmd, qt_src)
 
-    qmake = sysroot_dir / 'host' / 'bin' / 'qmake'
-    utils.run(str(qmake), cwd=str(build_dir))
+    qmake_cmd = sysroot_dir.joinpath('qt', 'bin', 'qmake')
+    qt.run(str(qmake_cmd), qt_src, cwd=build_dir)
 
-    make_cmd = 'nmake' if sys.platform.startswith('win') else 'make'
-    utils.run(make_cmd, cwd=str(build_dir))
+    make_cmd = 'make' if utils.is_linux() else 'nmake'
+    qt.run(make_cmd, qt_src, cwd=build_dir)
 
 def bundle_myfyrio(dist_dir, myfyrio_build_dir, sysroot_dir):
     '''Put all the necessary files (icon, licenses, '.desktop' file, app
@@ -185,44 +145,81 @@ def bundle_myfyrio(dist_dir, myfyrio_build_dir, sysroot_dir):
         shutil.rmtree(dist_dir)
     dist_dir.mkdir()
 
-    myfyrio_path = myfyrio_build_dir / 'Myfyrio'
-    new_myfyrio_path = dist_dir / 'Myfyrio'
+    _copy_exe(dist_dir, myfyrio_build_dir)
+    _copy_licenses(dist_dir, sysroot_dir)
+    _copy_icon(dist_dir)
+    if utils.is_linux():
+        _copy_desktop_file(dist_dir)
+
+    arch_name = dist_dir / 'Myfyrio'
+    shutil.make_archive(arch_name, 'gztar', root_dir=dist_dir)
+
+def _copy_exe(dist_dir, myfyrio_build_dir,):
+    exe_file = 'Myfyrio'
+    myfyrio_path = myfyrio_build_dir / exe_file
+    if not utils.is_linux():
+        exe_file += '.exe'
+        myfyrio_path = myfyrio_build_dir.joinpath('release', exe_file)
+    new_myfyrio_path = dist_dir / exe_file
     shutil.copyfile(myfyrio_path, new_myfyrio_path)
 
-    project_folder = pathlib.Path(__file__).parents[1]
-    icon_path = project_folder / 'myfyrio' / 'static' / 'images' / 'icon.png'
+def _copy_icon(dist_dir):
+    icon_path = project_dir.joinpath('myfyrio', 'static', 'images', 'icon.png')
     new_icon_path = dist_dir / 'icon.png'
     shutil.copyfile(icon_path, new_icon_path)
 
-    deploy_dir = project_folder / 'deploy'
-    desktop_path = deploy_dir / 'static' / 'Myfyrio.desktop'
+def _copy_desktop_file(dist_dir):
+    deploy_dir = project_dir / 'deploy'
+    desktop_path = deploy_dir.joinpath('static', 'Myfyrio.desktop')
     new_desktop_path = dist_dir / 'Myfyrio.desktop'
     shutil.copyfile(desktop_path, new_desktop_path)
 
-    licenses_path = deploy_dir / 'static' / 'LICENSES'
+def _copy_licenses(dist_dir, sysroot_dir):
+    deploy_dir = project_dir / 'deploy'
+    licenses_path = deploy_dir.joinpath('static', 'LICENSES')
     new_licenses_path = dist_dir / 'LICENSES'
     shutil.copytree(licenses_path, new_licenses_path)
+    if not utils.is_linux():
+        libffi_license = new_licenses_path / 'libffi'
+        shutil.rmtree(libffi_license)
 
-    export_folder = new_licenses_path / 'Qt5' / '3rdparty'
+    export_folder = new_licenses_path.joinpath('Qt5', '3rdparty')
     thirdpartylibs_json = deploy_dir / '3rdpartylibs.json'
-    qt_src_dir = sysroot_dir / 'build' / 'qtbase-everywhere-src-5.14.2'
+    qt_src_dir = sysroot_dir.joinpath('build', 'qtbase-everywhere-src-5.14.2')
     # 'pyqtdeploy' do not use shadow build so 'qt_src_dir'
     # and 'qt_build_dir' are the same
     qt.export_licenses(export_folder, thirdpartylibs_json, qt_src_dir,
                        qt_src_dir)
 
-    shutil.make_archive(new_myfyrio_path, 'gztar', root_dir=dist_dir)
+
+class SysrootJSON(utils.BetterJSON):
+    '''Represent 'sysroot.json' containing build settings'''
+
+    def generate_pyqt_disabled_features(self):
+        '''Use the Qt disabled features to generate PyQt disabled features and
+        assign them to the corresponding 'json' object
+        '''
+
+        qt5 = self.data['qt5']
+        features = ['PyQt_' + feature.replace('-', '_')
+                    for feature in qt5['disabled_features']]
+
+        if '-no-opengl' in qt5['configure_options']:
+            features.append('PyQt_desktop_opengl')
+            features.append('PyQt_opengl')
+
+        self.data['pyqt5']['disabled_features'] = features
 
 
 if __name__ == '__main__':
-    src_dir = project_dir / 'build-src'
-    sysroot_json = project_dir / 'deploy' / 'sysroot.json'
-    sysroot_dir = project_dir / 'sysroot'
-    pdy_file = project_dir / 'deploy' / 'myfyrio.pdy'
+    pdy_file = project_dir.joinpath('deploy', 'myfyrio.pdy')
+    _check_load_library_reminder() # Temporary till pyqtdeploy bug is fixed
+    check_pdy_reminder(pdy_file)
+    qt.check_build_dependencies()
 
-    _check_load_library() # Temporary till pyqtdeploy bug is fixed
-    check_pdy(pdy_file)
-    check_build_dependencies()
+    src_dir = project_dir / 'build-src'
+    sysroot_json = project_dir.joinpath('deploy', 'sysroot.json')
+    sysroot_dir = project_dir / 'sysroot'
 
     build_sysroot(src_dir, sysroot_json, sysroot_dir, clean=False)
 
