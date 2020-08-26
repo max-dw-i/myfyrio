@@ -53,7 +53,7 @@ setup(
     long_description=long_description,
     long_description_content_type='text/markdown',
     url=URL,
-    packages=find_packages(exclude=['tests', 'deployment', 'deployment.*']),
+    packages=find_packages(exclude=['tests', 'deploy', 'deploy.*']),
     py_modules=['main'],
     package_data={
         'myfyrio.static.images': ['*.png', 'LICENSE'],
