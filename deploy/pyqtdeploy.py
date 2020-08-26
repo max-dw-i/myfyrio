@@ -32,7 +32,7 @@ import sys
 project_dir = pathlib.Path(__file__).parents[1].resolve()
 sys.path.append(str(project_dir))
 
-from deploy import qt, utils # pylint:disable=wrong-import-position
+from deploy import qt, qt3rdparty, utils # pylint:disable=wrong-import-position
 
 
 def build_sysroot(src_dir, sysroot_json, sysroot_dir, clean=True):
@@ -141,55 +141,77 @@ def bundle_myfyrio(dist_dir, myfyrio_build_dir, sysroot_dir):
 
     print('Bundling Myfyrio...')
 
+    release_dir = dist_dir / 'release'
     if dist_dir.exists():
         shutil.rmtree(dist_dir)
-    dist_dir.mkdir()
+    release_dir.mkdir(parents=True)
 
-    _copy_exe(dist_dir, myfyrio_build_dir)
-    _copy_licenses(dist_dir, sysroot_dir)
-    _copy_icon(dist_dir)
+    _copy_exe(release_dir, myfyrio_build_dir)
+    _copy_licenses(release_dir, sysroot_dir)
+    _copy_icon(release_dir)
     if utils.is_linux():
-        _copy_desktop_file(dist_dir)
+        _copy_desktop_file(release_dir)
 
-    arch_name = dist_dir / 'Myfyrio'
-    shutil.make_archive(arch_name, 'gztar', root_dir=dist_dir)
+    _archiving(release_dir, dist_dir)
 
-def _copy_exe(dist_dir, myfyrio_build_dir,):
+def _copy_exe(dest_dir, myfyrio_build_dir):
     exe_file = 'Myfyrio'
     myfyrio_path = myfyrio_build_dir / exe_file
     if not utils.is_linux():
         exe_file += '.exe'
         myfyrio_path = myfyrio_build_dir.joinpath('release', exe_file)
-    new_myfyrio_path = dist_dir / exe_file
+    new_myfyrio_path = dest_dir / exe_file
     shutil.copyfile(myfyrio_path, new_myfyrio_path)
 
-def _copy_icon(dist_dir):
+def _copy_icon(dest_dir):
     icon_path = project_dir.joinpath('myfyrio', 'static', 'images', 'icon.png')
-    new_icon_path = dist_dir / 'icon.png'
+    new_icon_path = dest_dir / 'icon.png'
     shutil.copyfile(icon_path, new_icon_path)
 
-def _copy_desktop_file(dist_dir):
+def _copy_desktop_file(dest_dir):
     deploy_dir = project_dir / 'deploy'
     desktop_path = deploy_dir.joinpath('static', 'Myfyrio.desktop')
-    new_desktop_path = dist_dir / 'Myfyrio.desktop'
+    new_desktop_path = dest_dir / 'Myfyrio.desktop'
     shutil.copyfile(desktop_path, new_desktop_path)
 
-def _copy_licenses(dist_dir, sysroot_dir):
+def _copy_licenses(dest_dir, sysroot_dir):
+    # Copy the prepared earlier LICENSEs
     deploy_dir = project_dir / 'deploy'
     licenses_path = deploy_dir.joinpath('static', 'LICENSES')
-    new_licenses_path = dist_dir / 'LICENSES'
+    new_licenses_path = dest_dir / 'LICENSES'
     shutil.copytree(licenses_path, new_licenses_path)
     if not utils.is_linux():
         libffi_license = new_licenses_path / 'libffi'
         shutil.rmtree(libffi_license)
 
+    # Export Qt 3rd-party LICENSEs
+    QT = 'qtbase-everywhere-src-5.14.2'
     export_folder = new_licenses_path.joinpath('Qt5', '3rdparty')
     thirdpartylibs_json = deploy_dir / '3rdpartylibs.json'
-    qt_src_dir = sysroot_dir.joinpath('build', 'qtbase-everywhere-src-5.14.2')
-    # 'pyqtdeploy' do not use shadow build so 'qt_src_dir'
-    # and 'qt_build_dir' are the same
-    qt.export_licenses(export_folder, thirdpartylibs_json, qt_src_dir,
-                       qt_src_dir)
+    qt_build_dir = sysroot_dir.joinpath('build', QT)
+
+    json = utils.JSON()
+    json.load(thirdpartylibs_json)
+    thirdparty_libs = json.data
+
+    prev_src_dir = ('/media/ntfs/Maxim/Sources/myfyrio/build-src/' + QT)
+    qt3rdparty.fix_3rdpartylib_paths(
+        thirdparty_libs, prev_src_dir, qt_build_dir
+    )
+
+    qt_src_dir = project_dir.joinpath('build-src', QT)
+    if not qt_src_dir.exists():
+        archive = qt_src_dir.parent / (QT + '.tar.gz')
+        shutil.unpack_archive(archive, qt_src_dir)
+
+    qt3rdparty.export_used_licenses(
+        export_folder, thirdparty_libs, qt_build_dir, qt_src_dir
+    )
+
+def _archiving(dir_to_arch, dest_dir):
+    arch_name = dest_dir / 'Myfyrio'
+    arch_format = 'gztar' if utils.is_linux() else 'zip'
+    shutil.make_archive(arch_name, arch_format, root_dir=dir_to_arch)
 
 
 class SysrootJSON(utils.BetterJSON):
