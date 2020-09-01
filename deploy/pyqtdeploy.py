@@ -148,8 +148,8 @@ def bundle_myfyrio(dist_dir, myfyrio_build_dir, sysroot_dir):
 
     _copy_exe(release_dir, myfyrio_build_dir)
     _copy_licenses(release_dir, sysroot_dir)
-    _copy_icon(release_dir)
     if utils.is_linux():
+        _copy_icon(release_dir)
         _copy_desktop_file(release_dir)
 
     _archiving(release_dir, dist_dir)
