@@ -95,13 +95,3 @@ For example, you'd like to open an image in your default image viewer or rename 
 The menu bar let you do the same actions. In addition, keyboard shortcuts are available.
 
 Many parameters can be changed in window *Preferences* (menu **File** -> **Preferences...**). For example, thumbnail size, what information to show under thumbnails, some image search parameters, etc.
-
-## Tests
-
-The programme is partly covered by unit tests. To run them:
-
-```bash
-
-python -m unittest
-
-```
