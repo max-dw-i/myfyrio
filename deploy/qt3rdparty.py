@@ -54,36 +54,37 @@ def export_used_licenses(export_folder, thirdparty_libs, build_dir,
 
     export_folder = pathlib.Path(export_folder)
 
-    libs = {Library(lib_attrs) for lib_attrs in thirdparty_libs}
+    libs = libraries_factory(thirdparty_libs)
 
-    for mf_path in MakeFile.search(build_dir, src_dir=src_dir):
-        mf = MakeFile(mf_path)
+    for mf_path in Makefile.search(build_dir, src_dir=src_dir):
+        mf = Makefile(mf_path)
         for lib in libs.copy():
-            for sig in lib.signatures:
-                if mf.has_path(sig):
-                    new_license_dir = export_folder / lib.id()
-                    lib.export_license_file(new_license_dir)
-                    libs.remove(lib)
-                    break
+            if lib.used(mf):
+                new_license_dir = export_folder / lib.id()
+                lib.export_license_file(new_license_dir)
+                lib.export_copyright_file(new_license_dir)
+                libs.remove(lib)
 
 
-def export_all_licenses(export_folder, thirdparty_libs):
-    '''Exporting the licenses of all Qt 3rd-party libraries to
-    the :export_folder: folder
+def libraries_factory(thirdparty_libs):
+    '''Return a set of 'library' objects based on the attributes from
+    :thirdparty_libs:
 
-    :param export_folder:   directory where to put the license files in,
     :param thirdparty_libs: list containing the Qt 3rd-party libraries with its
-                            attributes (List[Dict[Attribute, Value]])
+                            attributes (List[Dict[Attribute, Value]]),
+    :return: Set[Union[Library, WebgradientsLib]]
     '''
 
-    print('Exporting the licenses of all Qt 3rd-party libraries...')
+    libs = set()
+    for lib_attrs in thirdparty_libs:
+        id = lib_attrs['Id'] # pylint:disable=redefined-builtin
+        if id == 'webgradients':
+            lib = WebgradientsLib(lib_attrs)
+        else:
+            lib = Library(lib_attrs)
 
-    export_folder = pathlib.Path(export_folder)
-
-    libs = {Library(lib_attrs) for lib_attrs in thirdparty_libs}
-    for lib in libs:
-        new_license_dir = export_folder / lib.id()
-        lib.export_license_file(new_license_dir)
+        libs.add(lib)
+    return libs
 
 
 def fix_3rdpartylib_paths(thirdparty_libs, prev_src_dir, src_dir):
@@ -129,6 +130,18 @@ class Library:
         self._data = lib_data
         self._signatures = []
 
+    def used(self, makefile):
+        '''Return True if any of the library files is found in :makefile:,
+        False - otherwise
+
+        :param makefile: Makefile object
+        '''
+
+        for sig in self.signatures:
+            if makefile.has_path(sig):
+                return True
+        return False
+
     @property
     def signatures(self):
         '''Return the library file paths that used to find out if the lib is
@@ -141,12 +154,21 @@ class Library:
         if sigs:
             return sigs
 
-        separator = '\\' if sys.platform.startswith('win') else '/'
-
         lib_path, lib_filenames = pathlib.Path(self.path()), self.files()
-        lib_filepaths = [str(lib_path / name) for name in lib_filenames]
-        if not lib_filenames and not lib_path.suffix: # Only dir mentioned
-            lib_filepaths[0] += separator
+        if lib_filenames: # e.g. 'linuxperf'
+            lib_filepaths = [str(lib_path / name) for name in lib_filenames]
+        elif lib_path.suffix: # e.g. 'grayraster'
+            lib_filepaths = [lib_path]
+        else: # e.g. 'angle'
+            suffixes = (
+                '.h', '.hh',
+                '.c', '.cpp', '.cc',
+                '.jar', # 'gradle', NEED TO BE TESTED (ANDROID)
+                '.S', # 'pixman', NEED TO BE TESTED (ARM NEON)
+                '.ttf' # fonts for WASM, NEED TO BE TESTED
+            )
+            lib_filepaths = [filepath for filepath in lib_path.rglob('*')
+                             if filepath.suffix in suffixes]
 
         self._signatures = lib_filepaths
         return lib_filepaths
@@ -156,9 +178,10 @@ class Library:
         none, an empty list is returned
         '''
 
-        files = self._data['Files'].split(' ')
-        files = [name.rstrip(',') for name in files]
-        return files
+        files = self._data['Files']
+        if not files:
+            return []
+        return [name.rstrip(',') for name in files.split(' ')]
 
     def path(self):
         '''Return the library path (from the "Path" attribute)'''
@@ -171,6 +194,11 @@ class Library:
         '''
 
         return self._data['LicenseFile']
+
+    def copyright(self):
+        '''Return the library copyright information'''
+
+        return self._data['Copyright']
 
     def export_license_file(self, export_folder):
         '''Copy the license file into :export_folder:
@@ -195,6 +223,20 @@ class Library:
         with open(license_file_path, 'w') as f:
             f.write(self._data['Copyright'])
 
+    def export_copyright_file(self, export_folder):
+        '''Copy the copyright file into :export_folder:
+
+        :param export_folder: folder to copy the copyright file into
+        '''
+
+        if not export_folder.exists():
+            export_folder.mkdir(parents=True)
+
+        copyright_file = export_folder / 'COPYRIGHT'
+        with open(copyright_file, 'w') as f:
+            copyright_info = self.copyright()
+            f.write(copyright_info)
+
     def id(self):
         '''Return the library identificator (unique, from the "Id"
         attribute)
@@ -211,20 +253,34 @@ class Library:
         return hash(self.id())
 
 
-class MakeFile:
-    '''Represent a MakeFile used in a Qt build process
+class WebgradientsLib(Library):
+    '''Represent the 'webgradients' 3rd-party library'''
 
-    :param file_path: path to the MakeFile
+    @property
+    def signatures(self):
+        '''Return the 'webgradients.binaryjson' path'''
+
+        file_path = super().signatures[0]
+        parts = file_path.split('.')
+        # Not '.css' but premade '.binaryjson' is used in compilation
+        parts[-1] = 'binaryjson'
+        return ['.'.join(parts)]
+
+
+class Makefile:
+    '''Represent a Makefile used in a Qt build process
+
+    :param file_path: path to the Makefile
     '''
 
     def __init__(self, file_path):
-        self._file_path = pathlib.Path(file_path)
+        self.file_path = pathlib.Path(file_path)
 
         with open(file_path, 'r') as f:
             self._data = f.read()
 
     def has_path(self, path):
-        '''Check if the MakeFile uses the :path: path in the Qt build process
+        '''Check if the Makefile uses :path: in the Qt build process
 
         :param path: path to some file,
         :return: True - the path has been found, False - otherwise
@@ -232,10 +288,19 @@ class MakeFile:
 
         separators = {' ', '\n', '\t'}
         data = self._data
+        search_area_start = data.find('####### Compile')
+        if search_area_start == -1:
+            return False
+
+        search_area_end = data.find('####### Install')
+
+        # Makefiles generated by qmake do not use implicit rules, wildcards (as
+        # far as I know, only explicit rules) so it must be sufficient just to
+        # search for library files
 
         path = pathlib.Path(path)
         name = str(path.name)
-        i = data.find(name)
+        i = data.find(name, search_area_start, search_area_end)
         while i != -1:
             start, end = i, i
 
@@ -246,10 +311,10 @@ class MakeFile:
                 end += 1
 
             contender = self._sanitise(data[start+1:end])
-            if contender.startswith(str(path)):
+            if contender == str(path):
                 return True
 
-            i = data.find(name, end+1)
+            i = data.find(name, end+1, search_area_end)
 
         return False
 
@@ -262,7 +327,7 @@ class MakeFile:
                 s = s[len(prefix):]
 
         cwd = pathlib.Path.cwd()
-        os.chdir(self._file_path.parent)
+        os.chdir(self.file_path.parent)
         path = pathlib.Path(s).resolve()
         os.chdir(cwd)
         return str(path)
