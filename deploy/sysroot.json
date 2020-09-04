@@ -169,6 +169,11 @@
                                     "#regularexpression # need by dbus",
                                     "#settings # filedialog icons, keep settings between runs",
 
+                                    "# Vulkan API",
+
+                                    "vulkan",
+                                    "vkgen",
+
                                     "# QtGui",
 
                                     "colornames",
