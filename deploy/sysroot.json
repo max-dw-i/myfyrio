@@ -240,7 +240,7 @@
                                     "toolbar"
         ],
 
-        "static_msvc_runtime":      true
+        "static_msvc_runtime":      false
     },
 
     "python": {
