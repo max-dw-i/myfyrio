@@ -152,7 +152,7 @@ def check_build_dependencies():
         ]
         path = os.environ['PATH']
         check_func = lambda names: [(n, n in path) for n in names]
-        msg = "is not installed or installed but not in 'PATH'"
+        msg = "is not installed (or, at least, not in 'PATH')"
 
     all_installed = True
     for name, installed in check_func(deps):
