@@ -25,6 +25,7 @@ DEALINGS IN THE SOFTWARE.
 Module that lets us build 'Myfyrio' using 'pyqtdeploy'
 '''
 
+import os
 import pathlib
 import shutil
 import sys
@@ -163,6 +164,9 @@ def _copy_exe(dest_dir, myfyrio_build_dir):
     new_myfyrio_path = dest_dir / exe_file
     shutil.copyfile(myfyrio_path, new_myfyrio_path)
 
+    mode = os.stat(new_myfyrio_path).st_mode
+    os.chmod(new_myfyrio_path, mode | 0o111) # make executable
+
 def _copy_icon(dest_dir):
     icon_path = project_dir.joinpath('myfyrio', 'static', 'images', 'icon.png')
     new_icon_path = dest_dir / 'icon.png'
@@ -209,7 +213,10 @@ def _copy_licenses(dest_dir, sysroot_dir):
     )
 
 def _archiving(dir_to_arch, dest_dir):
-    arch_name = dest_dir / 'Myfyrio'
+    app_name = utils.name()
+    app_version = utils.version()
+    platform = 'linux64' if utils.is_linux() else 'win64'
+    arch_name = dest_dir / f'{app_name}-{app_version}-{platform}'
     arch_format = 'gztar' if utils.is_linux() else 'zip'
     shutil.make_archive(arch_name, arch_format, root_dir=dir_to_arch)
 
