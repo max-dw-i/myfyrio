@@ -1,7 +1,9 @@
 # TODO
 
 - Add a button for hiding the settings panel at the botton;
+- Add 'Move', 'Delete' in the context menu;
 - Embed the licenses into the application?;
+- Add logo in 'About';
 - Use QFormLayout in Preferences;
 - Do not mark an image as chosen when click on it with the right mouse button;
 - The FileDialog used already can select multiple folders using 'Ctrl', add the same feature for the 'pathsList';
