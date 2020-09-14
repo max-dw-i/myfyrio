@@ -1,6 +1,7 @@
 # TODO
 
 - Add a button for hiding the settings panel at the botton;
+- Sign the cache and config files with hmac (https://stackoverflow.com/questions/24429307/hmac-signing-requests-in-python) or use, for example, json instead of pickle;
 - Add 'Move', 'Delete' in the context menu;
 - Embed the licenses into the application?;
 - Add logo in 'About';
