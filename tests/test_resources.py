@@ -16,6 +16,7 @@ You should have received a copy of the GNU General Public License
 along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 '''
 
+import pathlib
 import sys
 from unittest import TestCase, mock
 
@@ -216,15 +217,39 @@ class TestConfigMethodFrozen(TestConfig):
         super().setUp()
 
         self.real_file = sys.executable
-        sys.executable = '/project_folder/main.py'
+        self.real_platform = sys.platform
 
     def tearDown(self):
         sys.executable = self.real_file
+        sys.platform = self.real_platform
+        resources.USER = False
 
-    def test_proper_path(self):
+    def test_return_super_path_if_not_USER(self):
+        resources.USER = False
+        with mock.patch(RESOURCES+'Resource.frozen', return_value='superpath'):
+            res = self.resource.frozen()
+
+        self.assertEqual(res, 'superpath')
+
+    def test_return_AppData_path_if_USER_and_Win(self):
+        resources.USER = True
+        sys.platform = 'win32'
         res = self.resource.frozen()
 
-        self.assertEqual(res, '/project_folder/' + self.resource.value)
+        expected = str(pathlib.Path.home().joinpath(
+            'AppData', 'Local', 'Myfyrio', resources.Config.CONFIG.value
+        ))
+        self.assertEqual(res, expected)
+
+    def test_home_path_if_USER_and_Linux(self):
+        resources.USER = True
+        sys.platform = 'linux'
+        res = self.resource.frozen()
+
+        expected = str(pathlib.Path.home().joinpath(
+            '.myfyrio', resources.Config.CONFIG.value
+        ))
+        self.assertEqual(res, expected)
 
 
 class TestConfigMethodGet(TestConfig):
@@ -281,15 +306,39 @@ class TestCacheMethodFrozen(TestCache):
         super().setUp()
 
         self.real_file = sys.executable
-        sys.executable = '/project_folder/main.py'
+        self.real_platform = sys.platform
 
     def tearDown(self):
         sys.executable = self.real_file
+        sys.platform = self.real_platform
+        resources.USER = False
 
-    def test_proper_path(self):
+    def test_return_super_path_if_not_USER(self):
+        resources.USER = False
+        with mock.patch(RESOURCES+'Resource.frozen', return_value='superpath'):
+            res = self.resource.frozen()
+
+        self.assertEqual(res, 'superpath')
+
+    def test_return_AppData_path_if_USER_and_Win(self):
+        resources.USER = True
+        sys.platform = 'win32'
         res = self.resource.frozen()
 
-        self.assertEqual(res, '/project_folder/' + self.resource.value)
+        expected = str(pathlib.Path.home().joinpath(
+            'AppData', 'Local', 'Myfyrio', resources.Cache.CACHE.value
+        ))
+        self.assertEqual(res, expected)
+
+    def test_home_path_if_USER_and_Linux(self):
+        resources.USER = True
+        sys.platform = 'linux'
+        res = self.resource.frozen()
+
+        expected = str(pathlib.Path.home().joinpath(
+            '.myfyrio', resources.Cache.CACHE.value
+        ))
+        self.assertEqual(res, expected)
 
 
 class TestCacheMethodGet(TestCache):
@@ -346,15 +395,39 @@ class TestLogMethodFrozen(TestLog):
         super().setUp()
 
         self.real_file = sys.executable
-        sys.executable = '/project_folder/main.py'
+        self.real_platform = sys.platform
 
     def tearDown(self):
         sys.executable = self.real_file
+        sys.platform = self.real_platform
+        resources.USER = False
 
-    def test_proper_path(self):
+    def test_return_super_path_if_not_USER(self):
+        resources.USER = False
+        with mock.patch(RESOURCES+'Resource.frozen', return_value='superpath'):
+            res = self.resource.frozen()
+
+        self.assertEqual(res, 'superpath')
+
+    def test_return_AppData_path_if_USER_and_Win(self):
+        resources.USER = True
+        sys.platform = 'win32'
         res = self.resource.frozen()
 
-        self.assertEqual(res, '/project_folder/' + self.resource.value)
+        expected = str(pathlib.Path.home().joinpath(
+            'AppData', 'Local', 'Myfyrio', resources.Log.ERROR.value
+        ))
+        self.assertEqual(res, expected)
+
+    def test_home_path_if_USER_and_Linux(self):
+        resources.USER = True
+        sys.platform = 'linux'
+        res = self.resource.frozen()
+
+        expected = str(pathlib.Path.home().joinpath(
+            '.myfyrio', resources.Log.ERROR.value
+        ))
+        self.assertEqual(res, expected)
 
 
 class TestLogMethodGet(TestLog):

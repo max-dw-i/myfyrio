@@ -35,12 +35,17 @@ ByteResource = BytesIO  # Resource as bytes
 QtResourcePath = str    # Path to a resource in Qt resource system format
 ###############################################################################
 
+# Change to True if the app is installed system-widely (in particular, if the
+# user does not have permissions to write into the programme's directory) so
+# a user-specific directory is used
+USER = False
+
 
 class Resource(Enum):
     '''Enum implementing a convenient way of getting a resource'''
 
     def nonfrozen(self) -> AbsolutePath:
-        '''Return the absolute path of the resource for the non-frozen
+        '''Return the absolute path to the resource for the non-frozen
         application
         '''
 
@@ -87,24 +92,42 @@ class Image(Resource):
     ERR_IMG = 'myfyrio/static/images/error.png'
 
     def frozen(self) -> QtResourcePath:
-        '''Return the path of the image in Qt resource system format'''
+        '''Return the path to the image in Qt resource system format'''
 
         return ':/' + self.value
 
 
-class Config(Resource):
+class DynamicResource(Resource):
+    '''Represent dynamic resources (that are changed at run-time)'''
+
+    def frozen(self) -> AbsolutePath:
+        '''Return the user-specific path to the resource if USER == True.
+        Otherwise, the usual one (the same directory as the executable's)
+        '''
+
+        if USER:
+            home_dir = pathlib.Path.home()
+            if sys.platform.startswith('win'):
+                appdata_dir = home_dir.joinpath('AppData', 'Local', 'Myfyrio')
+            else:
+                appdata_dir = home_dir / '.myfyrio'
+            return str(appdata_dir / self.value)
+        return super().frozen()
+
+
+class Config(DynamicResource):
     '''Represent config file'''
 
     CONFIG = 'config.p'
 
 
-class Cache(Resource):
+class Cache(DynamicResource):
     '''Represent cache file'''
 
     CACHE = 'cache.p'
 
 
-class Log(Resource):
+class Log(DynamicResource):
     '''Represent error log file'''
 
     ERROR = 'errors.log'
