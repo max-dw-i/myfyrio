@@ -174,8 +174,8 @@ def _copy_icon(dest_dir):
 
 def _copy_desktop_file(dest_dir):
     deploy_dir = project_dir / 'deploy'
-    desktop_path = deploy_dir.joinpath('static', 'Myfyrio.desktop')
-    new_desktop_path = dest_dir / 'Myfyrio.desktop'
+    desktop_path = deploy_dir.joinpath('static', 'myfyrio.desktop')
+    new_desktop_path = dest_dir / 'myfyrio.desktop'
     shutil.copyfile(desktop_path, new_desktop_path)
 
 def _copy_licenses(dest_dir, sysroot_dir):

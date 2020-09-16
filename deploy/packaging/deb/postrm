@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#
+# Copyright 2020 Maxim Shpak <maxim.shpak@posteo.uk>
+# Licensed under the MIT License. See MIT in the programme's folder for license information.
+
+rm -f /usr/bin/Myfyrio
+
+if [ "$1" = "purge" ]; then
+    for home_dir in "/home"/*
+    do
+        appdata_dir="$home_dir/.myfyrio"
+        rm -rf $appdata_dir
+    done
+fi

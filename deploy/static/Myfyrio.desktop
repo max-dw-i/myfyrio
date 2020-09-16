@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Version=1.0
-Name=Myfyrio
-Comment=Application searching for similar images
-Exec=/path/to/Myfyrio
-Icon=/path/to/icon.png
-Terminal=false
-Categories=Utility;

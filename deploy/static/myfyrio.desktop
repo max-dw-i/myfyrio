@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Myfyrio
+Comment=Application searching for similar and/or duplicate images
+Exec=/usr/share/myfyrio/Myfyrio
+Icon=/usr/share/myfyrio/icon.png
+Terminal=false
+Categories=Utility;
