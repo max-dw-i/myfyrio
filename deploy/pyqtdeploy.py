@@ -68,6 +68,7 @@ def build_sysroot(src_dir, sysroot_json, sysroot_dir, clean=True):
     qt_src = sysroot_dir.joinpath('build', 'qtbase-everywhere-src-5.14.2')
     qt.run(build_sysroot_cmd, qt_src)
 
+
 def _temp_sysroot_json(template_sysroot_json, sysroot_dir):
     '''Make a new 'sysroot.json' file and put it in the sysroot folder.
     This file also contain PyQt disabled features that are generated
@@ -87,6 +88,7 @@ def _temp_sysroot_json(template_sysroot_json, sysroot_dir):
 
     return working_sysroot_json
 
+
 def _check_load_library_reminder():
     msg = ("'pyqtdeploy' needs 'loadlibrary.c' to be in the Python source "
            "(Python-x.x.x/Modules/expat/loadlibrary.c). New Python versions "
@@ -96,6 +98,7 @@ def _check_load_library_reminder():
     print(msg)
 
     input('Press any key to continue...')
+
 
 def check_pdy_reminder(pdy_file):
     '''Remind about checking the paths in the :pdy_file:
@@ -108,6 +111,7 @@ def check_pdy_reminder(pdy_file):
     print(msg)
 
     input('Press any key to continue...')
+
 
 def build_myfyrio(sysroot_dir, pdy_file, build_dir):
     '''Build the programme
@@ -131,6 +135,7 @@ def build_myfyrio(sysroot_dir, pdy_file, build_dir):
     make_cmd = 'make' if utils.is_linux() else 'nmake'
     qt.run(make_cmd, qt_src, cwd=build_dir)
 
+
 def bundle_myfyrio(dist_dir, myfyrio_build_dir, sysroot_dir):
     '''Put all the necessary files (icon, licenses, '.desktop' file, app
     itself) into :dist_dir: and make an archive containing all the files
@@ -153,7 +158,10 @@ def bundle_myfyrio(dist_dir, myfyrio_build_dir, sysroot_dir):
         _copy_icon(release_dir)
         _copy_desktop_file(release_dir)
 
+    _set_permissions(release_dir)
+
     _archiving(release_dir, dist_dir)
+
 
 def _copy_exe(dest_dir, myfyrio_build_dir):
     exe_file = 'Myfyrio'
@@ -167,16 +175,19 @@ def _copy_exe(dest_dir, myfyrio_build_dir):
     mode = os.stat(new_myfyrio_path).st_mode
     os.chmod(new_myfyrio_path, mode | 0o111) # make executable
 
+
 def _copy_icon(dest_dir):
     icon_path = project_dir.joinpath('myfyrio', 'static', 'images', 'icon.png')
     new_icon_path = dest_dir / 'icon.png'
     shutil.copyfile(icon_path, new_icon_path)
+
 
 def _copy_desktop_file(dest_dir):
     deploy_dir = project_dir / 'deploy'
     desktop_path = deploy_dir.joinpath('static', 'myfyrio.desktop')
     new_desktop_path = dest_dir / 'myfyrio.desktop'
     shutil.copyfile(desktop_path, new_desktop_path)
+
 
 def _copy_licenses(dest_dir, sysroot_dir):
     # Copy the prepared earlier LICENSEs
@@ -211,6 +222,15 @@ def _copy_licenses(dest_dir, sysroot_dir):
     qt3rdparty.export_used_licenses(
         export_folder, thirdparty_libs, qt_build_dir, qt_src_dir
     )
+
+
+def _set_permissions(release_dir):
+    for path in release_dir.rglob('*'):
+        if path.is_dir() or path.name == 'Myfyrio':
+            os.chmod(path, 0o755)
+        else:
+            os.chmod(path, 0o644)
+
 
 def _archiving(dir_to_arch, dest_dir):
     app_name = utils.name()
