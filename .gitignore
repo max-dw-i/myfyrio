@@ -123,3 +123,6 @@ sysroot
 
 # dir with app bundles
 bundle
+
+# unignore '.rpm' spec
+!myfyrio.spec
