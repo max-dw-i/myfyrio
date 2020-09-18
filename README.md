@@ -82,7 +82,7 @@ myfyrio
 
 *These are built only for Windows x64 and Linux x64. Tested on Windows 10; Ubuntu 16.04 LTS, 20.04 LTS; Mint 19 Cinnamon; Debian 10 XFCE; Manjaro XFCE (not minimal); Fedora 32; OpenSUSE Leap 15.2 KDE; Solus 4.1 KDE (all OSes were installed with the default settings and updated).*
 
-*On Windows, you will need **Microsoft Visual C++ 2015 Redistributable** to be installed (can be downloaded [here](https://www.microsoft.com/en-us/download/details.aspx?id=52685)).*
+*On Windows, you will need **Microsoft Visual C++ 2015 Redistributable** (or newer) to be installed (can be downloaded [here](https://www.microsoft.com/en-us/download/details.aspx?id=52685)).*
 
 *On Linux, you might need to install **libxkbcommon-x11-0** (e.g. Debian 10) and/or **libxcb-xinerama0** if the programme does not run. To debug, try to run it from the terminal with QT_DEBUG_PLUGINS=1.*
 
