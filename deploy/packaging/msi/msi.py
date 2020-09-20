@@ -83,7 +83,7 @@ def make_msi(dist_dir, wix_dir):
     new_msi_file_name = f'{name}-{version}-x64.msi'
     shutil.copyfile(pkg_dir / msi_file_name, dist_dir / new_msi_file_name)
 
-    #shutil.rmtree(pkg_dir)
+    shutil.rmtree(pkg_dir)
 
     print('Done.')
 
@@ -106,8 +106,6 @@ def _update_spec_field(line):
 
     :param line: line to update
     '''
-
-    parts = line.split()
 
     if line.startswith('//css_ref'):
         new_val = (fr'{wix_dir}\Wix_bin\SDK'
