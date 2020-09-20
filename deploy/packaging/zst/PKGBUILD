@@ -1,0 +1,27 @@
+# Maintainer: Maxim Shpak <maxim.shpak@posteo.uk>
+pkgname=myfyrio
+pkgver=0.4.1
+pkgrel=1
+pkgdesc="Application searching for similar/duplicate images"
+arch=('x86_64')
+url="https://github.com/oratosquilla-oratoria/${pkgname}/"
+license=('GPL3')
+depends=('freetype2'  'fontconfig' 'libx11' 'libxkbcommon-x11')
+install=$pkgname.install
+source=()
+
+
+package() {
+    cd ..
+
+    app_dir=$pkgdir/usr/share/$pkgname
+    desktop_file_dir=$pkgdir/usr/share/applications
+
+    mkdir -p $app_dir
+    cp -fa Myfyrio $app_dir
+    cp -fa icon.png $app_dir
+    cp -rfa LICENSES $app_dir/LICENSES
+
+    mkdir -p $desktop_file_dir
+    cp -fa $pkgname.desktop $desktop_file_dir
+}
