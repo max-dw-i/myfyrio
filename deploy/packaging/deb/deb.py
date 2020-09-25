@@ -38,12 +38,15 @@ sys.path.append(str(project_dir))
 from deploy import utils # pylint:disable=wrong-import-position
 
 
-def make_deb():
-    '''Make a '.deb' package'''
+def make_deb(dist_dir):
+    '''Make a '.deb' package
+
+    :param dist_dir: path to the 'dist' directory (contains the 'release'
+                     directory with the built app files)
+    '''
 
     print("Making '.deb' package...")
 
-    dist_dir = project_dir / 'dist'
     release_dir = dist_dir / 'release'
     if not release_dir.exists():
         raise RuntimeError('Package cannot be made if app is not built yet')
@@ -163,6 +166,29 @@ def _update_control_field(line, executable):
     return f'{field_name}: {field_val}\n'
 
 
+def check_package(dist_dir):
+    '''Run the 'lintian' command to check the package for sanity
+
+    :param dist_dir: path to the 'dist' directory (contains the 'release'
+                     directory with the built app files)
+    '''
+
+    print('Checking the package...')
+
+    ARCH = 'amd64'
+    name = utils.name().lower()
+    version = utils.version()
+    pkg_name = f'{name}_{version}-1_{ARCH}.deb'
+
+    cmd = f'lintian {pkg_name}'
+    utils.run(cmd, cwd=dist_dir)
+
+    print('Done.')
+
+
 if __name__ == '__main__':
 
-    make_deb()
+    dist_dir = project_dir / 'dist'
+
+    make_deb(dist_dir)
+    check_package(dist_dir)
