@@ -21,38 +21,21 @@ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
 '''
 
-from pathlib import Path
-from xml.etree import ElementTree
-
 from setuptools import find_packages, setup
 
-from myfyrio import resources
+from myfyrio import metadata as md
 
-
-def version():
-    tree = ElementTree.parse(resources.UI.ABOUT.get()) # pylint: disable=no-member
-    root = tree.getroot()
-    for w in root.iter('widget'):
-        if w.get('name') == 'versionLbl':
-            return w.findtext('./property/string').split(' ')[-1]
-
-    raise ValueError("Cannot extract the programme's version")
-
-readme_file = Path(__file__).parent / 'README.md'
-with open(readme_file, 'r') as f:
-    long_description = f.read()
-
-URL = 'https://github.com/oratosquilla-oratoria/myfyrio/'
 
 setup(
-    name='Myfyrio',
-    version=version(),
-    author='Maxim Shpak',
-    author_email='maxim.shpak@posteo.uk',
-    description='Find similar (duplicate) images',
-    long_description=long_description,
+    name=md.NAME.lower(),
+    version=md.VERSION,
+    author=md.AUTHOR,
+    author_email=md.AUTHOR_EMAIL,
+    description=md.DESCRIPTION,
+    long_description=md.long_description(),
     long_description_content_type='text/markdown',
-    url=URL,
+    url=md.URL_ABOUT,
+    license=md.LICENSE,
     packages=find_packages(exclude=['tests', 'deploy', 'deploy.*']),
     py_modules=['main'],
     package_data={
@@ -74,7 +57,7 @@ setup(
         'Topic :: Multimedia :: Graphics',
         'Topic :: Multimedia :: Graphics :: Viewers',
     ],
-    keywords='image, picture, photo, identical, similar, duplicate',
+    keywords=md.KEYWORDS,
     python_requires='>=3.6, <4',
     install_requires=['PyQt5>=5.8.1.1', 'pybktree==1.1'],
     extras_require={
@@ -86,7 +69,7 @@ setup(
         ],
     },
     project_urls={
-        'Bug Reports': URL + 'issues/',
-        'Source': URL,
+        'Bug Reports': md.URL_BUG_REPORTS,
+        'Source': md.URL_SOURCE,
     },
 )
