@@ -28,35 +28,10 @@ Module that implements different functions used in build process
 import importlib.util
 import json
 import os
-import pathlib
 import subprocess
 import sys
 from collections import UserDict
-from xml.etree import ElementTree
 
-
-def name():
-    '''Return the programme's name'''
-
-    return _widget_text('nameLbl')
-
-def version():
-    '''Return the programme's version'''
-
-    return _widget_text('versionLbl').split(' ')[-1]
-
-def _widget_text(widget_name):
-    project_root = pathlib.Path(__file__).parents[1]
-    about_ui = project_root.joinpath('myfyrio', 'static', 'ui',
-                                     'aboutwindow.ui')
-
-    tree = ElementTree.parse(about_ui)
-    root = tree.getroot()
-    for w in root.iter('widget'):
-        if w.get('name') == widget_name:
-            return w.findtext('./property/string')
-
-    raise ValueError(f'Cannot find the "{widget_name}" widget')
 
 def pip_installed(package):
     '''Check if :package: is installed by the 'pip' package manager
@@ -99,6 +74,29 @@ def run(cmd, cwd=None, stdout=True):
     if output is None:
         return ''
     return output.decode('utf-8')
+
+def save_file(text, file, chmod=None):
+    '''Save :text: into :file:. Also set the file permissions
+
+    :param text: text to save into the file,
+    :param file: path to the file,
+    :param chmod: permissions, e.g. 0o644 (optional)
+    '''
+
+    with open(file, 'w') as f:
+        f.write(text)
+
+    if chmod is not None:
+        os.chmod(file, chmod)
+
+def strip_exe(executable):
+    '''Remove symbols from :executable:
+
+    :param executable: executable file to strip
+    '''
+
+    cmd = f'strip -s {executable}'
+    run(cmd)
 
 def add_ccache_to_PATH_cmd():
     '''Return the command adding the 'ccache' path with the compiler symlinks
