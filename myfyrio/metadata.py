@@ -37,4 +37,9 @@ URL_SOURCE = URL_ABOUT
 def long_description():
     readme_file = pathlib.Path(__file__).parents[1] / 'README.md'
     with open(readme_file, 'r') as f:
-        return f.read()
+        text = f.read()
+
+    parts = text.split('## ')
+    general_description = parts[1].split('\n\n')[1]
+    features = parts[2]
+    return f'{general_description}\n\n{features}'.rstrip()
