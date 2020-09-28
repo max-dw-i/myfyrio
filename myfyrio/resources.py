@@ -87,7 +87,7 @@ class UI(Resource):
 class Image(Resource):
     '''Represent image resources'''
 
-    ICON = 'myfyrio/static/images/icon.png'
+    ICON = 'myfyrio/static/images/myfyrio.png'
 
     ERR_IMG = 'myfyrio/static/images/error.png'
 
