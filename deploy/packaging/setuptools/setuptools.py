@@ -22,17 +22,19 @@ DEALINGS IN THE SOFTWARE.
 
 -------------------------------------------------------------------------------
 
-Module that lets you build the application using "setuptools"
+Module that lets you build the application using 'setuptools'
 '''
 
 import pathlib
 import shutil
 import sys
 
-project_dir = pathlib.Path(__file__).parents[1].resolve()
+project_dir = pathlib.Path(__file__).parents[3].resolve()
 sys.path.append(str(project_dir))
 
-from deploy import utils # pylint:disable=wrong-import-position
+# pylint:disable=wrong-import-position
+from deploy import utils
+from myfyrio import metadata as md
 
 
 def source(setup_file):
@@ -70,14 +72,16 @@ def _check_package_installed(package):
                    f'"pip install {package}"')
         raise ImportWarning(err_msg)
 
-def clear():
-    '''Clear the temporary directories used for building the application'''
+def clear(setup_file):
+    '''Clear the temporary directories used for building the application
+
+    :param setup_file: path to the 'setup.py' file
+    '''
 
     print('Clearing temporary directories...')
 
     parent_dir = setup_file.parent
-    programme_name = utils.name()
-    egg_dir = parent_dir / f'{programme_name}.egg-info'
+    egg_dir = parent_dir / f'{md.NAME.lower()}.egg-info'
     build_dir = parent_dir / 'build'
 
     for d in [egg_dir, build_dir]:
@@ -86,8 +90,9 @@ def clear():
 
 
 if __name__ == '__main__':
+
     setup_file = project_dir / 'setup.py'
 
     source(setup_file)
     wheel(setup_file)
-    clear()
+    clear(setup_file)
