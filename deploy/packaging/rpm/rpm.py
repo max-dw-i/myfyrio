@@ -27,132 +27,175 @@ Module that lets us make a '.rpm' package
 
 # https://rpm-packaging-guide.github.io/
 
+import os
 import pathlib
 import shutil
 import sys
+import textwrap
 
 project_dir = pathlib.Path(__file__).parents[3].resolve()
 sys.path.append(str(project_dir))
 
-from deploy import utils # pylint:disable=wrong-import-position
+# pylint:disable=wrong-import-position
+from deploy import utils
+from deploy.packaging import bundle
+from myfyrio import metadata as md
+from myfyrio import resources
 
 
-def make_rpm(dist_dir):
+def make_rpm(dest_dir):
     '''Make a '.rpm' package
 
-    :param dist_dir: path to the 'dist' directory (contains the 'release'
-                     directory with the built app files)
+    :param dist_dir: path to the directory that contains the 'release'
+                     directory with the programme's files and where to
+                     put the package at
     '''
 
     print("Making '.rpm' package...")
 
-    release_dir = dist_dir / 'release'
+    dest_dir = pathlib.Path(dest_dir)
+    release_dir = dest_dir / 'release'
     if not release_dir.exists():
         raise RuntimeError('Package cannot be made if app is not built yet')
 
-    name = utils.name().lower()
-    version = utils.version()
-    pkg_name = f'{name}-{version}'
-    pkg_dir = dist_dir / pkg_name
+    exe_name = md.NAME.lower()
+    version = md.VERSION
+    pkg_name = f'{exe_name}-{md.VERSION}'
+    pkg_dir = dest_dir / pkg_name
     if pkg_dir.exists():
         shutil.rmtree(pkg_dir)
     pkg_dir.mkdir()
 
-    appfiles_dir = pkg_dir.joinpath('usr', 'share', name)
-    shutil.copytree(release_dir, appfiles_dir)
+    pkg_BUILD_dir = pkg_dir / 'BUILD'
+    _, installed_exe_dir = _copy_exe(release_dir, pkg_BUILD_dir)
+    _copy_licenses(release_dir, pkg_BUILD_dir)
+    _copy_icon(release_dir, pkg_BUILD_dir)
+    _generate_desktop_file(pkg_BUILD_dir, installed_exe_dir)
+    spec_file = generate_spec(pkg_dir)
 
-    desktopfile_dir = pkg_dir.joinpath('usr', 'share', 'applications')
-    desktopfile_dir.mkdir()
-    desktopfile_name = name + '.desktop'
-    shutil.move(str(appfiles_dir / desktopfile_name), desktopfile_dir)
-    _update_spec(desktopfile_dir / desktopfile_name, _update_desktop_field)
-
-    shutil.make_archive(dist_dir / f'v{version}', 'gztar',
-                        root_dir=dist_dir, base_dir=pkg_name)
-    shutil.rmtree(pkg_dir)
-
-    SOURCES_dir = pkg_dir / 'SOURCES'
-    SOURCES_dir.mkdir(parents=True)
-    shutil.move(str(dist_dir / f'v{version}.tar.gz'), SOURCES_dir)
-
-    rpmscripts_dir = project_dir.joinpath('deploy', 'packaging', 'rpm')
-    SPECS_dir = pkg_dir / 'SPECS'
-    SPECS_dir.mkdir()
-    new_specfile = SPECS_dir / f'{name}.spec'
-    shutil.copyfile(rpmscripts_dir / f'{name}.spec', new_specfile)
-    _update_spec(new_specfile, _update_spec_field)
-
-    make_pkg_cmd = (f'rpmbuild {new_specfile} -bb '
+    make_pkg_cmd = (f'rpmbuild {spec_file} -bb '
                     f'--define "_topdir {pkg_dir}" '
-                    f'--define "_rpmdir {dist_dir}"')
-    utils.run(make_pkg_cmd, cwd=dist_dir)
+                    f'--define "_rpmdir {dest_dir}"')
+    utils.run(make_pkg_cmd, cwd=dest_dir)
 
     shutil.rmtree(pkg_dir)
 
     print('Done.')
 
 
-def _update_spec(file, update_func):
-    '''Update fields in a config file (rpm's '.spec', '.desktop')
+def _copy_exe(src_dir, temp_pkg_dir):
+    exe_name = md.NAME.lower()
+    installed_exe_dir = pathlib.Path('usr/bin')
+    pkg_exe_dir = temp_pkg_dir / installed_exe_dir
+    pkg_exe = pkg_exe_dir / exe_name
 
-    :param file: file to update,
-    :param update_func: function used to update :file:
+    pkg_exe_dir.mkdir(parents=True)
+    shutil.copyfile(src_dir / exe_name, pkg_exe)
+
+    # Executable bit is not kept when copy :(
+    os.chmod(pkg_exe, os.stat(pkg_exe).st_mode | 0o111)
+
+    return pkg_exe, pathlib.Path('/') / installed_exe_dir
+
+
+def _copy_licenses(src_dir, temp_pkg_dir):
+    exe_name = md.NAME.lower()
+    doc_dir = pathlib.Path(f'usr/share/doc/{exe_name}')
+    pkg_doc_dir = temp_pkg_dir / doc_dir
+
+    pkg_doc_dir.mkdir(parents=True)
+    shutil.copyfile(src_dir / 'LICENSE', pkg_doc_dir / 'LICENSE')
+    shutil.copyfile(src_dir / 'COPYRIGHT', pkg_doc_dir / 'COPYRIGHT')
+    shutil.copytree(src_dir / '3RD-PARTY-LICENSE',
+                    pkg_doc_dir / '3RD-PARTY-LICENSE')
+
+
+def _copy_icon(src_dir, temp_pkg_dir):
+    icon_name = pathlib.Path(resources.Image.ICON.value).name # pylint:disable=no-member
+    icon_dir = pathlib.Path(f'usr/share/icons/hicolor/512x512/apps')
+    pkg_icon_dir = temp_pkg_dir / icon_dir
+
+    pkg_icon_dir.mkdir(parents=True)
+    shutil.copyfile(src_dir / icon_name, pkg_icon_dir / icon_name)
+
+
+def _generate_desktop_file(temp_pkg_dir, installed_exe_dir):
+    desktop_dir = temp_pkg_dir.joinpath('usr', 'share', 'applications')
+    desktop_dir.mkdir()
+    bundle.generate_desktop(desktop_dir, installed_exe_dir, '', True)
+
+
+def generate_spec(pkg_root_dir):
+    '''Generate the '.spec' file and put it into ':pkg_root_dir:/SPECS'
+
+    :param pkg_root_dir: package root directory,
+    :return: path to the '.spec' file
     '''
 
-    with open(file, 'r+') as f:
-        modified_text = [update_func(line) for line in f]
-        f.seek(0)
-        f.write(''.join(modified_text))
+    name = md.NAME.lower()
+
+    fields = [
+        f'Name: {name}',
+        f'Version: {md.VERSION}',
+        'Release: 1',
+        f'Summary: {md.DESCRIPTION}',
+        'License: GPLv3',
+        f'Packager: {md.AUTHOR} <{md.AUTHOR_EMAIL}>',
+        f'URL: {md.URL_ABOUT}',
+        r'Source0: %{url}archive/v%{version}.tar.gz',
+        '',
+        r'%define _build_id_links none',
+        '',
+        r'%description',
+        f'{extended_description()}',
+        '',
+        r'%build',
+        '',
+        r'%install',
+        r'cp -rfa . %{buildroot}',
+        '',
+        r'%files',
+        r'%{_bindir}/*',
+        r'%{_datadir}/applications/*',
+        r'%{_datadir}/doc/%{name}/*',
+        r'%{_datadir}/icons/hicolor/512x512/*'
+    ]
+
+    SPECS_dir = pathlib.Path(pkg_root_dir) / 'SPECS'
+    SPECS_dir.mkdir()
+    spec_file = SPECS_dir / f'{name}.spec'
+    utils.save_file('\n'.join(fields), spec_file, 0o644)
+
+    return spec_file
 
 
-def _update_desktop_field(line):
-    '''Update a field in the '.desktop' file
+def extended_description():
+    """Wrap the text so each line is 80 symbols long max
 
-    :param line: line to update
-    '''
+    :return: extended description
+    """
 
-    if line.startswith('Exec'):
-        return line[:-1] + ' -u\n'
-    return line
+    fixed_lines = []
+    for line in md.long_description().split('\n'):
+        if not line: # empty line
+            fixed_lines.append('')
+            continue
 
+        for wrapped_line in textwrap.wrap(line, 79):
+            fixed_lines.append(wrapped_line)
 
-def _update_spec_field(line):
-    '''Update a field in the 'control' file
-
-    :param line: line to update
-    '''
-
-    parts = line.split(': ')
-    if len(parts) == 1:
-        return line
-
-    field_name = parts[0]
-
-    if line.startswith('Name'):
-        field_val = utils.name().lower()
-    elif line.startswith('Version'):
-        field_val = utils.version()
-    else:
-        field_val = parts[1].rstrip()
-
-    return f'{field_name}: {field_val}\n'
+    return '\n'.join(fixed_lines)
 
 
-def check_package(dist_dir):
+def check_package(pkg_dir):
     '''Run the 'rpmlint' command to check the package for sanity
 
-    :param dist_dir: path to the 'dist' directory (contains the 'release'
-                     directory with the built app files)
+    :param pkg_dir: directory containing the built package
     '''
 
     print('Checking the package...')
 
-    ARCH = 'x86_64'
-    name = utils.name().lower()
-    version = utils.version()
-    pkg_name = f'{name}-{version}-1.{ARCH}.rpm'
-    pkg_dir = dist_dir / ARCH
-
+    pkg_name = f'{md.NAME.lower()}-{md.VERSION}-1.x86_64.rpm'
     cmd = f'rpmlint {pkg_name}'
     utils.run(cmd, cwd=pkg_dir)
 
@@ -162,6 +205,7 @@ def check_package(dist_dir):
 if __name__ == '__main__':
 
     dist_dir = project_dir / 'dist'
+    built_pkg_dir = dist_dir / 'x86_64'
 
     make_rpm(dist_dir)
-    check_package(dist_dir)
+    check_package(built_pkg_dir)
