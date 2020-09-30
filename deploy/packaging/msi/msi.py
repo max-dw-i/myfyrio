@@ -34,98 +34,78 @@ import sys
 project_dir = pathlib.Path(__file__).parents[3].resolve()
 sys.path.append(str(project_dir))
 
-from deploy import utils # pylint:disable=wrong-import-position
+# pylint:disable=wrong-import-position
+from deploy import utils
+from myfyrio import metadata as md
 
 
-def make_msi(dist_dir, wix_dir):
+def make_msi(dest_dir, wix_dir):
     '''Make a '.msi' package (installer)
 
-    :param dist_dir: path to the 'dist' directory (contains the 'release'
-                     directory with the built app files),
+    :param dest_dir: path to the directory that contains the 'release'
+                     directory with the programme's files and where to
+                     put the package at,
     :param wix_dir: path to the 'Wix#' directory
     '''
 
     print("Making '.msi' package...")
 
+    dest_dir = pathlib.Path(dest_dir)
     release_dir = dist_dir / 'release'
     if not release_dir.exists():
         raise RuntimeError('Package cannot be made if app is not built yet')
 
-    name = utils.name().lower()
-    version = utils.version()
-    pkg_name = f'{name}-{version}'
-    pkg_dir = dist_dir / pkg_name
+    exe_name = md.NAME.lower()
+    version = md.VERSION
+    pkg_dir = dest_dir / f'{exe_name}-{md.VERSION}'
     if pkg_dir.exists():
         shutil.rmtree(pkg_dir)
     pkg_dir.mkdir()
 
     files_dir = pkg_dir / 'Files'
     files_dir.mkdir()
-    shutil.copytree(release_dir / 'LICENSES', files_dir / 'LICENSES')
-    exe_file = name.capitalize() + '.exe'
-    shutil.copyfile(release_dir / exe_file, files_dir / exe_file)
 
-    cscs_file = wix_dir / 'cscs.exe'
-    shutil.copyfile(cscs_file, pkg_dir / 'cscs.exe')
-    wixsharpdll_file = wix_dir / 'WixSharp.dll'
-    shutil.copyfile(wixsharpdll_file, pkg_dir / 'WixSharp.dll')
-    setup_file = project_dir.joinpath('deploy', 'packaging', 'msi', 'setup.cs')
-    new_setup_file = pkg_dir / 'setup.cs'
-    shutil.copyfile(setup_file, new_setup_file)
-    _update_spec(new_setup_file, _update_spec_field)
+    _copy_exe(release_dir, files_dir)
+    _copy_licenses(release_dir, files_dir)
+    _copy_wix(wix_dir, pkg_dir)
+    _copy_setup(pkg_dir)
 
-    set_var_cmd = _set_env_vars(wix_dir)
-    make_pkg_cmd = ('cscs.exe setup.cs')
-    cmd = f'{set_var_cmd} && {make_pkg_cmd}'
+    cmd = f'{set_env_vars(wix_dir)} && cscs.exe setup.cs'
     utils.run(cmd, cwd=pkg_dir)
 
-    msi_file_name = name.capitalize() + '.msi'
-    new_msi_file_name = f'{name}-{version}-x64.msi'
-    shutil.copyfile(pkg_dir / msi_file_name, dist_dir / new_msi_file_name)
+    shutil.copyfile(pkg_dir / f'{md.NAME}.msi',
+                    dist_dir / f'{exe_name}-{version}-x64.msi')
 
     shutil.rmtree(pkg_dir)
 
     print('Done.')
 
 
-def _update_spec(file, update_func):
-    '''Update fields in a config file (rpm's '.spec', '.desktop')
-
-    :param file: file to update,
-    :param update_func: function used to update :file:
-    '''
-
-    with open(file, 'r+') as f:
-        modified_text = [update_func(line) for line in f]
-        f.seek(0)
-        f.write(''.join(modified_text))
+def _copy_exe(src_dir, pkg_files_dir):
+    exe_name = f'{md.NAME.lower()}.exe'
+    shutil.copyfile(src_dir / exe_name, pkg_files_dir / exe_name)
 
 
-def _update_spec_field(line):
-    '''Update data in the 'setup.cs' file
-
-    :param line: line to update
-    '''
-
-    if line.startswith('//css_ref'):
-        new_val = (fr'{wix_dir}\Wix_bin\SDK'
-                   r'\Microsoft.Deployment.WindowsInstaller.dll')
-    elif 'var name =' in line:
-        name = utils.name()
-        new_val = f'"{name}"'
-    elif 'var version =' in line:
-        version = utils.version()
-        new_val = f'"{version}"'
-    else:
-        return line
-
-    parts = line.split(' ')
-    parts[-1] = f'{new_val};\n'
-    return ' '.join(parts)
+def _copy_licenses(src_dir, pkg_files_dir):
+    shutil.copyfile(src_dir / 'LICENSE', pkg_files_dir / 'LICENSE')
+    shutil.copyfile(src_dir / 'COPYRIGHT', pkg_files_dir / 'COPYRIGHT')
+    shutil.copytree(src_dir / '3RD-PARTY-LICENSE',
+                    pkg_files_dir / '3RD-PARTY-LICENSE')
 
 
-def _set_env_vars(wix_dir):
-    '''Return the command setting the 'WIXSHARP_WIXDIR' environment variable
+def _copy_wix(wix_dir, temp_pkg_dir):
+    shutil.copyfile(wix_dir / 'cscs.exe', temp_pkg_dir / 'cscs.exe')
+    shutil.copyfile(wix_dir / 'WixSharp.dll', temp_pkg_dir / 'WixSharp.dll')
+
+
+def _copy_setup(temp_pkg_dir):
+    setup_file = project_dir.joinpath('deploy', 'packaging', 'msi', 'setup.cs')
+    working_setup_file = temp_pkg_dir / 'setup.cs'
+    shutil.copyfile(setup_file, working_setup_file)
+
+
+def set_env_vars(wix_dir):
+    '''Return the command that sets the 'WIXSHARP_WIXDIR' environment variable
 
     :param wix_dir: path to the 'Wix#' directory
     '''

@@ -1,27 +1,28 @@
-//css_ref Wix_bin\SDK\Microsoft.Deployment.WindowsInstaller.dll;
+//css_ref C:\WixSharp\Wix_bin\SDK\Microsoft.Deployment.WindowsInstaller.dll;
 using Microsoft.Deployment.WindowsInstaller;
 using Microsoft.Win32;
 using System;
+using System.Collections.Generic;
 using System.Windows.Forms;
 using WixSharp;
+using WixSharp.Controls;
 
 class Script
 {
+    static public Dictionary<String, String> metadata = ReadMetadata();
+
     static public void Main()
     {
 
-        var name = "Myfyrio";
-        var version = "0.4.1";
-
-        var project = new Project(
-            name,
+        Project project = new Project(
+            metadata["NAME"],
 
             new Dir(
-                @"%ProgramFiles%\" + name,
+                @"%ProgramFiles%\" + metadata["NAME"],
                 new Files(@"Files\*.*"),
                 new ExeFileShortcut(
-                    name,
-                    "[INSTALLDIR]" + name + ".exe",
+                    metadata["NAME"],
+                    "[INSTALLDIR]" + metadata["L_NAME"] + ".exe",
                     arguments: "-u"
                 ),
                 new ExeFileShortcut(
@@ -32,10 +33,10 @@ class Script
             ),
 
             new Dir(
-                @"%ProgramMenu%\" + name,
+                @"%ProgramMenu%\" + metadata["NAME"],
                 new ExeFileShortcut(
-                    name,
-                    "[INSTALLDIR]" + name + ".exe",
+                    metadata["NAME"],
+                    "[INSTALLDIR]" + metadata["L_NAME"] + ".exe",
                     arguments: "-u"
                 ),
                 new ExeFileShortcut(
@@ -48,8 +49,8 @@ class Script
             new Dir(
                 @"%Desktop%",
                 new ExeFileShortcut(
-                    name,
-                    "[INSTALLDIR]" + name + ".exe",
+                    metadata["NAME"],
+                    "[INSTALLDIR]" + metadata["L_NAME"] + ".exe",
                     arguments: "-u"
                 )
             ),
@@ -65,18 +66,15 @@ class Script
         );
 
         project.GUID = new Guid("57565fd4-3462-4a22-8196-1cc328c8a3b1");
-        project.Version = new Version(version);
+        project.Version = new Version(metadata["VERSION"]);
 
-        var lowercase_name = name.ToLowerInvariant();
-        var url_prefix = "https://github.com/oratosquilla-oratoria/" + lowercase_name + "/";
-
-        project.ControlPanelInfo.Readme = url_prefix;
-        project.ControlPanelInfo.HelpLink = url_prefix + "issues";
-        project.ControlPanelInfo.UrlInfoAbout = url_prefix;
-        project.ControlPanelInfo.UrlUpdateInfo = url_prefix + "releases";
+        project.ControlPanelInfo.HelpLink = metadata["URL_BUG_REPORTS"];
+        project.ControlPanelInfo.Readme = metadata["URL_ABOUT"];
+        project.ControlPanelInfo.UrlInfoAbout = metadata["URL_ABOUT"];
+        project.ControlPanelInfo.UrlUpdateInfo = metadata["URL_RELEASES"];
         //project.ControlPanelInfo.ProductIcon = "app_icon.ico";
-        project.ControlPanelInfo.Contact = "maxim.shpak@posteo.uk";
-        project.ControlPanelInfo.Manufacturer = "Maxim Shpak";
+        project.ControlPanelInfo.Contact = metadata["AUTHOR_EMAIL"];
+        project.ControlPanelInfo.Manufacturer = metadata["AUTHOR"];
         project.ControlPanelInfo.InstallLocation = "[INSTALLDIR]";
         project.ControlPanelInfo.NoModify = true;
 
@@ -85,11 +83,54 @@ class Script
         project.MajorUpgradeStrategy.NewerProductInstalledErrorMessage = err_msg;
 
         project.Platform = Platform.x64;
-        project.LicenceFile = @"Files\LICENSES\LICENSE.rtf";
 
-        project.UI = WUI.WixUI_InstallDir; //FeatureTree, Mondo
+        project.UI = WUI.WixUI_InstallDir;
+        project.CustomUI = new DialogSequence().On(
+            NativeDialogs.WelcomeDlg,
+            Buttons.Next,
+            new ShowDialog(NativeDialogs.InstallDirDlg)
+        ).On(
+            NativeDialogs.InstallDirDlg,
+            Buttons.Back,
+            new ShowDialog(NativeDialogs.WelcomeDlg)
+        );
 
         Compiler.BuildMsi(project);
+
+    }
+
+    static Dictionary<String, String> ReadMetadata()
+    {
+        Dictionary<String, String> metadata = new Dictionary<String, String>();
+        string prefix;
+        string[] parts;
+        string value;
+
+        char sep = '=';
+        char[] shell = {' ', '\n', '\r', '\''};
+        string[] metadata_fields = { "NAME", "VERSION", "URL_ABOUT",
+                                     "URL_BUG_REPORTS", "URL_RELEASES",
+                                     "AUTHOR", "AUTHOR_EMAIL"};
+
+        string[] lines = System.IO.File.ReadAllLines("..\\..\\myfyrio\\metadata.py");
+
+        foreach (string line in lines)
+        {
+            foreach (string field in metadata_fields)
+            {
+                prefix = field + ' ' + sep + ' ';
+                if (line.StartsWith(prefix))
+                {
+                    parts = line.Split(sep);
+                    value = parts[1].Trim(shell);
+                    metadata.Add(field, value);
+                }
+            }
+        }
+
+        metadata.Add("L_NAME", metadata["NAME"].ToLowerInvariant());
+
+        return metadata;
     }
 }
 
@@ -103,13 +144,12 @@ public static class CustomActions
         RegistryKey key = Registry.LocalMachine.OpenSubKey(reg_location);
         if (key == null)
         {
-
             string rt_url = "https://www.microsoft.com/en-us/download/details.aspx?id=52685";
-            string msg = "After installing Myfyrio, you need to install "
-                         + "'Microsoft Visual C++ 2015 Redistributable' "
-                         + "(or newer). Press 'Yes' if you want to download "
-                         + "it now, press 'No' if you want to download it "
-                         + "yourself later";
+            string msg = "After installing the programme, you need to install"
+                         + " 'Microsoft Visual C++ 2015 Redistributable'"
+                         + " (or newer). Press 'Yes' if you want to download"
+                         + " it now, press 'No' if you want to download it"
+                         + " yourself later";
             DialogResult answer = MessageBox.Show(
                 msg,
                 "Microsoft Visual C++ Runtime",
