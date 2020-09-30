@@ -34,107 +34,108 @@ import sys
 project_dir = pathlib.Path(__file__).parents[3].resolve()
 sys.path.append(str(project_dir))
 
-from deploy import utils # pylint:disable=wrong-import-position
+# pylint:disable=wrong-import-position
+from deploy import utils
+from deploy.packaging import bundle
+from myfyrio import metadata as md
+from myfyrio import resources
 
 
-def make_zst(dist_dir):
+def make_zst(dest_dir):
     '''Make a '.zst' package
 
-    :param dist_dir: path to the 'dist' directory (contains the 'release'
-                     directory with the built app files)
+    :param dest_dir: path to the directory that contains the 'release'
+                     directory with the programme's files and where to
+                     put the package at
     '''
 
     print("Making '.zst' package...")
 
-    release_dir = dist_dir / 'release'
+    dest_dir = pathlib.Path(dest_dir)
+    release_dir = dest_dir / 'release'
     if not release_dir.exists():
         raise RuntimeError('Package cannot be made if app is not built yet')
 
-    name = utils.name().lower()
-    version = utils.version()
-    pkg_name = f'{name}-{version}'
-    pkg_dir = dist_dir / pkg_name
+    exe_name = md.NAME.lower()
+    version = md.VERSION
+    pkg_name = f'{exe_name}-{version}'
+    pkg_dir = dest_dir / pkg_name
     if pkg_dir.exists():
         shutil.rmtree(pkg_dir)
 
     shutil.copytree(release_dir, pkg_dir)
-    _update_spec(pkg_dir / f'{name}.desktop', _update_desktop_field)
-
-    zstscripts_dir = project_dir.joinpath('deploy', 'packaging', 'zst')
-    shutil.copyfile(zstscripts_dir / f'{name}.install',
-                    pkg_dir / f'{name}.install')
-    new_specfile = pkg_dir / 'PKGBUILD'
-    shutil.copyfile(zstscripts_dir / 'PKGBUILD', new_specfile)
-    _update_spec(new_specfile, _update_spec_field)
+    bundle.generate_desktop(release_dir, '/usr/bin', '', True)
+    generate_PKGBUILD(pkg_dir)
 
     utils.run('makepkg', cwd=pkg_dir)
 
-    zst_file_name = f'{name}-{version}-1-x86_64.pkg.tar.xz'
-    shutil.copyfile(pkg_dir / zst_file_name, dist_dir / zst_file_name)
+    zst_file_name = f'{exe_name}-{version}-1-x86_64.pkg.tar.xz'
+    shutil.copyfile(pkg_dir / zst_file_name, dest_dir / zst_file_name)
 
     shutil.rmtree(pkg_dir)
 
     print('Done.')
 
 
-def _update_spec(file, update_func):
-    '''Update fields in a config file (rpm's '.spec', '.desktop')
+def generate_PKGBUILD(pkg_root_dir):
+    '''Generate the 'PKGBUILD' file and put it into :pkg_root_dir:
 
-    :param file: file to update,
-    :param update_func: function used to update :file:
+    :param pkg_root_dir: package root directory
     '''
 
-    with open(file, 'r+') as f:
-        modified_text = [update_func(line) for line in f]
-        f.seek(0)
-        f.write(''.join(modified_text))
+    icon_name = pathlib.Path(resources.Image.ICON.value).name # pylint:disable=no-member
+
+    fields = [
+        f'# Maintainer: {md.AUTHOR} <{md.AUTHOR_EMAIL}>',
+        f'pkgname={md.NAME.lower()}',
+        f'pkgver={md.VERSION}',
+        'pkgrel=1',
+        f'pkgdesc="{md.DESCRIPTION}"',
+        "arch=('x86_64')",
+        f'url="{md.URL_ABOUT}"',
+        "license=('GPL3')",
+        ("depends=('freetype2' 'fontconfig' 'libx11' 'libxkbcommon-x11'"
+         " 'hicolor-icon-theme')"),
+        'source=()',
+        '',
+        'package() {',
+        '    cd ..',
+        '',
+        '    exe_dir=$pkgdir/usr/bin',
+        '    mkdir -p $exe_dir',
+        '    cp -fa $pkgname $exe_dir',
+        '',
+        '    desktop_file_dir=$pkgdir/usr/share/applications',
+        '    mkdir -p $desktop_file_dir',
+        '    cp -fa $pkgname.desktop $desktop_file_dir',
+        '',
+        '    icon_dir=$pkgdir/usr/share/icons/hicolor/512x512/apps',
+        '    mkdir -p $icon_dir',
+        f'    cp -fa {icon_name} $icon_dir',
+        '',
+        '    doc_dir=$pkgdir/usr/share/doc/$pkgname',
+        '    mkdir -p $doc_dir',
+        '    cp -rfa 3RD-PARTY-LICENSE $doc_dir/3RD-PARTY-LICENSE',
+        '    cp -fa LICENSE $doc_dir',
+        '    cp -fa COPYRIGHT $doc_dir',
+        '}'
+    ]
+
+    PKGBUILD_file = pathlib.Path(pkg_root_dir) / 'PKGBUILD'
+    utils.save_file('\n'.join(fields), PKGBUILD_file, 0o644)
 
 
-def _update_desktop_field(line):
-    '''Update a field in the '.desktop' file
-
-    :param line: line to update
-    '''
-
-    if line.startswith('Exec'):
-        return line[:-1] + ' -u\n'
-    return line
-
-
-def _update_spec_field(line):
-    '''Update a field in the 'PKGBUILD' file
-
-    :param line: line to update
-    '''
-
-    if line.startswith('pkgname'):
-        new_val = utils.name().lower()
-    elif line.startswith('pkgver'):
-        new_val = utils.version()
-    else:
-        return line
-
-    parts = line.split('=')
-    parts[-1] = f'{new_val}\n'
-    return '='.join(parts)
-
-
-def check_package(dist_dir):
+def check_package(pkg_dir):
     '''Run the 'namcap' command to check the package for sanity
 
-    :param dist_dir: path to the 'dist' directory (contains the 'release'
-                     directory with the built app files)
+    :param pkg_dir: directory containing the built package
     '''
 
     print('Checking the package...')
 
-    ARCH = 'x86_64'
-    name = utils.name().lower()
-    version = utils.version()
-    pkg_name = f'{name}-{version}-1-{ARCH}.pkg.tar.xz'
-
+    pkg_name = f'{md.NAME.lower()}-{md.VERSION}-1-x86_64.pkg.tar.xz'
     cmd = f'namcap {pkg_name}'
-    utils.run(cmd, cwd=dist_dir)
+    utils.run(cmd, cwd=pkg_dir)
 
     print('Done.')
 
