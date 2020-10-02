@@ -1,8 +1,8 @@
 ## Myfyrio
 
-Myfyrio is a programme that searches for similar images. To find them, perceptual hashes are used, in particular, so-called [Difference hash](https://www.hackerfactor.com/blog/index.php?/archives/529-Kind-of-Like-That.html). Two images are the same if they have equal hashes and, therefore, are marked as duplicates.
+Myfyrio is a programme that searches for similar/duplicate images. It analyses the images itself (its content) and not their metadata (name, size, creation/modification date/time, etc.).
 
-It works great when you want to find exact (or almost, for example, slightly altered lighting, cropping) duplicates. Although sometimes we can get **false positives** (the hashes are the same but the images are different) and sometimes - **false negatives** (the images are quite similar, but the hashes are very different). Nevertheless these are rather rare.
+So-called [perceptual hash](https://www.hackerfactor.com/blog/index.php?/archives/529-Kind-of-Like-That.html) is calculated from the content of an image. Two images are considered to be the same if they have equal hashes and, therefore, are marked as duplicates. It works great when you want to find exact (or almost, for example, slightly altered lighting, cropping) duplicates. Although sometimes we can get **false positives** (the hashes are the same but the images are different) and sometimes - **false negatives** (the images are quite similar, but the hashes are very different). Nevertheless these are rather rare.
 
 <p align="center">
   <img height="600" src="docs/resources/gui.png">
@@ -16,11 +16,11 @@ The calculated hash of an image is kept in the cache file. If you need to do a n
 
 - Parallel calculating
 
-If you have a multi-core processor, the programme utilizes all the cores. But you can set the number of CPU cores to be used (in case you want to play 'Crysis' at the same time).
+If you have a multi-core processor, the programme utilises all the cores. But you can set the number of CPU cores to be used (in case you want to play 'Crysis' at the same time).
 
 - Lazy thumbnail loading
 
-You can turn on this option if you'd like to save some RAM. Image thumbnails will be loaded only when they are in the viewport (and free the RAM when they are not).
+You can turn on this option if you'd like to save some RAM. Image thumbnails will be loaded only when they are visible (and free the RAM when they are not).
 
 - Safe interruption
 
@@ -28,7 +28,7 @@ Do you have a huge image collection and even your '64-core-monster' CPU processe
 
 - Sensitivity levels
 
-There are 3 sensitivity levels: high, middle, low. If you choose the high level, you will get the most similar images. The lower level is, the more chances are to get false positives.
+There are 5 sensitivity levels. If you choose the 'Very High' level, you will get the most similar images. The lower level is, the more chances are to get false positives.
 
 - Image width, height filtering
 
