@@ -129,7 +129,7 @@ class TestImageValues(TestImage):
 
     def test_ICON_value(self):
         self.assertEqual(resources.Image.ICON.value,
-                         'myfyrio/static/images/icon.png')
+                         'myfyrio/static/images/myfyrio.png')
 
     def test_ERR_IMG_value(self):
         self.assertEqual(resources.Image.ERR_IMG.value,
