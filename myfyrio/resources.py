@@ -28,6 +28,8 @@ from typing import Any
 
 from PyQt5 import QtCore
 
+from myfyrio import metadata as md
+
 ################################## Types ######################################
 RelativePath = str      # Path relative to the programme's root directory
 AbsolutePath = str      # Absolute path in the file system
@@ -107,10 +109,11 @@ class DynamicResource(Resource):
 
         if USER:
             home_dir = pathlib.Path.home()
+            name = md.NAME
             if sys.platform.startswith('win'):
-                appdata_dir = home_dir.joinpath('AppData', 'Local', 'Myfyrio')
+                appdata_dir = home_dir.joinpath('AppData', 'Local', name)
             else:
-                appdata_dir = home_dir / '.myfyrio'
+                appdata_dir = home_dir / f'.{name.lower()}'
             return str(appdata_dir / self.value)
         return super().frozen()
 

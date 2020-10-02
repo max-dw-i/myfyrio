@@ -71,8 +71,9 @@ class TestClassMenuBarMethodOpenWindow(TestClassMenuBar):
 class TestClassMenuBarMethodOpenDocs(TestClassMenuBar):
 
     def test_webbrowser_open_called(self):
-        URL = 'https://github.com/oratosquilla-oratoria/myfyrio'
         with mock.patch('webbrowser.open') as mock_open_call:
             self.w.openDocs()
 
-        mock_open_call.assert_called_once_with(URL)
+        mock_open_call.assert_called_once_with(
+            'https://github.com/oratosquilla-oratoria/myfyrio/'
+        )

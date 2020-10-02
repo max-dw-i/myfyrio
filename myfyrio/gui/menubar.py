@@ -24,6 +24,8 @@ import webbrowser
 
 from PyQt5 import QtWidgets
 
+from myfyrio import metadata as md
+
 
 class MenuBar(QtWidgets.QMenuBar):
     '''Implement a custom menu bar'''
@@ -40,8 +42,7 @@ class MenuBar(QtWidgets.QMenuBar):
     def openDocs(self) -> None:
         '''Open the website with the docs'''
 
-        docs_url = 'https://github.com/oratosquilla-oratoria/myfyrio'
-        webbrowser.open(docs_url)
+        webbrowser.open(md.URL_ABOUT)
 
     def _autoSelectAction(self) -> QtWidgets.QAction:
         # Since we use Qt Designer to make the GUI and then load .ui file,
