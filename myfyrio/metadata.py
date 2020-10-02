@@ -30,8 +30,9 @@ AUTHOR = 'Maxim Shpak'
 AUTHOR_EMAIL = 'maxim.shpak@posteo.uk'
 LICENSE = 'GPLv3'
 URL_ABOUT = 'https://github.com/oratosquilla-oratoria/myfyrio/'
-URL_BUG_REPORTS = URL_ABOUT + 'issues/'
-URL_SOURCE = URL_ABOUT
+URL_BUG_REPORTS = 'https://github.com/oratosquilla-oratoria/myfyrio/issues/'
+URL_RELEASES = 'https://github.com/oratosquilla-oratoria/myfyrio/releases/'
+URL_SOURCE = 'https://github.com/oratosquilla-oratoria/myfyrio/'
 
 
 def long_description():
