@@ -70,7 +70,7 @@ def make_zst(dest_dir):
     utils.run('makepkg', cwd=pkg_dir)
 
     zst_file_name = f'{exe_name}-{version}-1-x86_64.pkg.tar.xz'
-    shutil.copyfile(pkg_dir / zst_file_name, dest_dir / zst_file_name)
+    shutil.copy(pkg_dir / zst_file_name, dest_dir / zst_file_name)
 
     shutil.rmtree(pkg_dir)
 

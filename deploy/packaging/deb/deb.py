@@ -28,7 +28,6 @@ Module that lets us make a '.deb' package
 # https://www.internalpointers.com/post/build-binary-deb-package-practical-guide
 # https://medium.com/swlh/introduction-to-debian-maintainer-script-flow-charts-6f76423b80d9
 
-import os
 import pathlib
 import shutil
 import sys
@@ -59,8 +58,7 @@ def make_deb(dest_dir):
     if not release_dir.exists():
         raise RuntimeError('Package cannot be made if app is not built yet')
 
-    exe_name = md.NAME.lower()
-    pkg_name = f'{exe_name}_{md.VERSION}-1_{architecture()}'
+    pkg_name = f'{md.NAME.lower()}_{md.VERSION}-1_{architecture()}'
     pkg_dir = dest_dir / pkg_name
     if pkg_dir.exists():
         shutil.rmtree(pkg_dir)
@@ -89,10 +87,7 @@ def _copy_exe(src_dir, temp_pkg_dir):
     pkg_exe = pkg_exe_dir / exe_name
 
     pkg_exe_dir.mkdir(parents=True)
-    shutil.copyfile(src_dir / exe_name, pkg_exe)
-
-    # Executable bit is not kept when copy :(
-    os.chmod(pkg_exe, os.stat(pkg_exe).st_mode | 0o111)
+    shutil.copy(src_dir / exe_name, pkg_exe)
 
     return pkg_exe, pathlib.Path('/') / installed_exe_dir
 
@@ -103,8 +98,8 @@ def _copy_licenses(src_dir, temp_pkg_dir):
     pkg_doc_dir = temp_pkg_dir / doc_dir
 
     pkg_doc_dir.mkdir(parents=True)
-    shutil.copyfile(src_dir / 'LICENSE', pkg_doc_dir / 'LICENSE')
-    shutil.copyfile(src_dir / 'COPYRIGHT', pkg_doc_dir / 'COPYRIGHT')
+    shutil.copy(src_dir / 'LICENSE', pkg_doc_dir / 'LICENSE')
+    shutil.copy(src_dir / 'COPYRIGHT', pkg_doc_dir / 'COPYRIGHT')
     shutil.copytree(src_dir / '3RD-PARTY-LICENSE',
                     pkg_doc_dir / '3RD-PARTY-LICENSE')
 
@@ -115,7 +110,7 @@ def _copy_icon(src_dir, temp_pkg_dir):
     pkg_icon_dir = temp_pkg_dir / icon_dir
 
     pkg_icon_dir.mkdir(parents=True)
-    shutil.copyfile(src_dir / icon_name, pkg_icon_dir / icon_name)
+    shutil.copy(src_dir / icon_name, pkg_icon_dir / icon_name)
 
 
 def _generate_desktop_file(temp_pkg_dir, installed_exe_dir):
