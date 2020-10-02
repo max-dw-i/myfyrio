@@ -39,8 +39,8 @@ setup(
     packages=find_packages(exclude=['tests', 'deploy', 'deploy.*']),
     py_modules=['main'],
     package_data={
-        'myfyrio.static.images': ['*.png', 'LICENSE'],
-        'myfyrio.static.ui': ['*.ui', 'LICENSE'],
+        'myfyrio.static.images': ['*.png'],
+        'myfyrio.static.ui': ['*.ui'],
     },
     classifiers=[
         'Development Status :: 4 - Beta',
