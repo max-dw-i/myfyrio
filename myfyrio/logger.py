@@ -22,6 +22,7 @@ Module implementing logging
 
 import logging
 import logging.handlers as handlers
+import pathlib
 import sys
 
 from myfyrio import resources
@@ -47,7 +48,11 @@ class Logger:
         FORMAT = '{asctime} - {name} - {levelname} - {message}'
         formatter = logging.Formatter(fmt=FORMAT, style='{')
 
-        logfile = resources.Log.ERROR.get() # pylint: disable=no-member
+        logfile = pathlib.Path(resources.Log.ERROR.get()) # pylint: disable=no-member
+        logfile_dir = logfile.parent
+        if not logfile_dir.exists():
+            logfile_dir.mkdir(parents=True)
+
         rh = handlers.RotatingFileHandler(logfile, maxBytes=cls.MAX_FILE_SIZE,
                                           backupCount=cls.FILES_TOTAL-1)
         rh.setFormatter(formatter)

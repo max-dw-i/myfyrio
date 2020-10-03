@@ -18,36 +18,33 @@ along with Myfyrio. If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
 import multiprocessing
-import pathlib
 import sys
 
 from PyQt5.QtWidgets import QApplication
 
-import myfyrio.gui.mainwindow as mw
 from myfyrio import resources
+from myfyrio.gui import mainwindow
 from myfyrio.logger import Logger
 
 
-def _user_mode() -> None:
-    resources.USER = True
-
-    appdata_dir = pathlib.Path(resources.Config.CONFIG.get()).parent # pylint:disable=no-member
-    if not appdata_dir.exists():
-        appdata_dir.mkdir(parents=True)
-
-
-if __name__ == '__main__':
+def main() -> None:
     multiprocessing.freeze_support()
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-u', '--user', action='store_true')
     args = parser.parse_args()
+
     if args.user:
-        _user_mode()
+        resources.USER = True
 
     Logger.setLogger()
 
     app = QApplication(sys.argv)
-    ex = mw.MainWindow()
-    ex.show()
+    mw = mainwindow.MainWindow()
+    mw.show()
     app.exec()
+
+
+if __name__ == '__main__':
+
+    main()
