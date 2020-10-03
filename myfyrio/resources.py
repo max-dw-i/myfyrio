@@ -99,6 +99,36 @@ class Image(Resource):
         return ':/' + self.value
 
 
+class License(Resource):
+    '''Represent files with license and copyright information'''
+
+    COPYRIGHT = 'COPYRIGHT'
+    LICENSE = 'LICENSE'
+
+    def nonfrozen(self) -> AbsolutePath:
+        '''Return the path to the license/copyright file if the executable
+        is not frozen
+        '''
+
+        site_packages_dir = pathlib.Path(__file__).parents[1]
+        dist_info_dir_name = f'{md.NAME.lower()}-{md.VERSION}.dist-info'
+        dist_info_dir = site_packages_dir / dist_info_dir_name
+        if dist_info_dir.exists(): # installed with 'pip'
+            return str(dist_info_dir / self.value)
+        return super().nonfrozen()
+
+    def frozen(self) -> AbsolutePath:
+        '''Return the path to the license/copyright file if the executable
+        is frozen
+        '''
+
+        if USER:
+            if sys.platform.startswith('linux'):
+                license_dir = pathlib.Path(f'/usr/share/doc/{md.NAME.lower()}')
+                return str(license_dir / self.value)
+        return super().frozen()
+
+
 class DynamicResource(Resource):
     '''Represent dynamic resources (that are changed at run-time)'''
 

@@ -22,6 +22,7 @@ from unittest import TestCase, mock
 
 from PyQt5 import QtCore
 
+from myfyrio import metadata as md
 from myfyrio import resources
 
 RESOURCES = 'myfyrio.resources.'
@@ -175,6 +176,104 @@ class TestImageMethodGet(TestImage):
 
     def test_nonfrozen_called_if_app_is_not_frozen(self):
         with mock.patch(RESOURCES+'Image.nonfrozen') as mock_nonfrozen_call:
+            self.resource.get()
+
+        mock_nonfrozen_call.assert_called_once_with()
+
+
+class TestLicense(TestCase):
+
+    def setUp(self):
+        self.resource = resources.License.LICENSE
+
+
+class TestLicenseValues(TestLicense):
+
+    def test_COPYRIGHT_value(self):
+        self.assertEqual(resources.License.COPYRIGHT.value, 'COPYRIGHT')
+
+    def test_LICENSE_value(self):
+        self.assertEqual(resources.License.LICENSE.value, 'LICENSE')
+
+
+class TestLicenseMethodNonfrozen(TestLicense):
+
+    def setUp(self):
+        super().setUp()
+
+        self.real_file = resources.__file__
+        resources.__file__ = '/site-packages/app/resources.py'
+
+    def tearDown(self):
+        resources.__file__ = self.real_file
+
+    def test_return_path_with_dist_info_dir_in_it_if_installed_with_pip(self):
+        dist_dir = f'{md.NAME.lower()}-{md.VERSION}.dist-info'
+        with mock.patch('pathlib.Path.exists', return_value=True):
+            res = self.resource.nonfrozen()
+
+        self.assertEqual(
+            res, f'/site-packages/{dist_dir}/{self.resource.value}'
+        )
+
+    def test_return_super_path_if_not_installed_with_pip(self):
+        with mock.patch('pathlib.Path.exists', return_value=False):
+            with mock.patch(RESOURCES+'Resource.nonfrozen',
+                            return_value='superpath'):
+                res = self.resource.nonfrozen()
+
+        self.assertEqual(res, 'superpath')
+
+
+class TestLicenseMethodFrozen(TestLicense):
+
+    def setUp(self):
+        super().setUp()
+
+        self.real_file = sys.executable
+        self.real_platform = sys.platform
+
+    def tearDown(self):
+        sys.executable = self.real_file
+        sys.platform = self.real_platform
+        resources.USER = False
+
+    def test_return_super_path_if_not_USER(self):
+        resources.USER = False
+        with mock.patch(RESOURCES+'Resource.frozen', return_value='superpath'):
+            res = self.resource.frozen()
+
+        self.assertEqual(res, 'superpath')
+
+    def test_return_super_path_if_USER_and_not_Linux(self):
+        resources.USER = True
+        sys.platform = 'not_linux'
+        with mock.patch(RESOURCES+'Resource.frozen', return_value='superpath'):
+            res = self.resource.frozen()
+
+        self.assertEqual(res, 'superpath')
+
+    def test_return_path_with_usr_share_doc_app_in_it_if_USER_and_Linux(self):
+        resources.USER = True
+        sys.platform = 'linux'
+        expected = f'/usr/share/doc/{md.NAME.lower()}/{self.resource.value}'
+        res = self.resource.frozen()
+
+        self.assertEqual(res, expected)
+
+
+class TestLicenseMethodGet(TestLicense):
+
+    def test_frozen_called_if_app_is_frozen(self):
+        setattr(sys, 'frozen', True)
+        with mock.patch(RESOURCES+'License.frozen') as mock_frozen_call:
+            self.resource.get()
+        delattr(sys, 'frozen') # clean our garbage
+
+        mock_frozen_call.assert_called_once_with()
+
+    def test_nonfrozen_called_if_app_is_not_frozen(self):
+        with mock.patch(RESOURCES+'License.nonfrozen') as mock_nonfrozen_call:
             self.resource.get()
 
         mock_nonfrozen_call.assert_called_once_with()
