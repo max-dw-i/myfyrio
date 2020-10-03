@@ -34,7 +34,7 @@ def main() -> None:
     parser.add_argument('-u', '--user', action='store_true')
     args = parser.parse_args()
 
-    if args.user:
+    if args.user and getattr(sys, 'frozen', False):
         resources.USER = True
 
     Logger.setLogger()
