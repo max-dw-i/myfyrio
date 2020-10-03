@@ -329,88 +329,46 @@ class TestMethodSetImagePathLabel(TestDuplicateWidget):
 
 class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
 
-    PATCH_ERRN = 'myfyrio.gui.errornotifier.'
-    PLATFORM = sys.platform
+    PATCH_ERRM = 'myfyrio.gui.errornotifier.errorMessage'
+    PATCH_OPENFILE = 'myfyrio.gui.utils.openFile'
 
     def setUp(self):
         super().setUp()
 
+        self.real_platform = sys.platform
+
         self.mock_image.path = 'path'
 
     def tearDown(self):
-        sys.platform = self.PLATFORM
+        sys.platform = self.real_platform
 
-    def test_subprocess_run_called_with_linux_img_viewer_cmd(self):
-        sys.platform = 'linux'
-        with mock.patch('subprocess.run') as mock_run:
+    def test_openFile_called_with_image_path_arg(self):
+        with mock.patch(self.PATCH_OPENFILE) as mock_openFile:
             self.w.openImage()
 
-        mock_run.assert_called_once_with(
-            ['xdg-open', self.mock_image.path], check=True
-        )
-
-    def test_subprocess_run_called_with_win_img_viewer_cmd(self):
-        sys.platform = 'win32'
-        with mock.patch('subprocess.run') as mock_run:
-            self.w.openImage()
-
-        mock_run.assert_called_once_with(
-            ['explorer', self.mock_image.path], check=True
-        )
-
-    def test_subprocess_run_called_with_mac_img_viewer_cmd(self):
-        sys.platform = 'darwin'
-        with mock.patch('subprocess.run') as mock_run:
-            self.w.openImage()
-
-        mock_run.assert_called_once_with(
-            ['open', self.mock_image.path], check=True
-        )
-
-    def test_subprocess_run_called_with_unknown_paltform(self):
-        sys.platform = 'whatever_platform'
-        with mock.patch('subprocess.run') as mock_run:
-            self.w.openImage()
-
-        mock_run.assert_called_once_with(
-            ['Unknown platform', self.mock_image.path], check=True
-        )
-
-    def test_log_error_if_subprocess_run_raise_FileNotFoundError(self):
-        with mock.patch('subprocess.run', side_effect=FileNotFoundError):
-            with mock.patch(self.PATCH_ERRN+'errorMessage'):
-                with self.assertLogs('main.duplicatewidget', 'ERROR'):
-                    self.w.openImage()
-
-    def test_call_errorMessage_if_subprocess_run_raise_FileNotFoundError(self):
-        with mock.patch('subprocess.run', side_effect=FileNotFoundError):
-            with mock.patch(self.PATCH_ERRN+'errorMessage') as mock_msg_call:
-                self.w.openImage()
-
-        err_msg = ['Image at "path" does not exist']
-        mock_msg_call.assert_called_once_with(err_msg)
+        mock_openFile.assert_called_once_with('path')
 
     def test_log_error_if_subprocess_run_raise_CalledProcessError(self):
-        with mock.patch('subprocess.run',
+        with mock.patch(self.PATCH_OPENFILE,
                         side_effect=CalledProcessError(0, 'cmd')):
-            with mock.patch(self.PATCH_ERRN+'errorMessage'):
+            with mock.patch(self.PATCH_ERRM):
                 with self.assertLogs('main.duplicatewidget', 'ERROR'):
                     self.w.openImage()
 
     def test_call_errorMessage_if_raise_CalledProcessError_and_not_Win(self):
-        with mock.patch('subprocess.run',
+        with mock.patch(self.PATCH_OPENFILE,
                         side_effect=CalledProcessError(0, 'cmd')):
-            with mock.patch(self.PATCH_ERRN+'errorMessage') as mock_msg_call:
+            with mock.patch(self.PATCH_ERRM) as mock_msg_call:
                 self.w.openImage()
 
-        err_msg = ['Something went wrong while opening the "path" image']
+        err_msg = ["Something went wrong while opening 'path'"]
         mock_msg_call.assert_called_once_with(err_msg)
 
     def test_not_call_errorMessage_if_raise_CalledProcessError_and_Win(self):
         sys.platform = 'win-32'
-        with mock.patch('subprocess.run',
+        with mock.patch(self.PATCH_OPENFILE,
                         side_effect=CalledProcessError(0, 'cmd')):
-            with mock.patch(self.PATCH_ERRN+'errorMessage') as mock_msg_call:
+            with mock.patch(self.PATCH_ERRM) as mock_msg_call:
                 self.w.openImage()
 
         mock_msg_call.assert_not_called()

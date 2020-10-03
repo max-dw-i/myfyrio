@@ -29,11 +29,12 @@ from typing import TYPE_CHECKING, Callable
 from PyQt5 import QtCore, QtWidgets
 
 from myfyrio import core
-from myfyrio.gui import errornotifier, infolabel, thumbnailwidget
+from myfyrio.gui import errornotifier, infolabel, thumbnailwidget, utils
 from myfyrio.logger import Logger
 
 if TYPE_CHECKING:
     from myfyrio import config
+    from PyQt5 import QtGui
 
 logger = Logger.getLogger('duplicatewidget')
 
@@ -131,27 +132,13 @@ class DuplicateWidget(QtWidgets.QWidget):
     def openImage(self) -> None:
         '''Open the image in the OS default image viewer'''
 
-        if sys.platform.startswith('linux'):
-            command = 'xdg-open'
-        elif sys.platform.startswith('win32'):
-            command = 'explorer'
-        elif sys.platform.startswith('darwin'):
-            command = 'open'
-        else:
-            command = 'Unknown platform'
-
         path = self.image.path
 
         try:
-            subprocess.run([command, path], check=True)
-
-        except FileNotFoundError:
-            err_msg = f'Image at "{path}" does not exist'
-            logger.exception(err_msg)
-            errornotifier.errorMessage([err_msg])
+            utils.openFile(path)
 
         except subprocess.CalledProcessError:
-            err_msg = f'Something went wrong while opening the "{path}" image'
+            err_msg = f"Something went wrong while opening '{path}'"
             logger.exception(err_msg)
             # Crazy hack: on Windows, for some reason, 'explorer's exit code
             # is 1, even though the image is opened in the image viewer, so
@@ -186,7 +173,7 @@ class DuplicateWidget(QtWidgets.QWidget):
             else:
                 self.imagePathLabel.setText(self.image.path)
 
-    def contextMenuEvent(self, event) -> None:
+    def contextMenuEvent(self, event: 'QtGui.QContextMenuEvent') -> None:
         menu = QtWidgets.QMenu(self)
         openAction = menu.addAction('Open')
         menu.addSeparator()
@@ -214,12 +201,12 @@ class DuplicateWidget(QtWidgets.QWidget):
 
         self.clicked.emit()
 
-    def mouseReleaseEvent(self, event) -> None:
+    def mouseReleaseEvent(self, event: 'QtGui.QMouseEvent') -> None:
         self.selected = not self.selected
 
         event.ignore()
 
-    def hideEvent(self, event) -> None:
+    def hideEvent(self, event: 'QtGui.QHideEvent') -> None:
         self.hidden.emit()
 
         event.accept()
