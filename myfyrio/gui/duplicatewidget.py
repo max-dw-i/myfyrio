@@ -143,7 +143,7 @@ class DuplicateWidget(QtWidgets.QWidget):
             # Crazy hack: on Windows, for some reason, 'explorer's exit code
             # is 1, even though the image is opened in the image viewer, so
             # we do not show the error message to the user
-            if not sys.platform.startswith('win'):
+            if not sys.platform.startswith('win32'):
                 errornotifier.errorMessage([err_msg])
 
     def renameImage(self) -> None:

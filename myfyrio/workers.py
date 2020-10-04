@@ -276,7 +276,7 @@ class ImageProcessing(QtCore.QObject):
 
     def _available_cores(self) -> int:
         cores = self._conf['cores']
-        if sys.platform.startswith('win'):
+        if sys.platform.startswith('win32'):
             # Windows does not support 'sched_getaffinity'
             return cores
 

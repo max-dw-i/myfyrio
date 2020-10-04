@@ -58,7 +58,7 @@ class LicensingLabel(QtWidgets.QLabel):
             # Crazy hack: on Windows, for some reason, 'explorer's exit code
             # is 1, even though the directory is opened in the file manager, so
             # we do not show the error message to the user
-            if not sys.platform.startswith('win'):
+            if not sys.platform.startswith('win32'):
                 errornotifier.errorMessage([err_msg])
 
     def mouseReleaseEvent(self, event: 'QtGui.QMouseEvent') -> None:

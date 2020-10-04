@@ -365,7 +365,7 @@ class TestDuplicateWidgetMethodOpenImage(TestDuplicateWidget):
         mock_msg_call.assert_called_once_with(err_msg)
 
     def test_not_call_errorMessage_if_raise_CalledProcessError_and_Win(self):
-        sys.platform = 'win-32'
+        sys.platform = 'win32'
         with mock.patch(self.PATCH_OPENFILE,
                         side_effect=CalledProcessError(0, 'cmd')):
             with mock.patch(self.PATCH_ERRM) as mock_msg_call:

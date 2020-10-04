@@ -140,11 +140,11 @@ class DynamicResource(Resource):
         if USER:
             home_dir = pathlib.Path.home()
             name = md.NAME
-            if sys.platform.startswith('win'):
-                appdata_dir = home_dir.joinpath('AppData', 'Local', name)
-            else:
-                appdata_dir = home_dir / f'.{name.lower()}'
-            return str(appdata_dir / self.value)
+            val = self.value
+            if sys.platform.startswith('win32'):
+                return str(home_dir.joinpath('AppData', 'Local', name, val))
+            if sys.platform.startswith('linux'):
+                return str(home_dir.joinpath(f'.{name.lower()}', val))
         return super().frozen()
 
 

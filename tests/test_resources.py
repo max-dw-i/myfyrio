@@ -330,6 +330,14 @@ class TestConfigMethodFrozen(TestConfig):
 
         self.assertEqual(res, 'superpath')
 
+    def test_return_super_path_if_USER_and_not_Win_and_not_Linux(self):
+        resources.USER = True
+        sys.platform = 'not_Win32_and_not_Linux'
+        with mock.patch(RESOURCES+'Resource.frozen', return_value='superpath'):
+            res = self.resource.frozen()
+
+        self.assertEqual(res, 'superpath')
+
     def test_return_AppData_path_if_USER_and_Win(self):
         resources.USER = True
         sys.platform = 'win32'
@@ -419,6 +427,14 @@ class TestCacheMethodFrozen(TestCache):
 
         self.assertEqual(res, 'superpath')
 
+    def test_return_super_path_if_USER_and_not_Win_and_not_Linux(self):
+        resources.USER = True
+        sys.platform = 'not_Win32_and_not_Linux'
+        with mock.patch(RESOURCES+'Resource.frozen', return_value='superpath'):
+            res = self.resource.frozen()
+
+        self.assertEqual(res, 'superpath')
+
     def test_return_AppData_path_if_USER_and_Win(self):
         resources.USER = True
         sys.platform = 'win32'
@@ -503,6 +519,14 @@ class TestLogMethodFrozen(TestLog):
 
     def test_return_super_path_if_not_USER(self):
         resources.USER = False
+        with mock.patch(RESOURCES+'Resource.frozen', return_value='superpath'):
+            res = self.resource.frozen()
+
+        self.assertEqual(res, 'superpath')
+
+    def test_return_super_path_if_USER_and_not_Win_and_not_Linux(self):
+        resources.USER = True
+        sys.platform = 'not_Win32_and_not_Linux'
         with mock.patch(RESOURCES+'Resource.frozen', return_value='superpath'):
             res = self.resource.frozen()
 
