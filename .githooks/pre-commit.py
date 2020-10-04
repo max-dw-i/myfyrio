@@ -28,7 +28,7 @@ import sys
 from xml.etree import ElementTree
 
 # __file__ is symlink from ./.git/hook so the index == 2 (not 1)
-project_dir = pathlib.Path(__file__).parents[2].resolve()
+project_dir = pathlib.Path(__file__).parents[1].resolve()
 sys.path.append(str(project_dir))
 
 # pylint:disable=wrong-import-position
@@ -50,23 +50,19 @@ main_name = main_ui.name
 about_name = about_ui.name
 md_name = pathlib.Path(md.__file__).name
 
-msg = ''
-
-app_name = md.NAME
-
-if app_name != ui_field_text(main_ui, 'MainWindow'):
+if md.NAME != ui_field_text(main_ui, 'MainWindow'):
     raise ValueError(f"Names in '{main_name}' and '{md_name}' don't match")
 
-if app_name != ui_field_text(about_ui, 'nameLbl'):
+if md.NAME != ui_field_text(about_ui, 'nameLbl'):
     raise ValueError(f"Names in '{about_name}' and '{md_name}' don't match")
 
 if md.VERSION != ui_field_text(about_ui, 'versionLbl').split(' ')[-1]:
     raise ValueError(f"Versions in '{about_name}' and '{md_name}' don't match")
 
-copyright_label = ui_field_text(about_ui, 'copyrightLbl')
+copyright_parts = ui_field_text(about_ui, 'copyrightLbl').split(' ')
 
-if md.AUTHOR not in copyright_label:
-    raise ValueError(f"Author name in '{about_name}' may be wrong")
+if md.AUTHOR != f'{copyright_parts[3]} {copyright_parts[4]}':
+    raise ValueError(f"Author in '{about_name}' and '{md_name}' don't match")
 
-if md.AUTHOR_EMAIL not in copyright_label:
-    raise ValueError(f"Author email in '{about_name}' may be wrong")
+if md.AUTHOR_EMAIL != f'{copyright_parts[5][1:-1]}':
+    raise ValueError(f"Email in '{about_name}' and '{md_name}' don't match")
