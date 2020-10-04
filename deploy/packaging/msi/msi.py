@@ -37,6 +37,7 @@ sys.path.append(str(project_dir))
 # pylint:disable=wrong-import-position
 from deploy import utils
 from myfyrio import metadata as md
+from myfyrio import resources
 
 
 def make_msi(dest_dir, wix_dir):
@@ -87,8 +88,14 @@ def _copy_exe(src_dir, pkg_files_dir):
 
 
 def _copy_licenses(src_dir, pkg_files_dir):
-    shutil.copyfile(src_dir / 'LICENSE', pkg_files_dir / 'LICENSE')
-    shutil.copyfile(src_dir / 'COPYRIGHT', pkg_files_dir / 'COPYRIGHT')
+    LICENSE = resources.License.LICENSE.value # pylint:disable=no-member
+    LICENSE_name = pathlib.Path(LICENSE).name
+    shutil.copy(src_dir / LICENSE_name, pkg_files_dir / LICENSE_name)
+
+    COPYRIGHT = resources.License.COPYRIGHT.value # pylint:disable=no-member
+    COPYRIGHT_name = pathlib.Path(COPYRIGHT).name
+    shutil.copy(src_dir / COPYRIGHT_name, pkg_files_dir / COPYRIGHT_name)
+
     shutil.copytree(src_dir / '3RD-PARTY-LICENSE',
                     pkg_files_dir / '3RD-PARTY-LICENSE')
 

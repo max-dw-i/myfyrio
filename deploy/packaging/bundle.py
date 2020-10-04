@@ -108,12 +108,15 @@ def copy_licenses(dest_dir, sysroot_dir):
 
 
 def _copy_app_license(dest_dir):
-    LICENSE = dest_dir / 'LICENSE'
-    COPYRIGHT = dest_dir / 'COPYRIGHT'
-    shutil.copyfile(project_dir / 'LICENSE', LICENSE)
-    shutil.copyfile(project_dir / 'COPYRIGHT', COPYRIGHT)
-    os.chmod(LICENSE, 0o644)
-    os.chmod(COPYRIGHT, 0o644)
+    LICENSE = resources.License.LICENSE.get() # pylint:disable=no-member
+    LICENSE_copy = dest_dir / pathlib.Path(LICENSE).name
+    shutil.copyfile(LICENSE, LICENSE_copy)
+    os.chmod(LICENSE_copy, 0o644)
+
+    COPYRIGHT = resources.License.COPYRIGHT.get() # pylint:disable=no-member
+    COPYRIGHT_copy = dest_dir / pathlib.Path(COPYRIGHT).name
+    shutil.copyfile(COPYRIGHT, COPYRIGHT_copy)
+    os.chmod(COPYRIGHT_copy, 0o644)
 
 
 def _copy_thirdparty_licenses(dest_dir):

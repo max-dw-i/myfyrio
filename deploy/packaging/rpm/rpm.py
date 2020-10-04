@@ -96,10 +96,16 @@ def _copy_licenses(src_dir, temp_pkg_dir):
     exe_name = md.NAME.lower()
     doc_dir = pathlib.Path(f'usr/share/doc/{exe_name}')
     pkg_doc_dir = temp_pkg_dir / doc_dir
-
     pkg_doc_dir.mkdir(parents=True)
-    shutil.copy(src_dir / 'LICENSE', pkg_doc_dir / 'LICENSE')
-    shutil.copy(src_dir / 'COPYRIGHT', pkg_doc_dir / 'COPYRIGHT')
+
+    LICENSE = resources.License.LICENSE.value # pylint:disable=no-member
+    LICENSE_name = pathlib.Path(LICENSE).name
+    shutil.copy(src_dir / LICENSE_name, pkg_doc_dir / LICENSE_name)
+
+    COPYRIGHT = resources.License.COPYRIGHT.value # pylint:disable=no-member
+    COPYRIGHT_name = pathlib.Path(COPYRIGHT).name
+    shutil.copy(src_dir / COPYRIGHT_name, pkg_doc_dir / COPYRIGHT_name)
+
     shutil.copytree(src_dir / '3RD-PARTY-LICENSE',
                     pkg_doc_dir / '3RD-PARTY-LICENSE')
 

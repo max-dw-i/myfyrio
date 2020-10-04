@@ -83,7 +83,12 @@ def generate_PKGBUILD(pkg_root_dir):
     :param pkg_root_dir: package root directory
     '''
 
-    icon_name = pathlib.Path(resources.Image.ICON.value).name # pylint:disable=no-member
+    icon = resources.Image.ICON.value # pylint:disable=no-member
+    icon_name = pathlib.Path(icon).name
+    LICENSE = resources.License.LICENSE.value # pylint:disable=no-member
+    LICENSE_name = pathlib.Path(LICENSE).name
+    COPYRIGHT = resources.License.COPYRIGHT.value # pylint:disable=no-member
+    COPYRIGHT_name = pathlib.Path(COPYRIGHT).name
 
     fields = [
         f'# Maintainer: {md.AUTHOR} <{md.AUTHOR_EMAIL}>',
@@ -116,8 +121,8 @@ def generate_PKGBUILD(pkg_root_dir):
         '    doc_dir=$pkgdir/usr/share/doc/$pkgname',
         '    mkdir -p $doc_dir',
         '    cp -rfa 3RD-PARTY-LICENSE $doc_dir/3RD-PARTY-LICENSE',
-        '    cp -fa LICENSE $doc_dir',
-        '    cp -fa COPYRIGHT $doc_dir',
+        f'    cp -fa {LICENSE_name} $doc_dir',
+        f'    cp -fa {COPYRIGHT_name} $doc_dir',
         '}'
     ]
 
