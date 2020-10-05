@@ -20,7 +20,7 @@ import argparse
 import multiprocessing
 import sys
 
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtWidgets import QApplication, QMessageBox
 
 from myfyrio import resources
 from myfyrio.gui import mainwindow
@@ -37,12 +37,20 @@ def main() -> None:
     if args.user and getattr(sys, 'frozen', False):
         resources.USER = True
 
-    Logger.setLogger()
-
     app = QApplication(sys.argv)
-    mw = mainwindow.MainWindow()
-    mw.show()
-    app.exec()
+
+    try:
+        Logger.setLogger()
+    except PermissionError:
+        msg = ('The programme is installed in a read-only directory. Install'
+               ' it in a directory you have write access to or run it in the'
+               " 'user' mode (with argument '-u')")
+        msg_box = QMessageBox(QMessageBox.Warning, 'Error', msg)
+        msg_box.exec()
+    else:
+        mw = mainwindow.MainWindow()
+        mw.show()
+        app.exec()
 
 
 if __name__ == '__main__':

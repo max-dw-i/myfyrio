@@ -40,6 +40,8 @@ class Logger:
         '''Set the programme's logger. The logger has level 'WARNING',
         rotates log files (2 files 2 MegaBytes each at most). Message format is
         'time - logger name - message level - messsage'
+
+        :raise PermissionError: have no permission for writing the log file
         '''
 
         logger = logging.getLogger(cls.NAME)
